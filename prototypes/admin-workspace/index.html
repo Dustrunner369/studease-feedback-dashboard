@@ -5,6 +5,7 @@
   Plan: three structurally different workspaces (A Triage queue, B Table + drawer, C Status board),
   switchable via ?variant=A|B|C, all on one throwaway page. Data is synthetic and in memory; nothing is saved.
   Run: python3 -m http.server 8124 -d prototypes/admin-workspace  ->  http://localhost:8124/?variant=B
+  Round 3: no charts, and no "new" pill: just the clean table (the user finds extra information overwhelming).
   Round 2: B (Table + drawer) is the user's pick. Ranked bars added on top; Settings holds AI call log, GitHub,
   Priority criteria (now read-only, set once, no versions) and Archive. A and C are kept, rejected, for reference.
   The variants share the same Problem data and the same merge/split behaviour (the behaviour is part of the question,
@@ -523,11 +524,10 @@ function B(){
   const p=ui.pid&&prob(ui.pid);
   return `<div class="B">${head}<main>
     <div class="toolbar">${catTabs(open)}</div>
-    ${rankedBars(byTab(open))}
     <table class="pt"><thead><tr><th></th>${th("title","Problem")}${th("status","Status")}${th("ups","Requests")}${th("rec","✦ Recommended")}<th>Priority</th></tr></thead><tbody>
-    ${list.map(q=>{const n=q.status==="New"?"new":newFrs(q).length?`+${newFrs(q).length} new`:"";
+    ${list.map(q=>{
       return `<tr class="${ui.sel.has(q.id)?"sel":""} ${p===q?"open":""}"><td><input type="checkbox" data-act="sel" data-id="${q.id}" ${ui.sel.has(q.id)?"checked":""} aria-label="Select ${esc(q.title)}"></td>
-      <td class="t" data-act="open" data-id="${q.id}">${esc(q.title)}${n?` <span class="pill ai">${n}</span>`:""}<span class="cat">${esc(q.cat)}</span></td><td>${esc(q.status)}</td><td class="num">${frsOf(q.id).length} · ${ups(q.id)} ▲</td><td>${recPill(q)}</td><td>${prioPill(q)}${q.priority&&q.priority!==rec(q).level?` <span title="${esc(q.overrideReason||"reason missing")}">✎</span>`:""}</td></tr>`;}).join("")}
+      <td class="t" data-act="open" data-id="${q.id}">${esc(q.title)}<span class="cat">${esc(q.cat)}</span></td><td>${esc(q.status)}</td><td class="num">${frsOf(q.id).length} · ${ups(q.id)} ▲</td><td>${recPill(q)}</td><td>${prioPill(q)}${q.priority&&q.priority!==rec(q).level?` <span title="${esc(q.overrideReason||"reason missing")}">✎</span>`:""}</td></tr>`;}).join("")}
     </tbody></table>
     ${ui.sel.size>=2?`<div class="mergebar">${ui.sel.size} Problems selected <button class="btn sm" data-act="mergeSel">Merge…</button><button class="btn sm quiet" data-act="selclear">Clear</button></div>`:ui.sel.size===1?`<p class="caption" style="text-align:center;margin-top:var(--md)">Select one more to merge.</p>`:""}
   </main>
@@ -634,7 +634,7 @@ function doMerge(ids,keepId){
 }
 
 // ================= wiring =================
-const VARIANTS = {B:["Table + drawer · round 2",B],A:["Triage queue · rejected",A],C:["Status board · rejected",C]};
+const VARIANTS = {B:["Table + drawer · round 3",B],A:["Triage queue · rejected",A],C:["Status board · rejected",C]};
 const keys = Object.keys(VARIANTS);
 let variant = new URLSearchParams(location.search).get("variant"); if(!VARIANTS[variant]) variant="B";
 function render(){
