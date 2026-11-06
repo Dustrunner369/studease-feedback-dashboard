@@ -20,6 +20,10 @@ _Avoid_: Vote, +1, like
 The underlying customer need that one or more Feature Requests point to. The product team can rename, merge or split it; Requesters see it only after the team moves it to a status shown on the portal (e.g. In progress).
 _Avoid_: Theme, cluster, category, duplicate group
 
+**Category**:
+One of seven fixed areas of the Studease app (Finding spots, Adding & editing spots, Spot details, Visits, Profile & account, Social, Other). A Requester picks one when submitting a Feature Request, and that pick is never changed; each Problem has its own Category, which decides where its Feature Requests are listed.
+_Avoid_: Tag, type, area, section
+
 **Priority Criteria**:
 The written, versioned rules a Problem is scored against: Studease's product goals, the four criteria (Reach, Pain, Strategic fit, Retention risk), what each rating level means, the weights, and the level cut-offs.
 _Avoid_: Rubric, scoring rules, framework
@@ -35,3 +39,11 @@ _Avoid_: Rank, importance, severity
 **Archive**:
 The record of Problems the product team has closed as Shipped or Won't do; their Recommended Priority is frozen at the moment they were closed.
 _Avoid_: History, done list, graveyard
+
+**Decision Brief**:
+A one-page AI summary of a single Problem, written from all its linked Feature Requests, that helps the product team decide its Priority and status. It summarises the evidence and recommends no decision.
+_Avoid_: Brief summary, report, AI summary, recommendation
+
+**Citation**:
+A link from a claim in a Decision Brief to the Feature Requests that support it, optionally with words quoted exactly from one of them.
+_Avoid_: Source, reference, footnote, evidence link

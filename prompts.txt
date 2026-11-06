@@ -82,3 +82,51 @@ Response: Posted the resolution on "Write the business criteria for AI priority 
 [2026-11-06T04:39:49Z]
 Prompt: Asked to commit and push the uncommitted files.
 Response: Committed GLOSSARY.md, ai-costs.txt, assumptions.txt and prompts.txt to main and pushed.
+
+[2026-11-06T04:41:10Z]
+Prompt: /mattpocock-skills:wayfinder with "Map: Studease Feature Intelligence System" (work the map; no ticket named).
+Response: Loaded the map, took the first frontier ticket "Define the fixed category list" and claimed it; read the Studease mobile-app docs (only two tabs exist: Spots and Profile) and asked grilling round 1 on what the categories are based on, the draft list, a catch-all, one category per Problem, who sets it, where it shows, and whether it affects priority.
+
+[2026-11-06T04:57:09Z]
+Prompt: Category round 1: use the 7 categories from Q2; each one should be a tab; Requesters pick the category from a dropdown when submitting a Feature Request; yes to the rest.
+Response: Flagged that a Requester-picked category conflicts with the category being set on the Problem by the AI, and asked round 2: where the tabs live, the All tab, whether the dropdown is required, how the Requester's pick relates to the Problem's category, which category the tabs filter by, and whether matching and suggestions search every category.
+
+[2026-11-06T05:04:14Z]
+Prompt: Category round 2: yes to all (tabs on the portal and /admin, All tab first by default, required dropdown with no default, Requester's pick kept separate from the Problem's Category, tabs use the Problem's Category, matching and suggestions search every category).
+Response: Added Category to GLOSSARY.md and drafted the ticket's resolution for confirmation.
+
+[2026-11-06T05:04:54Z]
+Prompt: Confirmed the category resolution; asked to post it and close the ticket.
+Response: Posted the resolution on "Define the fixed category list", closed it, added it to the map's Decisions so far, and noted the category tabs and submit dropdown in the map's /admin screens and Public Problem page fog. GLOSSARY.md and prompts.txt are changed but not committed.
+
+[2026-11-06T05:05:56Z]
+Prompt: Asked to see what's left on the task list.
+Response: Listed the map's open tickets with their type, claim and blockers.
+
+[2026-11-06T05:07:47Z]
+Prompt: /mattpocock-skills:wayfinder with "Studease Feature Intelligence System map" (work the map; no ticket named).
+Response: Loaded the map, took the first frontier ticket "Decide what the cited decision brief contains" and claimed it; asked grilling round 1 on who reads the brief, when it is generated, its sections, how citations work and are checked, what the AI is given, whether it recommends a decision, and sharing.
+
+[2026-11-06T05:16:18Z]
+Prompt: Brief round 1: yes to Q1-3 and Q5-7 (PM reader, button with out-of-date notice, five sections, inputs without emails or Recommended Priority, no verdict, no copy button); asked what a citation is (Q4).
+Response: Explained citations with a worked example and re-asked Q4, plus a new question on what makes a saved brief out of date.
+
+[2026-11-06T05:21:38Z]
+Prompt: Asked what a brief is.
+Response: Explained the decision brief with a full worked example of one for a sample Problem; left Q4 (checked citations) and Q8 (out-of-date triggers) open.
+
+[2026-11-06T05:23:08Z]
+Prompt: Brief round 2: yes to Q4 (strict claim form with code-checked citations) and Q8 (any change to the Problem's Feature Requests marks the brief out of date).
+Response: Added Decision Brief and Citation to GLOSSARY.md, and drafted the ticket's resolution and a proposed assumption 12 for confirmation.
+
+[2026-11-06T05:24:17Z]
+Prompt: Asked to add the proposed assumption to assumptions.txt.
+Response: Added assumption 12 (Small Problems: a Decision Brief sends every linked Feature Request in one call) and asked whether to post the drafted resolution and close the ticket.
+
+[2026-11-06T05:24:55Z]
+Prompt: Confirmed the decision brief resolution; asked to post it and close the ticket.
+Response: Posted the resolution on "Decide what the cited decision brief contains", closed it, added it to the map's Decisions so far, and noted the brief's layout in the map's /admin screens fog. GLOSSARY.md, assumptions.txt and prompts.txt are changed but not committed.
+
+[2026-11-06T05:25:15Z]
+Prompt: Asked to commit and push the uncommitted files.
+Response: Committed GLOSSARY.md, assumptions.txt and prompts.txt to main and pushed.
