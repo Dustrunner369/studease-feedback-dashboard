@@ -35,6 +35,9 @@ ESTIMATED COST PER SEED LOAD (~150 Feature Requests through the real pipeline)
 - Per request: embedding (~$0.000002) + Luna matching (~$0.0002) + Luna priority scoring (~$0.0003) = ~$0.0005
 - Whole load: ~$0.08, plus a few cents of re-scores from the pre-set product-team actions. Re-seeding during the build is effectively free.
 
+ESTIMATED COST PER CONSISTENCY CHECK (Metrics panel "Run consistency check")
+- Every open Problem re-scored 3 times with Luna: ~15 Problems x 3 x ~$0.0003 = ~$0.01 per run. Saved Recommended Priorities are not changed.
+
 TALKING POINTS: WHY NOT JEV FOR MATCHING
 - At this traffic, Luna costs about 5 cents a month more than Jev.
 - What Luna buys: a written reason for every matching decision (observability), one vendor and key, the official OpenAI .NET library, and one consistent AI log.
