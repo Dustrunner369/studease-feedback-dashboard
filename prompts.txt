@@ -130,3 +130,19 @@ Response: Posted the resolution on "Decide what the cited decision brief contain
 [2026-11-06T05:25:15Z]
 Prompt: Asked to commit and push the uncommitted files.
 Response: Committed GLOSSARY.md, assumptions.txt and prompts.txt to main and pushed.
+
+[2026-11-06T05:26:37Z]
+Prompt: /mattpocock-skills:wayfinder with "Studease Feature Intelligence System map" (work the map; no ticket named).
+Response: Loaded the map, took the first frontier ticket "Should the portal use Studease's Firebase sign-in?" and claimed it; read the Studease auth plan (Firebase with email/password and Google only, Apple out of scope, handle-picking registration step, no web client yet, is_admin gates admin routes) and asked grilling round 1 on whether to use sign-in at all and where.
+
+[2026-11-06T05:30:34Z]
+Prompt: Sign-in round 1: Q1 (a) no sign-in anywhere; Q2 yes (browser remembers upvotes, per-IP rate limit) and log the assumptions; Q3 not applicable.
+Response: Added assumptions 13 (upvotes limited per browser, Reach can be inflated) and 14 (no sign-in anywhere; admin key for /admin) to assumptions.txt, and drafted the ticket's resolution for confirmation.
+
+[2026-11-06T05:31:38Z]
+Prompt: Confirmed the sign-in resolution; asked to post it and close the ticket.
+Response: Posted the resolution on "Should the portal use Studease's Firebase sign-in?", closed it, added it to the map's Decisions so far, removed the Admin access item from Not yet specified, and made the Data model and API item wait only on the AI design. "Prototype the portal in the Studease design system" is now unblocked. assumptions.txt and prompts.txt are changed but not committed.
+
+[2026-11-06T05:32:02Z]
+Prompt: Asked to commit and push the uncommitted files.
+Response: Committed assumptions.txt and prompts.txt to main and pushed.
