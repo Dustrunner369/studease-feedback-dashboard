@@ -9,3 +9,4 @@ Each line is an assumption the design depends on. If one stops being true, revis
 6. Synthetic demo backlog. The backlog shown in the demo is synthetic, clearly marked as seed data, and removable with one command after the Loom.
 7. Simple GitHub connection. /admin connects to one repo (Dustrunner369/studease, formerly study-spot-app, for the demo; /admin saves the repo's current name on connect) using a fine-grained personal access token stored as a server secret. A production version would use a GitHub App.
 8. No real email delivery. Requester updates are shown in an outbox in /admin exactly as they would be sent, but are not actually delivered. A live version would send them through a transactional email service.
+9. Jev left out of the first version. Matching uses OpenAI's small model rather than Jev so every decision has a written reason and everything goes through one vendor. At very high volume, Jev would be reconsidered for matching (see ai-costs.txt).

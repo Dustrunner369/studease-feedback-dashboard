@@ -34,3 +34,23 @@ Response: Closed the Suggest Solutions research ticket with the chosen approach 
 Prompt: Asked to commit and push the planning files and remove the research worktrees.
 Response: Removed both research worktrees and their local branches, then committed CLAUDE.md, prompts.txt, GLOSSARY.md, assumptions.txt and docs/ to main and pushed.
 
+[2026-11-06T03:39:12Z]
+Prompt: /mattpocock-skills:wayfinder with "Map: Studease Feature Intelligence System" (work through the map).
+Response: Loaded the map, took the first frontier ticket (Choose the model for each AI step), claimed it, and started grilling on model choice.
+
+[2026-11-06T03:47:34Z]
+Prompt: Model-choice round 1: yes to OpenAI for everything but wants the price differences and the tradeoffs of not using a fast, cheap model like Jev; yes to two-stage matching; asked what the fixed-format (structured output) question means; leaning to two model sizes but wants to try it out.
+Response: Started a background lookup of current OpenAI models and prices from OpenAI's docs, explained structured output with an example, and asked follow-ups on structured output and on how to try the two sizes.
+
+[2026-11-06T03:58:34Z]
+Prompt: Model-choice round 2: yes to strict fixed-form (structured) outputs; yes to two sizes with per-step model config and a seed-backlog comparison run; chose gpt-6.1-sol for the brief and Suggest Solutions (Astra too expensive), gpt-6-luna for everything else, text-embedding-3-small for embeddings; asked to keep a log of these costs.
+Response: Created ai-costs.txt (chosen models, alternatives, per-call and monthly estimates, Jev talking points, caveats), added the Jev assumption to assumptions.txt, and summarised the ticket's resolution for confirmation.
+
+[2026-11-06T04:02:03Z]
+Prompt: Confirmed reasoning effort (Luna none/lowest, Sol medium) and the full model-choice resolution.
+Response: Posted the resolution on "Choose the model for each AI step", closed it, and added it to the map's decisions; the suggest-as-you-type prototype ticket is now unblocked.
+
+[2026-11-06T04:02:43Z]
+Prompt: Asked to commit and push the uncommitted files.
+Response: Committed ai-costs.txt, assumptions.txt and prompts.txt to main and pushed.
+

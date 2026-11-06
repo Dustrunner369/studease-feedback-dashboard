@@ -1,0 +1,42 @@
+AI cost log: Studease Feature Intelligence System
+Prices are from OpenAI's docs (developers.openai.com) and TypeSafe AI's docs, checked 2026-11-05, Standard tier, USD per 1M tokens.
+Token counts per call are planning estimates, not measurements. Replace them with real numbers from the AI call log after the seed-backlog comparison run.
+
+CHOSEN MODELS
+- Embeddings (suggest-as-you-type, Problem shortlist): text-embedding-3-small, 1536 dims, $0.02 input
+- Small tier (matching, file picker, public wording, Requester update drafts): gpt-6-luna, $0.10 input / $0.50 output
+- Large tier (decision brief, Suggest Solutions): gpt-6.1-sol, $2.00 input / $10.00 output
+
+ALTERNATIVES CONSIDERED
+- gpt-6-astra (OpenAI's strongest/default): $10.00 input / $50.00 output, about 5x Sol. Rejected as too expensive.
+- Jev (TypeSafe AI): $0.042 input / output free. Fits matching only; writes no text, makes no embeddings, gives no written reason. Waitlisted access (the user has a key).
+
+ESTIMATED COST PER CALL
+Step                              Model   Tokens in / out   Per call
+Matching                          Luna    1,500 / 150       ~$0.0002
+Matching (alternative)            Jev     1,500 / -         ~$0.00006
+Decision brief                    Sol     20,000 / 2,000    ~$0.06
+Decision brief (alternative)      Astra   20,000 / 2,000    ~$0.30
+Suggest Solutions, write call     Sol     40,000 / 3,000    ~$0.11
+Suggest Solutions (alternative)   Astra   40,000 / 3,000    ~$0.55
+Suggest Solutions, file picker    Luna    ~3,000 / ~300     under $0.001
+Public wording, email drafts      Luna    ~1,000 / ~300     under $0.001
+Embedding one request             3-small ~100 / -          ~$0.000002
+
+ESTIMATED MONTHLY COST (low traffic: 300 submissions, 20 briefs, 20 Suggest Solutions runs, 200 emails)
+- Matching: Luna ~$0.07 vs Jev ~$0.02 (about 5 cents/month difference)
+- At 100,000 submissions/month, matching would be ~$22 with Luna vs ~$6 with Jev
+- Briefs + Suggest Solutions: Sol ~$3.50/month vs Astra ~$17/month
+- Everything else: pennies
+
+TALKING POINTS: WHY NOT JEV FOR MATCHING
+- At this traffic, Luna costs about 5 cents a month more than Jev.
+- What Luna buys: a written reason for every matching decision (observability), one vendor and key, the official OpenAI .NET library, and one consistent AI log.
+- What it gives up: Jev's lower cost (only significant at very high volume) and probably its speed (TypeSafe claims 70-500 ms, from its own benchmarks).
+- At high volume, Jev becomes a candidate for matching, with the reason coming from somewhere else.
+
+CAVEATS
+- OpenAI lists no dated version IDs for GPT-6 models, so models can't be pinned; the AI log records the exact model name the API reports on each call.
+- Prompts over 272K input tokens cost 2x input and 1.5x output (not expected here).
+- OpenAI's Batch API is 50% off, relevant only if processing moves to scheduled batches at high volume.
+- Luna's cached-input price differs between two OpenAI pages ($0.01 vs $0.10); not material here.
