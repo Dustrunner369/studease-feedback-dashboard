@@ -4,7 +4,9 @@
   Question: how should the /admin triage workspace look and behave, in the Studease design system?
   Plan: three structurally different workspaces (A Triage queue, B Table + drawer, C Status board),
   switchable via ?variant=A|B|C, all on one throwaway page. Data is synthetic and in memory; nothing is saved.
-  Run: python3 -m http.server 8124 -d prototypes/admin-workspace  ->  http://localhost:8124/?variant=A
+  Run: python3 -m http.server 8124 -d prototypes/admin-workspace  ->  http://localhost:8124/?variant=B
+  Round 2: B (Table + drawer) is the user's pick. Ranked bars added on top; Settings holds AI call log, GitHub,
+  Priority criteria (now read-only, set once, no versions) and Archive. A and C are kept, rejected, for reference.
   The variants share the same Problem data and the same merge/split behaviour (the behaviour is part of the question,
   so it is identical everywhere); they differ in layout, hierarchy and the main way in.
   AI results are canned: Generate brief, Suggest Solutions, re-scoring and the consistency check only pretend to call the AI.
@@ -172,6 +174,26 @@ textarea{width:100%;min-height:70px;resize:vertical}
 @keyframes slide{from{transform:translateX(30px);opacity:0}to{transform:none;opacity:1}}
 .B .drawer h2{font-size:22px}
 .B details summary{cursor:pointer;font-weight:700;padding:6px 0}
+/* round 2: ranked bars (ordinal one-hue ramp, validated on the paper surface) */
+:root{--lv-High:#6E3520;--lv-Medium:#A85C3B;--lv-Low:#C99272}
+.B .top{display:grid;gap:10px;margin-bottom:var(--lg)}
+.B .legend{display:flex;gap:14px;font-size:12px;color:var(--muted)}
+.B .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.B .bars{display:grid;grid-template-columns:minmax(140px,240px) minmax(0,1fr);row-gap:2px;column-gap:var(--sm);align-items:center}
+.B .bars .name{font-size:13.5px;font-weight:600;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.B .bars .track{position:relative;height:26px;display:flex;align-items:center;cursor:pointer}
+.B .bars .track::before{content:"";position:absolute;inset:0 0 0 0;border-left:1.5px solid var(--ink)}
+.B .bars .bar{height:18px;border-radius:0 4px 4px 0;transition:opacity var(--micro)}
+.B .bars .val{margin-left:8px;font-size:12.5px;white-space:nowrap}
+.B .bars .val b{font-weight:800}
+.B .bars .row-h:hover .bar,.B .bars .row-h.hl .bar{opacity:.8}
+.B .bars .row-h{display:contents}
+.B .axis{grid-column:2;position:relative;height:18px;font-size:11px;color:var(--muted);border-top:1px solid var(--line)}
+.B .axis span{position:absolute;top:2px;transform:translateX(-50%);white-space:nowrap}
+.B .axis span:first-child{transform:none}
+.B .pt td.t .cat{display:block;font-weight:400}
+.B .subnav{display:flex;gap:4px;margin-bottom:var(--md);border-bottom:1px solid var(--line);padding-bottom:var(--sm)}
+#tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--bg);font-size:12.5px;padding:7px 10px;border-radius:10px;z-index:70;max-width:260px;display:none;line-height:1.35}
 
 /* ---------- Variant C: Status board (columns by status, full-page Problem) ---------- */
 .C{padding:var(--lg)}
@@ -203,6 +225,7 @@ textarea{width:100%;min-height:70px;resize:vertical}
 <body>
 <div id="app"></div>
 <div id="toast" role="status"></div>
+<div id="tip" role="tooltip"></div>
 <div id="switcher" aria-label="Prototype variant switcher">
   <button id="prev" aria-label="Previous variant">←</button>
   <span id="vlabel"></span>
@@ -320,7 +343,7 @@ function priorityBlock(p,{compact=false}={}){
   const r=rec(p), diff=p.priority&&p.priority!==r.level;
   return `<div class="prio">
     <div class="levels">
-      <div class="lv"><span class="label">✦ Recommended</span><b>${r.level} <span class="caption">${r.score}/100</span></b><span class="caption">Criteria v${p.version}</span></div>
+      <div class="lv"><span class="label">✦ Recommended</span><b>${r.level} <span class="caption">${r.score}/100</span></b></div>
       <div class="lv"><span class="label">Priority (yours)</span>
         <div class="row" style="margin-top:4px">${["High","Medium","Low"].map(l=>`<button class="btn sm ${p.priority===l?"":"ghost"}" data-act="prio" data-id="${p.id}" data-v="${l}">${l}</button>`).join("")}</div></div>
     </div>
@@ -392,12 +415,12 @@ const logView = ()=>`<div class="stack"><div><h2>AI call log</h2><p class="muted
 const ghView = ()=>`<div class="stack" style="max-width:620px"><div><h2>GitHub</h2><p class="muted">One connected repo. Suggest Solutions reads it; "Create GitHub issue" writes to it. Linked issues are checked when /admin loads.</p></div>
   <div class="box stack" style="gap:8px"><div class="spread"><b>Dustrunner369/studease</b><span class="pill Low">Connected</span></div><span class="caption">Fine-grained token (server secret), issues: read & write, contents: read · saved repo name on connect · last checked Nov 6 09:12</span>
   <div class="row"><button class="btn sm ghost" data-act="noop">Replace token</button><button class="btn sm quiet" data-act="noop">Disconnect</button></div></div></div>`;
-function criteriaView(){
-  return `<div class="stack" style="max-width:860px"><div class="spread"><div><h2>Priority Criteria <span class="pill">v${criteriaVersion}</span></h2><p class="muted">Every save makes a new version; each Recommended Priority records the version it was scored against.</p></div><button class="btn" data-act="savecrit">Save as v${criteriaVersion+1}</button></div>
-  <div class="box"><span class="label">Studease product goals (for Strategic fit)</span><ol style="margin:6px 0 0">${GOALS.map(g=>`<li contenteditable="true">${esc(g)}</li>`).join("")}</ol></div>
-  <div class="box"><table class="tbl"><thead><tr><th>Criterion</th><th>Weight</th><th>Rated by</th></tr></thead><tbody>${Object.values(CRIT).map(([n,w])=>`<tr><td>${n}</td><td><input type="text" value="${w}" style="width:56px"></td><td>${n==="Reach"?"Code: Feature Requests × 3 + Upvotes, bands &lt;3 / 3–9 / 10–19 / 20–39 / 40+":"AI, 1–5 + reason"}</td></tr>`).join("")}</tbody></table>
-  <p class="caption" style="margin-top:8px">Levels: High ≥ <input type="text" value="70" style="width:44px">, Medium ≥ <input type="text" value="40" style="width:44px">, else Low.</p></div>
-  <div class="box"><table class="tbl"><thead><tr><th></th><th>Pain</th><th>Strategic fit</th><th>Retention risk</th></tr></thead><tbody>${[0,1,2,3,4].map(i=>`<tr><td><b>${i+1}</b></td><td contenteditable="true">${LEVEL_DESC.pain[i]}</td><td contenteditable="true">${LEVEL_DESC.fit[i]}</td><td contenteditable="true">${LEVEL_DESC.ret[i]}</td></tr>`).join("")}</tbody></table></div></div>`;
+function criteriaView(){ // round 2: set once in a config file, read-only here, no versions
+  return `<div class="stack" style="max-width:860px"><div><h2>Priority Criteria</h2><p class="muted">Set once in the repo's config file and left alone; shown here so you can see how every Recommended Priority is worked out. Read-only.</p></div>
+  <div class="box"><span class="label">Studease product goals (for Strategic fit)</span><ol style="margin:6px 0 0">${GOALS.map(g=>`<li>${esc(g)}</li>`).join("")}</ol></div>
+  <div class="box"><table class="tbl"><thead><tr><th>Criterion</th><th>Weight</th><th>Rated by</th></tr></thead><tbody>${Object.values(CRIT).map(([n,w])=>`<tr><td>${n}</td><td>${w}</td><td>${n==="Reach"?"Code: Feature Requests × 3 + Upvotes, bands &lt;3 / 3–9 / 10–19 / 20–39 / 40+":"AI, 1–5 + reason"}</td></tr>`).join("")}</tbody></table>
+  <p class="caption" style="margin-top:8px">Score = Σ weight × (rating − 1) / 4, so 0–100. Levels: High ≥ 70, Medium 40–69, Low &lt; 40.</p></div>
+  <div class="box"><table class="tbl"><thead><tr><th></th><th>Pain</th><th>Strategic fit</th><th>Retention risk</th></tr></thead><tbody>${[0,1,2,3,4].map(i=>`<tr><td><b>${i+1}</b></td><td>${LEVEL_DESC.pain[i]}</td><td>${LEVEL_DESC.fit[i]}</td><td>${LEVEL_DESC.ret[i]}</td></tr>`).join("")}</tbody></table></div></div>`;
 }
 const archiveView = ()=>{const a=problems.filter(p=>!isOpen(p));return `<div class="stack"><div><h2>Archive</h2><p class="muted">Problems closed as Shipped or Won't do. Their Recommended Priority is frozen at closing.</p></div>
   <table class="tbl"><thead><tr><th>Problem</th><th>Closed as</th><th>When</th><th>Recommended (frozen)</th><th>Priority</th><th>Note</th></tr></thead><tbody>${a.map(p=>`<tr><td><b>${esc(p.title)}</b><div class="caption">${frsOf(p.id).length} Feature Requests · ${ups(p.id)} Upvotes</div></td><td>${esc(p.status)}</td><td>${esc(p.closedAt||"today")}</td><td>${recPill(p)}</td><td>${prioPill(p)}</td><td class="caption">${esc(p.closedNote||"")}</td></tr>`).join("")}</tbody></table></div>`;};
@@ -472,21 +495,39 @@ function A(){
   return `<div class="A">${rail}<main>${body}</main></div>`;
 }
 
-// ================= Variant B: Table + drawer =================
+// ================= Variant B: Table + drawer (round 2: the user's pick) =================
+// Round 2: ranked bars on top so the top priority is seen, not read; a calmer table;
+// nav is Problems / Outbox / Metrics / Settings, and Settings holds AI call log, GitHub, Priority criteria (read-only), Archive.
+const SETTINGS = {log:["AI call log",logView],github:["GitHub",ghView],criteria:["Priority criteria",criteriaView],archive:["Archive",archiveView]};
+function rankedBars(list){
+  const ranked=[...list].sort((a,b)=>rec(b).score-rec(a).score);
+  if(!ranked.length) return "";
+  return `<section class="top" aria-label="Top priorities"><div class="spread"><h2 style="font-size:18px">Top priorities <span class="caption" style="font-weight:400">by ✦ Recommended score</span></h2>
+    <div class="legend">${["High","Medium","Low"].map(l=>`<span><i style="background:var(--lv-${l})"></i>${l}</span>`).join("")}<span>✎ your Priority differs</span></div></div>
+    <div class="bars">${ranked.map(p=>{const r=rec(p),d=p.priority&&p.priority!==r.level;
+      return `<div class="row-h ${ui.pid===p.id?"hl":""}" data-act="open" data-id="${p.id}" data-tip="${p.id}"><span class="name" data-act="open" data-id="${p.id}" data-tip="${p.id}">${esc(p.title)}</span>
+      <span class="track" data-act="open" data-id="${p.id}" data-tip="${p.id}"><span class="bar" style="width:${Math.max(r.score,2)*0.85}%;background:var(--lv-${r.level})"></span><span class="val"><b>${r.score}</b> ${r.level}${d?` · ✎ ${p.priority}`:""}</span></span></div>`;}).join("")}
+      <div class="axis">${[[0,"0"],[40,"40 Medium"],[70,"70 High"],[100,"100"]].map(([v,t])=>`<span style="left:${v*0.85}%">${t}</span>`).join("")}</div></div></section>`;
+}
+function tipText(id){const p=prob(id),r=rec(p);return `<b>${esc(p.title)}</b><br>✦ Recommended ${r.level} · ${r.score}/100<br>Priority: ${p.priority||"not set"}${p.priority&&p.priority!==r.level?` (✎ ${esc(p.overrideReason||"reason missing")})`:""}<br>${frsOf(id).length} Feature Requests · ${ups(id)} Upvotes · ${esc(p.status)}<br><span style="opacity:.75">Click to open</span>`;}
 function B(){
-  const nav=[["problems","Problems"],...Object.entries(SECONDARY).map(([k,[n]])=>[k,n+(k==="outbox"&&draftCount()?` (${draftCount()})`:"")])];
-  const head=`<header><span class="wordmark">Studease</span><nav>${nav.map(([k,n])=>`<button data-act="view" data-v="${k}" aria-current="${ui.view===k}">${esc(n)}</button>`).join("")}</nav></header>`;
-  if(SECONDARY[ui.view]) return `<div class="B">${head}<main>${SECONDARY[ui.view][1]()}</main></div>`;
-  const sorters={rec:(a,b)=>rec(b).score-rec(a).score,ups:(a,b)=>ups(b.id)-ups(a.id),frs:(a,b)=>frsOf(b.id).length-frsOf(a.id).length,title:(a,b)=>a.title.localeCompare(b.title),status:(a,b)=>STATUSES.indexOf(a.status)-STATUSES.indexOf(b.status)};
-  const open=problems.filter(isOpen), list=byTab(open).sort(sorters[ui.sort]);
+  const nav=[["problems","Problems"],["outbox","Outbox"+(draftCount()?` (${draftCount()})`:"")],["metrics","Metrics"],["settings","Settings"]];
+  const inSettings=SETTINGS[ui.view]||ui.view==="settings";
+  const head=`<header><span class="wordmark">Studease</span><nav>${nav.map(([k,n])=>`<button data-act="view" data-v="${k==="settings"?"log":k}" aria-current="${k==="settings"?!!inSettings:ui.view===k}">${esc(n)}</button>`).join("")}</nav></header>`;
+  if(inSettings){const cur=SETTINGS[ui.view]?ui.view:"log";
+    return `<div class="B">${head}<main><div class="subnav tabs">${Object.entries(SETTINGS).map(([k,[n]])=>`<button class="tab" data-act="view" data-v="${k}" aria-selected="${cur===k}">${esc(n)}</button>`).join("")}</div>${SETTINGS[cur][1]()}</main></div>`;}
+  if(ui.view==="outbox"||ui.view==="metrics") return `<div class="B">${head}<main>${SECONDARY[ui.view][1]()}</main></div>`;
+  const sorters={rec:(a,b)=>rec(b).score-rec(a).score,ups:(a,b)=>ups(b.id)-ups(a.id),title:(a,b)=>a.title.localeCompare(b.title),status:(a,b)=>STATUSES.indexOf(a.status)-STATUSES.indexOf(b.status)};
+  const open=problems.filter(isOpen), list=byTab(open).sort(sorters[ui.sort]||sorters.rec);
   const th=(k,n)=>`<th data-act="sort" data-v="${k}">${n}${ui.sort===k?" ↓":""}</th>`;
   const p=ui.pid&&prob(ui.pid);
   return `<div class="B">${head}<main>
-    <div class="toolbar">${catTabs(open)}<span class="caption">${list.length} open Problems · click a title to open</span></div>
-    <table class="pt"><thead><tr><th></th>${th("title","Problem")}<th>Category</th>${th("status","Status")}${th("frs","FRs")}${th("ups","Upvotes")}${th("rec","✦ Recommended")}<th>Priority</th><th>GitHub</th><th>New</th></tr></thead><tbody>
-    ${list.map(q=>`<tr class="${ui.sel.has(q.id)?"sel":""} ${p===q?"open":""}"><td><input type="checkbox" data-act="sel" data-id="${q.id}" ${ui.sel.has(q.id)?"checked":""} aria-label="Select ${esc(q.title)}"></td>
-      <td class="t" data-act="open" data-id="${q.id}">${esc(q.title)}</td><td class="cat">${esc(q.cat)}</td><td>${esc(q.status)}</td><td class="num">${frsOf(q.id).length}</td><td class="num">${ups(q.id)}</td><td>${recPill(q)}</td><td>${prioPill(q)}${q.priority&&q.priority!==rec(q).level?` <span title="${esc(q.overrideReason||"reason missing")}">✎</span>`:""}</td>
-      <td>${q.gh?`#${q.gh.n}${q.gh.closed?" <span class='pill warn'>closed</span>":""}`:"–"}</td><td>${q.status==="New"?"<span class='pill ai'>new</span>":newFrs(q).length?`+${newFrs(q).length}`:""}</td></tr>`).join("")}
+    <div class="toolbar">${catTabs(open)}</div>
+    ${rankedBars(byTab(open))}
+    <table class="pt"><thead><tr><th></th>${th("title","Problem")}${th("status","Status")}${th("ups","Requests")}${th("rec","✦ Recommended")}<th>Priority</th></tr></thead><tbody>
+    ${list.map(q=>{const n=q.status==="New"?"new":newFrs(q).length?`+${newFrs(q).length} new`:"";
+      return `<tr class="${ui.sel.has(q.id)?"sel":""} ${p===q?"open":""}"><td><input type="checkbox" data-act="sel" data-id="${q.id}" ${ui.sel.has(q.id)?"checked":""} aria-label="Select ${esc(q.title)}"></td>
+      <td class="t" data-act="open" data-id="${q.id}">${esc(q.title)}${n?` <span class="pill ai">${n}</span>`:""}<span class="cat">${esc(q.cat)}</span></td><td>${esc(q.status)}</td><td class="num">${frsOf(q.id).length} · ${ups(q.id)} ▲</td><td>${recPill(q)}</td><td>${prioPill(q)}${q.priority&&q.priority!==rec(q).level?` <span title="${esc(q.overrideReason||"reason missing")}">✎</span>`:""}</td></tr>`;}).join("")}
     </tbody></table>
     ${ui.sel.size>=2?`<div class="mergebar">${ui.sel.size} Problems selected <button class="btn sm" data-act="mergeSel">Merge…</button><button class="btn sm quiet" data-act="selclear">Clear</button></div>`:ui.sel.size===1?`<p class="caption" style="text-align:center;margin-top:var(--md)">Select one more to merge.</p>`:""}
   </main>
@@ -527,7 +568,7 @@ function C(){
 
 // ================= actions =================
 function seen(p){p.seenFrs=frsOf(p.id).map(f=>f.id);}
-function rescore(p,msg){p.version=criteriaVersion;toast(msg||`✦ Re-scored against Criteria v${criteriaVersion}: ${rec(p).level} ${rec(p).score}`);}
+function rescore(p,msg){toast(msg||`✦ Re-scored: ${rec(p).level} ${rec(p).score}`);}
 function act(a,el,ev){
   const id=el.dataset.id, v=el.dataset.v;
   switch(a){
@@ -593,9 +634,9 @@ function doMerge(ids,keepId){
 }
 
 // ================= wiring =================
-const VARIANTS = {A:["Triage queue",A],B:["Table + drawer",B],C:["Status board",C]};
+const VARIANTS = {B:["Table + drawer · round 2",B],A:["Triage queue · rejected",A],C:["Status board · rejected",C]};
 const keys = Object.keys(VARIANTS);
-let variant = new URLSearchParams(location.search).get("variant"); if(!VARIANTS[variant]) variant="A";
+let variant = new URLSearchParams(location.search).get("variant"); if(!VARIANTS[variant]) variant="B";
 function render(){
   const focusId=document.activeElement&&document.activeElement.id;
   $("#app").innerHTML = VARIANTS[variant][1]() + modalView();
@@ -610,6 +651,8 @@ document.addEventListener("click",e=>{ const el=e.target.closest("[data-act]"); 
 document.addEventListener("change",e=>{ const el=e.target.closest("select[data-act]"); if(el) act(el.dataset.act,el,e); });
 document.addEventListener("input",e=>{ const el=e.target.closest("input[type=text][data-act],textarea[data-act]"); if(el) act(el.dataset.act,el,e); });
 document.addEventListener("focusout",e=>{ if(e.target.matches("input[data-act=reason]")) render(); });
+// round 2: hover tooltip on the ranked bars
+document.addEventListener("mousemove",e=>{const t=$("#tip"),h=e.target.closest("[data-tip]"); if(!h){t.style.display="none";return;} t.innerHTML=tipText(h.dataset.tip); t.style.display="block"; t.style.left=Math.min(e.clientX+14,innerWidth-275)+"px"; t.style.top=(e.clientY+14)+"px";});
 // Variant C drag: change status by dropping on a column, merge by dropping on a card
 document.addEventListener("dragstart",e=>{const c=e.target.closest("[data-drag]"); if(c){ui.drag=c.dataset.drag; e.dataTransfer.setData("text/plain",ui.drag);}});
 document.addEventListener("dragover",e=>{ if(!ui.drag) return; const card=e.target.closest("[data-drag]"), col=e.target.closest("[data-drop]"); document.querySelectorAll(".target,.drop").forEach(n=>n.classList.remove("target","drop")); if(card&&card.dataset.drag!==ui.drag) card.classList.add("target"); else if(col) col.classList.add("drop"); if(card||col) e.preventDefault(); });
