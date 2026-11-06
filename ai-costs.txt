@@ -4,7 +4,7 @@ Token counts per call are planning estimates, not measurements. Replace them wit
 
 CHOSEN MODELS
 - Embeddings (suggest-as-you-type, Problem shortlist): text-embedding-3-small, 1536 dims, $0.02 input
-- Small tier (matching, file picker, public wording, Requester update drafts): gpt-6-luna, $0.10 input / $0.50 output
+- Small tier (matching, priority scoring, file picker, public wording, Requester update drafts): gpt-6-luna, $0.10 input / $0.50 output
 - Large tier (decision brief, Suggest Solutions): gpt-6.1-sol, $2.00 input / $10.00 output
 
 ALTERNATIVES CONSIDERED
@@ -19,6 +19,7 @@ Decision brief                    Sol     20,000 / 2,000    ~$0.06
 Decision brief (alternative)      Astra   20,000 / 2,000    ~$0.30
 Suggest Solutions, write call     Sol     40,000 / 3,000    ~$0.11
 Suggest Solutions (alternative)   Astra   40,000 / 3,000    ~$0.55
+Priority scoring                  Luna    ~2,000 / ~200     ~$0.0003
 Suggest Solutions, file picker    Luna    ~3,000 / ~300     under $0.001
 Public wording, email drafts      Luna    ~1,000 / ~300     under $0.001
 Embedding one request             3-small ~100 / -          ~$0.000002
@@ -27,6 +28,7 @@ ESTIMATED MONTHLY COST (low traffic: 300 submissions, 20 briefs, 20 Suggest Solu
 - Matching: Luna ~$0.07 vs Jev ~$0.02 (about 5 cents/month difference)
 - At 100,000 submissions/month, matching would be ~$22 with Luna vs ~$6 with Jev
 - Briefs + Suggest Solutions: Sol ~$3.50/month vs Astra ~$17/month
+- Priority scoring: ~$0.10/month (one call per submission plus re-scores on moves, merges, splits and criteria saves)
 - Everything else: pennies
 
 TALKING POINTS: WHY NOT JEV FOR MATCHING
@@ -40,3 +42,4 @@ CAVEATS
 - Prompts over 272K input tokens cost 2x input and 1.5x output (not expected here).
 - OpenAI's Batch API is 50% off, relevant only if processing moves to scheduled batches at high volume.
 - Luna's cached-input price differs between two OpenAI pages ($0.01 vs $0.10); not material here.
+- Temperature: only accepted when reasoning effort is none (gpt-6-luna). gpt-6.1-sol never accepts it. No seed on the Responses API, so AI ratings can't be made fully repeatable (OpenAI latest-model guide, checked 2026-11-05).

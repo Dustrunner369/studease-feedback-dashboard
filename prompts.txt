@@ -54,3 +54,31 @@ Response: Posted the resolution on "Choose the model for each AI step", closed i
 Prompt: Asked to commit and push the uncommitted files.
 Response: Committed ai-costs.txt, assumptions.txt and prompts.txt to main and pushed.
 
+
+[2026-11-06T04:03:33Z]
+Prompt: /mattpocock-skills:wayfinder with "Write the business criteria for AI priority scoring" (work the map ticket of that name).
+Response: Claimed the ticket "Write the business criteria for AI priority scoring" and started grilling: round 1 on output shape, criteria list, how scores combine, Studease's strategic goals, when to re-score, and where the criteria live.
+
+[2026-11-06T04:17:12Z]
+Prompt: Priority criteria round 1: yes to a level plus a 0-100 score, the four criteria (Reach, Pain, Strategic fit, Retention risk), code-computed Reach with AI 1-5 ratings and fixed weights, me drafting Studease goals, and a config file; on re-scoring, asked what merges/splits/criteria changes mean and said the score should refresh whenever something affects it.
+Response: Read the Studease context docs (no written product goals there), drafted three goals from the app's shape, explained merges/splits/criteria changes, and asked round 2: the re-score triggers, the goals, the weights, Reach scaling, level cut-offs, and how Strategic fit is rated.
+
+[2026-11-06T04:20:15Z]
+Prompt: Asked how the 0-100 priority score is calculated and whether it is probabilistic or deterministic.
+Response: Explained that the arithmetic is deterministic (code), Reach is deterministic (counts), and the three AI ratings are probabilistic; walked through a worked example and the ways to keep the ratings steady; added two questions (a written description for each rating level, and a repeat-run consistency check) to the open round 2.
+
+[2026-11-06T04:29:42Z]
+Prompt: Priority criteria round 2: goal 1 becomes "Help students find new study spots"; High starts at 70; yes to the refresh triggers, weights 30/30/25/15, Reach 3:1 with fixed bands, one Strategic fit rating naming a goal; yes to written level descriptions, which should be editable in /admin; yes to the consistency check, and wants to try temperature settings.
+Response: Started a background lookup of whether gpt-6-luna/gpt-6.1-sol accept temperature, flagged that /admin editing conflicts with the earlier config-file decision, drafted the level descriptions, and asked round 3: scope of /admin editing, the draft descriptions, the public note, PM overrides, and which statuses get scored.
+
+[2026-11-06T04:37:55Z]
+Prompt: Priority criteria round 3: yes to everything (all criteria editable in /admin, the draft level descriptions, the public note without weights or goals, PM-set Priority with a reason on override, temperature config starting at 0, scoring as its own Luna call); Shipped and Won't do Problems are closed and go to a simple archive log in /admin.
+Response: Added Priority Criteria, Recommended Priority, Priority and Archive to GLOSSARY.md, and drafted the ticket's resolution plus the ai-costs.txt and assumptions.txt additions for confirmation.
+
+[2026-11-06T04:39:01Z]
+Prompt: Confirmed the priority criteria resolution; asked to post it and close the ticket.
+Response: Posted the resolution on "Write the business criteria for AI priority scoring", closed it, added it to the map's decisions and updated the map's /admin screens and Public Problem page fog; added the scoring step and temperature rule to ai-costs.txt and assumptions 10-11 to assumptions.txt.
+
+[2026-11-06T04:39:49Z]
+Prompt: Asked to commit and push the uncommitted files.
+Response: Committed GLOSSARY.md, ai-costs.txt, assumptions.txt and prompts.txt to main and pushed.
