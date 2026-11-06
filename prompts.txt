@@ -170,3 +170,19 @@ Response: Saved the prototype on the prototype/portal-design branch, posted the 
 [2026-11-06T06:09:57Z]
 Prompt: Asked to commit and push the uncommitted files.
 Response: Committed GLOSSARY.md, assumptions.txt and prompts.txt to main and pushed.
+
+[2026-11-06T06:14:00Z]
+Prompt: /wayfinder Studease Feature Intelligence System map (work through the map).
+Response: Took the first frontier ticket, "Prototype the suggest-as-you-type flow", and assigned it. Built a prototype of the design D Request a feature pop-up with three ways of steering people to upvote (A quiet list, B strong-match takeover, C check first) and a tuning panel for threshold, strong-match level, max results, debounce, start-after characters, which fields are searched, and one row per Problem or per request. It is on the prototype/suggest-as-you-type branch and waiting for the user's verdict.
+
+[2026-11-06T06:28:43Z]
+Prompt: Chose variant B (strong-match takeover); defaults max 4 results, 500ms debounce, start after 4 characters, search title + description; asked what "one row per Problem or per Feature Request" means.
+Response: Set those defaults in the suggest-as-you-type prototype (B now opens by default) and explained the grouping choice.
+
+[2026-11-06T06:35:20Z]
+Prompt: Chose one row per Problem; chose to record the stand-in threshold caveat as an assumption plus a map note.
+Response: Committed and pushed the prototype to the prototype/suggest-as-you-type branch, posted the resolution on "Prototype the suggest-as-you-type flow" and closed it, added assumption 16, and updated the map's Decisions so far and Not yet specified.
+
+[2026-11-06T06:35:54Z]
+Prompt: Asked to commit and push the uncommitted files.
+Response: Committed assumptions.txt and prompts.txt to main and pushed.
