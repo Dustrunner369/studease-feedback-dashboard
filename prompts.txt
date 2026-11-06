@@ -222,3 +222,11 @@ Response: Added assumptions 17-18 and the consistency-check cost, posted the res
 [2026-11-06T16:45:18Z]
 Prompt: Asked to commit and push the uncommitted files.
 Response: Committed assumptions.txt, ai-costs.txt and prompts.txt to main and pushed.
+
+[2026-11-06T16:48:18Z]
+Prompt: /wayfinder "Enable pgvector on the production database" (work the named task ticket on the Studease map).
+Response: Claimed the ticket, checked prod Neon read-only (Postgres 18.6, vector 0.8.6 available, not installed). With the user's approval, created the feedback schema and installed vector into it; smoke test passed and public is untouched. Posted the resolution, closed the ticket, noted it on "Plan the synthetic seed backlog", updated the map (Decisions so far, Deployment fog) and added assumption 19.
+
+[2026-11-06T16:48:41Z]
+Prompt: Asked to commit and push the uncommitted files.
+Response: Committed assumptions.txt and prompts.txt to main and pushed.
