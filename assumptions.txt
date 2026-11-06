@@ -1,0 +1,11 @@
+Assumptions log: Studease Feature Intelligence System
+Each line is an assumption the design depends on. If one stops being true, revisit the decisions that rely on it.
+
+1. Low request volume. Feature requests arrive slowly enough that each submission is processed by the AI as soon as it is saved. At high volume we would batch them and process them on a schedule (e.g. a cron job) instead.
+2. Demo-grade build. The system is built to work end to end for the assignment demo, not hardened for real production traffic.
+3. Requesters have no accounts. A Requester is identified only by the email address they give when they submit a Feature Request. Upvotes collect no email, so upvoters are never contacted. In a live app, upvoting would require signing in, which would give us their details so they could be emailed too.
+4. One Problem per Feature Request. Each Feature Request links to exactly one Problem. A request that bundles several needs is linked to its main need and flagged for the product team instead of being split.
+5. Shared production database. The system writes to the existing Studease production Postgres database (Neon), but keeps all its tables in its own schema and never reads or writes the existing Studease tables.
+6. Synthetic demo backlog. The backlog shown in the demo is synthetic, clearly marked as seed data, and removable with one command after the Loom.
+7. Simple GitHub connection. /admin connects to one repo (Dustrunner369/studease, formerly study-spot-app, for the demo; /admin saves the repo's current name on connect) using a fine-grained personal access token stored as a server secret. A production version would use a GitHub App.
+8. No real email delivery. Requester updates are shown in an outbox in /admin exactly as they would be sent, but are not actually delivered. A live version would send them through a transactional email service.

@@ -1,0 +1,36 @@
+[2026-11-06T01:34:01Z]
+Prompt: /mattpocock-skills:wayfinder with the Studease Feature Intelligence System idea (customer portal with semantic duplicate suggestions -> LLM sanitation into "Problems" -> PM admin/GitHub triage, cited decision briefs, AI-drafted requester updates, every AI call logged; proposed .NET 8 minimal API + EF Core + Postgres (Neon/Fly.io) with plain HTML/CSS/JS from wwwroot; security ideas; Studease design system references). Asked to go step by step and not add ideas or make decisions without asking.
+Response: Started charting the wayfinder map: located the referenced design files and began grilling on the destination (step 1).
+
+[2026-11-06T01:48:38Z]
+Prompt: Answered destination round: yes to all (implementation-ready spec for a small first version; demo-grade; Feature Request vs Problem definitions with one Problem per request; GitHub as daily workspace plus thin /admin). Added that observability matters: users must be able to see why a decision was made.
+Response: Recorded the Feature Request and Problem terms in GLOSSARY.md and asked the next round of breadth-first questions (incl. who sees the reasoning and what counts as a "decision").
+
+[2026-11-06T02:12:34Z]
+Prompt: Answered breadth round 1: requesters never see Problems (only Feature Requests, which they upvote); asked what "one-line reason per PM status change" means; yes to AI-recommended priority with PM final call; email collected at submit/upvote with PM-approved emailed updates; keep .NET 8 and write to the production Studease database; /suggest returns Feature Requests; wants to discuss using "Jev" for AI; yes to security additions; PMs create GitHub issues manually from /admin ("Create GitHub issue"); "Suggest Solutions" on admin, informed by the GitHub repo.
+Response: Updated GLOSSARY.md (Requester, Upvote; Problem is team-only). Checked the Studease backend (it targets .NET 9 with EF Core 9 and default-schema migrations) and searched both repos for "Jev" (not found). Explained the status-reason idea and asked the next round of questions.
+
+[2026-11-06T02:31:34Z]
+Prompt: Breadth round 2 answers: asked what a "status reason" is and where it came from; yes to own schema in the production DB; match the backend on .NET 9 (don't record for Loom); research Jev (TypeSafe AI's System One model) for fit, fallback OpenAI embeddings; yes, /admin is the triage workspace and GitHub receives approved Problems; wants to discuss status sync (Q6); connect a GitHub repo from /admin (or hard-wire study-spot-app if a real connection is out of scope); seed a synthetic, removable backlog; AI step runs on each submission; keep an assumptions log in a txt file.
+Response: Created assumptions.txt with the six assumptions decided so far. Started a background research agent on Jev's fit. Explained that the status reason was Claude's own suggestion, and asked the next round (status reason, status sync, GitHub connection, categories, AI call logging).
+
+[2026-11-06T02:51:39Z]
+Prompt: Breadth round 3 answers: Problems should appear on the customer portal once a PM sets a status like In progress, clicking one shows all its linked Feature Requests, and requesters whose request is linked get emailed; GitHub status sync option (b); token-based GitHub connection to study-spot-app, record the GitHub App note, keep it simple; fixed list of 6-8 categories from the app's tabs; AI call log list accepted, to revisit during the build; has a Jev API key, still deciding models, leaning OpenAI.
+Response: Updated GLOSSARY.md (Problems become visible to Requesters at a portal-visible status), added the GitHub-connection assumption to assumptions.txt, and asked follow-up questions on public Problems, emails and status sync, plus proposed the ticket list for the map.
+
+[2026-11-06T03:00:03Z]
+Prompt: Answered follow-ups: yes to the status list (Planned/In progress/Shipped public); yes to PM-approved public title and description; email only submitters of linked Feature Requests (no upvoter emails in the demo; note a live app would require sign-in to upvote), on In progress, Shipped and Won't do; use an /admin outbox instead of real email; yes to the load-time GitHub check; Suggest Solutions uses whichever repo /admin is connected to (study-spot-app).
+Response: Updated GLOSSARY.md (Requester = submitter with email; upvoters give no email) and assumptions.txt (upvote sign-in note, outbox instead of real email). Asked final questions (upvote limits, status reason) and confirmation of the ticket list before creating the map.
+
+[2026-11-06T03:21:56Z]
+Prompt: Asked how hard it would be to reuse study-spot-app's existing authentication for the portal (thinks it would impress); keep the one-line status reason, required for In progress/Shipped/Won't do; create the map with all 10 tickets.
+Response: Checked study-spot-app's auth (Firebase Auth, Google/Apple sign-in, JWT validation, users table with email and is_admin). Created the wayfinder map on GitHub (issue 1), recorded the charting decisions on a closed ticket, created the 10 agreed tickets plus one for the sign-in question with blocking edges, and started a background research agent on how Suggest Solutions reads the connected repo.
+
+[2026-11-06T03:36:58Z]
+Prompt: Agreed to the two-call Suggest Solutions approach and to updating the renamed repo everywhere; ruled the Studease backend's /feedback endpoint out of scope (it's for the mobile app).
+Response: Closed the Suggest Solutions research ticket with the chosen approach and added it to the map's decisions; renamed study-spot-app to Dustrunner369/studease in the map, the charting decisions, the research ticket and assumptions.txt; added the /feedback endpoint to the map's Out of scope.
+
+[2026-11-06T03:38:11Z]
+Prompt: Asked to commit and push the planning files and remove the research worktrees.
+Response: Removed both research worktrees and their local branches, then committed CLAUDE.md, prompts.txt, GLOSSARY.md, assumptions.txt and docs/ to main and pushed.
+
