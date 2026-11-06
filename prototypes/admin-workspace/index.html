@@ -1,0 +1,624 @@
+<!doctype html>
+<!--
+  PROTOTYPE, THROWAWAY. Wayfinder ticket "Prototype the /admin triage workspace".
+  Question: how should the /admin triage workspace look and behave, in the Studease design system?
+  Plan: three structurally different workspaces (A Triage queue, B Table + drawer, C Status board),
+  switchable via ?variant=A|B|C, all on one throwaway page. Data is synthetic and in memory; nothing is saved.
+  Run: python3 -m http.server 8124 -d prototypes/admin-workspace  ->  http://localhost:8124/?variant=A
+  The variants share the same Problem data and the same merge/split behaviour (the behaviour is part of the question,
+  so it is identical everywhere); they differ in layout, hierarchy and the main way in.
+  AI results are canned: Generate brief, Suggest Solutions, re-scoring and the consistency check only pretend to call the AI.
+  Prototype guess to react to: Variant A's "needs attention" rules (New Problems, Problems with new Feature Requests,
+  a closed GitHub issue, an override missing) are NOT decided anywhere; they are here to be judged.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Studease Admin Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Pacifico&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EAE0C8; --field:#DED1AC; --card:#F2EAD6; --ink:#2B2318; --muted:#7D7259; --line:#D6C7A1;
+  --terracotta:#BC6B47; --slate:#708090; --sage:#838C67; --focus:#D97A4E; --error:#9B4A2C;
+  --s1:8px; --sm:12px; --md:16px; --lg:24px; --xl:40px;
+  --micro:120ms; --short:220ms; --long:420ms;
+  --ease-out:cubic-bezier(.16,1,.3,1); --ease-in:cubic-bezier(.7,0,.84,0); --ease-io:cubic-bezier(.65,0,.35,1);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:"Fraunces",Georgia,serif;font-size:14.5px;line-height:1.45;-webkit-font-smoothing:antialiased;padding-bottom:90px}
+h1,h2,h3,h4{margin:0;font-weight:800;letter-spacing:-.01em}
+p{margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.wordmark{font-family:"Pacifico",cursive;font-size:24px;line-height:1}
+.muted{color:var(--muted)}
+.label{font-size:11.5px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;color:var(--muted)}
+.caption{font-size:12px;color:var(--muted)}
+.sketch{display:block;background:var(--muted);-webkit-mask:var(--src) center/contain no-repeat;mask:var(--src) center/contain no-repeat}
+.sk-books{--src:url(illustrations/coffeeOnBooks.png)}
+.sk-cup{--src:url(illustrations/coffeeWithSteam.png)}
+.sk-table{--src:url(illustrations/coffeeTable.png)}
+.sk-cat{--src:url(illustrations/confusedCat.png)}
+
+/* shared atoms */
+.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;background:var(--field);color:var(--muted);white-space:nowrap}
+.pill.High{background:color-mix(in srgb,var(--terracotta) 22%,transparent);color:#8f4c2f}
+.pill.Medium{background:color-mix(in srgb,var(--slate) 20%,transparent);color:#4f5c68}
+.pill.Low{background:color-mix(in srgb,var(--sage) 22%,transparent);color:#5f6748}
+.pill.ai::before{content:"✦";font-size:10px}
+.pill.warn{background:color-mix(in srgb,var(--error) 16%,transparent);color:var(--error)}
+.cat{font-size:12px;color:var(--muted);font-style:italic}
+.btn{border:0;border-radius:999px;padding:8px 15px;font-weight:700;cursor:pointer;background:var(--terracotta);color:#FBF5E8;transition:transform var(--micro) var(--ease-out),opacity var(--micro);white-space:nowrap}
+.btn:active{transform:scale(.98)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--ink);padding:6.5px 13.5px}
+.btn.quiet{background:var(--field);color:var(--ink)}
+.btn.sm{padding:5px 11px;font-size:13px}
+.btn.ghost.sm{padding:3.5px 9.5px}
+.link{background:none;border:0;padding:0;cursor:pointer;color:var(--ink);font-weight:600;text-decoration:underline;text-decoration-color:var(--terracotta);text-underline-offset:3px}
+.tabs{display:flex;gap:4px;flex-wrap:wrap}
+.tab{border:0;background:transparent;padding:5px 11px;border-radius:999px;cursor:pointer;color:var(--muted);font-weight:600;font-size:13.5px}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected=true]{background:var(--ink);color:var(--bg)}
+.tab .n{font-weight:400;opacity:.7;margin-left:3px}
+select,input[type=text],textarea{background:var(--field);border:1.5px solid transparent;border-radius:10px;padding:6px 10px;outline:none}
+select:focus,input:focus,textarea:focus{border-color:var(--ink)}
+textarea{width:100%;min-height:70px;resize:vertical}
+.box{background:var(--card);border-radius:16px;padding:var(--md)}
+.stack{display:grid;gap:var(--md)}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.spread{display:flex;justify-content:space-between;align-items:center;gap:var(--sm);flex-wrap:wrap}
+.empty{text-align:center;padding:var(--xl) var(--md);color:var(--muted)}
+.empty .sketch{width:110px;height:110px;margin:0 auto var(--sm)}
+.reveal{animation:rise var(--long) var(--ease-out) both}
+@keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* detail building blocks (shared content, arranged differently per variant) */
+.prio{display:grid;gap:10px}
+.prio .levels{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.prio .lv{background:var(--bg);border-radius:12px;padding:10px 12px}
+.prio .lv b{font-size:20px;display:block}
+.breakdown{width:100%;border-collapse:collapse;font-size:13px}
+.breakdown td{padding:6px 4px;border-top:1px solid var(--line);vertical-align:top}
+.breakdown td.r{white-space:nowrap;font-weight:700;width:1%}
+.frs{display:grid;gap:0}
+.fr{display:grid;grid-template-columns:22px 1fr auto;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.fr:first-child{border-top:0}
+.fr h4{font-size:14.5px;font-weight:700}
+.fr p{font-size:13.5px;color:var(--muted)}
+.fr .why{font-size:12.5px;margin-top:4px}
+.fr .why::before{content:"✦ Why it's here: ";font-weight:700;color:var(--terracotta)}
+.fr .ups{font-weight:800;text-align:right;white-space:nowrap}
+.fr.new h4::after{content:"new";margin-left:6px;font-size:10px;letter-spacing:.8px;text-transform:uppercase;background:var(--terracotta);color:#FBF5E8;border-radius:999px;padding:1px 6px;vertical-align:2px}
+.splitbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--ink);color:var(--bg);border-radius:12px;padding:8px 12px;margin-top:8px}
+.splitbar select{background:#463b2c;color:var(--bg)}
+.brief h4{font-size:13px;margin-top:10px}
+.brief p,.brief li{font-size:13.5px}
+.brief ul{margin:4px 0 0;padding-left:18px}
+.cite{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:0 7px;font-size:11px;font-weight:700;margin-left:4px;cursor:help;background:var(--bg)}
+.cite.bad{border-color:var(--error);color:var(--error)}
+.notice{border-radius:12px;padding:8px 12px;font-size:13px;background:color-mix(in srgb,var(--terracotta) 14%,transparent)}
+.notice.err{background:color-mix(in srgb,var(--error) 14%,transparent);color:var(--error)}
+.sol{border-top:1px solid var(--line);padding-top:8px;margin-top:8px}
+.sol b{display:block}
+.ghline{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+/* secondary screens */
+.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
+.tbl th{text-align:left;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);padding:8px 6px;border-bottom:1.5px solid var(--ink)}
+.tbl td{padding:9px 6px;border-bottom:1px solid var(--line);vertical-align:middle}
+.metric{display:grid;gap:6px}
+.metric .big{font-size:40px;font-weight:800;line-height:1}
+.metric .bar{height:8px;border-radius:9px;background:var(--field);position:relative;overflow:hidden}
+.metric .bar i{position:absolute;inset:0 auto 0 0;background:var(--sage);border-radius:9px}
+.metric .bar s{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--ink)}
+.mail{white-space:pre-wrap;font-size:13.5px;background:var(--bg);border-radius:10px;padding:10px 12px}
+
+/* modal + toast */
+.scrim{position:fixed;inset:0;background:color-mix(in srgb,var(--ink) 40%,transparent);z-index:40;display:grid;place-items:center;padding:var(--md)}
+.modal{background:var(--bg);border-radius:20px;padding:var(--lg);width:min(540px,100%);max-height:88vh;overflow:auto;display:grid;gap:var(--md)}
+.modal ul{margin:0;padding-left:18px}
+.opt{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border-radius:10px;background:var(--card);cursor:pointer}
+#toast{position:fixed;left:50%;top:16px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:13.5px;z-index:60;opacity:0;transition:opacity var(--short)}
+#toast.show{opacity:1}
+
+/* ---------- Variant A: Triage queue (left rail, one Problem in focus) ---------- */
+.A{display:grid;grid-template-columns:210px minmax(0,1fr);min-height:100vh}
+.A .rail{background:var(--field);padding:var(--lg) var(--md);display:flex;flex-direction:column;gap:4px;position:sticky;top:0;height:100vh}
+.A .rail .wordmark{margin-bottom:2px}
+.A .rail .caption{margin-bottom:var(--lg)}
+.A .rail button{text-align:left;border:0;background:none;padding:8px 10px;border-radius:10px;cursor:pointer;color:var(--muted);display:flex;justify-content:space-between;font-weight:600}
+.A .rail button[aria-current=true]{background:var(--bg);color:var(--ink)}
+.A .rail .sep{height:1px;background:var(--line);margin:10px 0}
+.A .rail .badge{background:var(--terracotta);color:#FBF5E8;border-radius:999px;font-size:11px;padding:0 7px;line-height:18px}
+.A main{padding:var(--lg) var(--xl);max-width:1100px}
+.A .qhead{display:flex;justify-content:space-between;align-items:end;gap:var(--md);margin-bottom:var(--md);flex-wrap:wrap}
+.A .qhead h1{font-size:28px}
+.A .queue{display:grid;grid-template-columns:270px minmax(0,1fr);gap:var(--lg);align-items:start}
+.A .qlist{display:grid;gap:6px;position:sticky;top:var(--lg)}
+.A .qitem{text-align:left;border:0;background:var(--card);border-radius:12px;padding:10px 12px;cursor:pointer;display:grid;gap:3px;border-left:4px solid transparent}
+.A .qitem[aria-current=true]{border-left-color:var(--terracotta);background:#FBF5E8}
+.A .qitem b{font-size:14px}
+.A .reason{font-size:12px;color:var(--terracotta);font-weight:700}
+.A .focus{display:grid;gap:var(--md)}
+.A .focus h2{font-size:26px}
+.A .decide{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sm)}
+.A .decide .box{display:grid;gap:8px;align-content:start}
+.A .stepper{display:flex;justify-content:space-between;align-items:center}
+.A .all{width:100%;border-collapse:collapse}
+.A .all td{padding:9px 6px;border-bottom:1px solid var(--line)}
+@media (max-width:900px){.A{grid-template-columns:1fr}.A .rail{position:static;height:auto;flex-direction:row;flex-wrap:wrap}.A .queue,.A .decide{grid-template-columns:1fr}.A main{padding:var(--md)}}
+
+/* ---------- Variant B: Table + drawer (top nav, dense sortable table) ---------- */
+.B header{display:flex;align-items:center;gap:var(--lg);padding:var(--sm) var(--lg);border-bottom:1.5px solid var(--ink);position:sticky;top:0;background:var(--bg);z-index:5;flex-wrap:wrap}
+.B header nav{display:flex;gap:2px;flex-wrap:wrap}
+.B header nav button{border:0;background:none;padding:6px 10px;border-radius:8px;cursor:pointer;color:var(--muted);font-weight:600}
+.B header nav button[aria-current=true]{color:var(--ink);background:var(--field)}
+.B main{padding:var(--md) var(--lg)}
+.B .toolbar{display:flex;justify-content:space-between;align-items:center;gap:var(--md);margin-bottom:var(--sm);flex-wrap:wrap}
+.B table.pt{width:100%;border-collapse:collapse;font-size:13.5px}
+.B .pt th{text-align:left;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);padding:8px 6px;border-bottom:1.5px solid var(--ink);cursor:pointer;white-space:nowrap}
+.B .pt td{padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:middle}
+.B .pt tr.sel td{background:var(--card)}
+.B .pt tr.open td{background:#FBF5E8}
+.B .pt td.t{font-weight:700;cursor:pointer}
+.B .pt td.num{text-align:right;font-variant-numeric:tabular-nums}
+.B .mergebar{position:sticky;bottom:80px;display:flex;gap:10px;align-items:center;background:var(--ink);color:var(--bg);border-radius:999px;padding:6px 8px 6px 16px;width:max-content;margin:var(--md) auto 0}
+.B .drawer{position:fixed;top:0;right:0;height:100vh;width:min(560px,100%);background:var(--bg);border-left:1.5px solid var(--ink);z-index:30;overflow:auto;padding:var(--lg);display:grid;gap:var(--md);align-content:start;box-shadow:-12px 0 32px rgba(43,35,24,.12);animation:slide var(--short) var(--ease-out)}
+@keyframes slide{from{transform:translateX(30px);opacity:0}to{transform:none;opacity:1}}
+.B .drawer h2{font-size:22px}
+.B details summary{cursor:pointer;font-weight:700;padding:6px 0}
+
+/* ---------- Variant C: Status board (columns by status, full-page Problem) ---------- */
+.C{padding:var(--lg)}
+.C header{display:flex;justify-content:space-between;align-items:center;gap:var(--md);margin-bottom:var(--md);flex-wrap:wrap}
+.C header .left{display:flex;align-items:baseline;gap:var(--md)}
+.C .menu{display:flex;gap:6px;flex-wrap:wrap}
+.C .menu button{border:1.5px solid var(--line);background:var(--bg);border-radius:999px;padding:5px 12px;cursor:pointer;font-weight:600;font-size:13px;color:var(--muted)}
+.C .menu button[aria-current=true]{border-color:var(--ink);color:var(--ink)}
+.C .board{display:grid;grid-template-columns:repeat(4,minmax(220px,1fr));gap:var(--md);overflow-x:auto;padding-bottom:8px}
+.C .col{background:var(--field);border-radius:18px;padding:var(--sm);display:grid;gap:8px;align-content:start;min-height:300px;border-top:4px solid var(--muted)}
+.C .col.Planned{border-top-color:var(--slate)} .C .col.progress{border-top-color:var(--terracotta)} .C .col.review{border-top-color:var(--sage)}
+.C .col.drop{outline:2px dashed var(--terracotta);outline-offset:-4px}
+.C .col h3{font-size:15px;display:flex;justify-content:space-between;padding:4px 6px}
+.C .card{background:var(--bg);border-radius:12px;padding:10px 12px;display:grid;gap:6px;cursor:grab;border:1.5px solid transparent;transition:transform var(--micro) var(--ease-out)}
+.C .card:hover{transform:translateY(-2px)}
+.C .card.target{border-color:var(--terracotta)}
+.C .card b{font-size:14px}
+.C .page{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(300px,1fr);gap:var(--lg);align-items:start}
+.C .page h1{font-size:30px}
+.C .side{display:grid;gap:var(--md);position:sticky;top:var(--md)}
+@media (max-width:900px){.C .page{grid-template-columns:1fr}.C .side{position:static}}
+
+/* ---------- Prototype switcher (not part of the design) ---------- */
+#switcher{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);display:flex;align-items:center;gap:4px;background:#111;color:#fff;border-radius:999px;padding:6px;font:600 13px/1 system-ui,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,.35);z-index:100}
+#switcher button{background:#333;color:#fff;border:0;border-radius:999px;width:32px;height:32px;cursor:pointer;font-size:15px}
+#switcher span{padding:0 12px;min-width:210px;text-align:center}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast" role="status"></div>
+<div id="switcher" aria-label="Prototype variant switcher">
+  <button id="prev" aria-label="Previous variant">←</button>
+  <span id="vlabel"></span>
+  <button id="next" aria-label="Next variant">→</button>
+</div>
+<script>
+// ================= synthetic data (in memory, PROTOTYPE) =================
+const CATEGORIES = ["Finding spots","Adding & editing spots","Spot details","Visits","Profile & account","Social","Other"];
+const STATUSES = ["New","Under review","Planned","In progress","Shipped","Won't do"];
+const OPEN = ["New","Under review","Planned","In progress"];
+const GOALS = ["Help students find new study spots","Make students come back","Grow the social side"];
+const CRIT = {fit:["Strategic fit",30],reach:["Reach",30],pain:["Pain",25],ret:["Retention risk",15]};
+const LEVEL_DESC = {
+  pain:["Nice to have; the app works fine without it","Minor annoyance, easy workaround","Noticeable friction in a regular task; clumsy workaround","Makes a core task hard or unreliable","Blocks a core task, or makes the app unusable for some students"],
+  fit:["Serves none of the goals","Touches a goal only indirectly","Clearly supports one goal in a small way","Directly advances one goal","Substantially advances a goal, or advances more than one"],
+  ret:["No sign anyone would leave","Mild frustration, no talk of leaving","Says they use the app less or avoid a feature","Mentions switching to another app or tool","Says they've stopped using or uninstalled Studease"]
+};
+const P = (id,title,cat,status,ai,priority,extra={})=>({id,title,cat,status,ai,priority,overrideReason:"",brief:"none",gh:null,seenFrs:null,version:1,...extra});
+let problems = [
+  P("p1","Filter spots by how quiet they are","Finding spots","Planned",{fit:[4,"Directly helps students find a spot that suits studying (goal 1)."],pain:[4,"Several say they walk to a spot and leave because it's too loud."],ret:[3,"Two say they use the app less because results are 'useless for studying'."]},"High",{gh:{n:212,closed:false},brief:"fresh",seenFrs:["r1","r2","r3","r4"]}),
+  P("p2","Know if a spot has power outlets","Spot details","Under review",{fit:[3,"Supports finding a usable spot (goal 1) in a small way."],pain:[3,"Laptop users mention clumsy workarounds like asking staff."],ret:[2,"Frustration, no talk of leaving."]},"Medium",{seenFrs:["r6","r7"]}),
+  P("p3","See where friends are studying","Social","Under review",{fit:[5,"Advances the social goal and brings students back (goals 2 and 3)."],pain:[2,"Workaround is texting friends."],ret:[2,"No talk of leaving."]},"Medium",{seenFrs:["r9","r10","r11"]}),
+  P("p4","Use the map without internet","Finding spots","Under review",{fit:[3,"Helps finding spots on campus with weak signal (goal 1)."],pain:[4,"Map is blank in basements and libraries with poor signal."],ret:[3,"One says they 'stopped bothering' in the library."]},"Low",{overrideReason:"Needs native offline storage; too big for this term.",seenFrs:["r13","r14"]}),
+  P("p5","Correct a spot's opening hours","Adding & editing spots","Planned",{fit:[3,"Keeps spot data trustworthy, small support for goal 1."],pain:[4,"Students arrive at closed spots."],ret:[3,"Says they double-check on Google instead."]},"Medium",{seenFrs:["r15","r16"]}),
+  P("p6","Track study streaks from visits","Visits","In progress",{fit:[4,"Directly gives students a reason to come back (goal 2)."],pain:[1,"Nice to have."],ret:[2,"No talk of leaving."]},"Medium",{gh:{n:198,closed:true},seenFrs:["r18","r19","r20"]}),
+  P("p7","Find quiet places to work","Finding spots","New",{fit:[4,"Directly helps finding a spot to study (goal 1)."],pain:[3,"Friction when spots turn out loud."],ret:[2,"No talk of leaving."]},"",{seenFrs:[]}),
+  P("p8","Get told when a favourite spot is busy","Spot details","New",{fit:[3,"Small support for finding a spot (goal 1)."],pain:[2,"Workaround is checking Google busy times."],ret:[1,"No sign anyone would leave."]},"",{seenFrs:[]}),
+  P("p9","Export my visit history","Visits","Under review",{fit:[2,"Touches coming back only indirectly."],pain:[2,"Easy workaround: screenshots."],ret:[1,"No sign anyone would leave."]},"Low",{seenFrs:["r23"]}),
+  P("p10","Sign in with Apple","Profile & account","Shipped",{fit:[2,"Indirect."],pain:[3,"Clumsy password reset."],ret:[3,"Avoids logging in again."]},"Medium",{closedAt:"2026-10-28",closedNote:"Shipped in 2.4"}),
+  P("p11","Pay to reserve a seat","Finding spots","Won't do",{fit:[2,"Indirect."],pain:[2,"Minor."],ret:[1,"None."]},"Low",{closedAt:"2026-10-20",closedNote:"Spots aren't ours to sell; out of Studease's model."}),
+];
+const F = (id,pid,title,desc,email,ups,date,why,cat)=>({id,pid,title,desc,email,ups,date,why,cat:cat||problems.find(p=>p.id===pid).cat,firstPid:pid});
+let frs = [
+  F("r1","p1","Quiet filter","Let me filter for spots that are actually quiet, not just cafes.","ana@uni.edu",14,"Oct 12","Asks for the same noise filter as the Problem."),
+  F("r2","p1","Show how loud a place is","A noise rating on each spot would save me walking there.","ben@uni.edu",9,"Oct 14","Same need: judge noise before going."),
+  F("r3","p1","Silent study only","I need silent places for exam season.","chen@uni.edu",6,"Oct 20","Wants only silent spots, a narrower version of the same need."),
+  F("r4","p1","Noise level tags","Tag spots as quiet / chatty / loud.","dee@uni.edu",4,"Oct 22","Tags are one way to the same noise filter."),
+  F("r5","p1","Too loud results","Half the spots in my search are bars. Useless for studying.","eli@uni.edu",2,"Nov 4","Complains that results are too loud to study in.","Other"),
+  F("r6","p2","Plugs?","Does the spot have plugs? My laptop dies.","fay@uni.edu",11,"Oct 9","Asks whether a spot has power."),
+  F("r7","p2","Outlet info on spot page","Please show number of outlets.","gus@uni.edu",5,"Oct 18","Same: power outlets on the spot page."),
+  F("r8","p2","Charging spots","Mark spots where I can charge my phone.","hal@uni.edu",1,"Nov 3","Charging needs power outlets."),
+  F("r9","p3","Friends map","Show where my friends are studying right now.","ivy@uni.edu",13,"Oct 5","Wants to see friends' current spots."),
+  F("r10","p3","Study together","Invite a friend to the spot I'm at.","jon@uni.edu",7,"Oct 11","Studying together means knowing where friends are."),
+  F("r11","p3","Follow friends' spots","See the spots my friends save.","kai@uni.edu",4,"Oct 16","Close: friends' spots."),
+  F("r12","p3","Share my spot on Instagram","Button to post my study spot to my story.","lia@uni.edu",3,"Nov 2","Sharing a spot is social, like the rest."),
+  F("r13","p4","Offline map","Library basement has no signal and the map is blank.","max@uni.edu",8,"Oct 7","Needs the map without a connection."),
+  F("r14","p4","Download campus","Let me download my campus area.","nia@uni.edu",3,"Oct 19","Downloading an area is offline use."),
+  F("r15","p5","Wrong hours","The cafe on King St closes at 5 not 9.","oli@uni.edu",6,"Oct 10","Reports wrong opening hours."),
+  F("r16","p5","Edit opening times","Let regulars fix opening times.","pam@uni.edu",4,"Oct 21","Same: correcting hours."),
+  F("r17","p5","Holiday hours","Spots should show holiday closures.","quin@uni.edu",2,"Nov 5","Holiday closures are opening-hours data."),
+  F("r18","p6","Streaks","A streak for days I check in to a spot.","raj@uni.edu",10,"Oct 3","Asks for streaks from visits."),
+  F("r19","p6","Study time","Count how long I studied each week.","sam@uni.edu",6,"Oct 13","Time tracking from visits."),
+  F("r20","p6","Weekly recap","A weekly summary of my visits.","tia@uni.edu",3,"Oct 25","A recap of visits, close to streaks."),
+  F("r21","p7","Places to focus","Somewhere I can focus, away from groups.","uma@uni.edu",5,"Nov 4","No existing Problem was close enough; new Problem."),
+  F("r22","p8","Busy alert","Ping me when my favourite library gets busy.","vic@uni.edu",2,"Nov 5","No existing Problem was close enough; new Problem."),
+  F("r23","p9","CSV of visits","Export visits as a spreadsheet.","wes@uni.edu",1,"Oct 30","Asks to export visits."),
+  F("r24","p10","Apple login","Sign in with my Apple ID.","xan@uni.edu",12,"Sep 20","Asks for Apple sign-in."),
+  F("r25","p10","Face ID login","Log in without typing a password.","yas@uni.edu",5,"Sep 28","Passwordless sign-in, met by Apple sign-in."),
+  F("r26","p11","Book a seat","Pay a small fee to reserve a library seat.","zoe@uni.edu",3,"Oct 1","Asks to reserve seats."),
+];
+let outbox = [
+  {id:"o1",pid:"p10",to:"xan@uni.edu",fr:"r24",state:"draft",text:"Hi! You asked to sign in with your Apple ID. That's now in Studease 2.4: update the app and choose \"Continue with Apple\" on the sign-in screen. Thanks for the idea.\n\nThe Studease team"},
+  {id:"o2",pid:"p10",to:"yas@uni.edu",fr:"r25",state:"draft",text:"Hi! You asked to log in without typing a password. Studease 2.4 adds \"Continue with Apple\", which uses Face ID on your phone. Thanks for asking.\n\nThe Studease team"},
+];
+let log = [
+  ["Nov 5 14:02","Embedding","text-embedding-3-small","r22","OK","38 ms","$0.000002"],
+  ["Nov 5 14:02","Matching","gpt-6-luna","r22 → new Problem p8","OK","1.4 s","$0.0002"],
+  ["Nov 5 14:02","Priority scoring","gpt-6-luna","p8","OK","1.9 s","$0.0003"],
+  ["Nov 5 09:40","Matching","gpt-6-luna","r17 → p5","OK","1.2 s","$0.0002"],
+  ["Nov 4 18:11","Decision Brief","gpt-6.1-sol","p1","Citation check: 1 quote not found","7.8 s","$0.011"],
+  ["Nov 4 18:09","Matching","gpt-6-luna","r5 → p1","OK","1.3 s","$0.0002"],
+  ["Nov 4 11:30","Suggest Solutions","gpt-6.1-sol","p6","OK","12.1 s","$0.024"],
+  ["Nov 3 16:20","Requester update","gpt-6-luna","o1, o2","OK","2.2 s","$0.0004"],
+];
+let criteriaVersion = 1, lastCheck = {when:"Nov 5 10:15",pct:91,changed:["p9 (Low → Medium)"]};
+
+// ================= derived =================
+const $ = s=>document.querySelector(s);
+const esc = s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const prob = id=>problems.find(p=>p.id===id);
+const frsOf = id=>frs.filter(f=>f.pid===id);
+const ups = id=>frsOf(id).reduce((a,f)=>a+f.ups,0);
+function reachRating(id){const pts=frsOf(id).length*3+ups(id);return [pts<3?1:pts<10?2:pts<20?3:pts<40?4:5,pts];}
+function rec(p){
+  const r={fit:p.ai.fit[0],pain:p.ai.pain[0],ret:p.ai.ret[0],reach:reachRating(p.id)[0]};
+  const score=Math.round(Object.entries(CRIT).reduce((a,[k,[,w]])=>a+w*(r[k]-1)/4,0));
+  return {score,level:score>=70?"High":score>=40?"Medium":"Low",r};
+}
+const isOpen = p=>OPEN.includes(p.status);
+const newFrs = p=>p.seenFrs?frsOf(p.id).filter(f=>!p.seenFrs.includes(f.id)):[];
+function attention(p){ // PROTOTYPE GUESS: the queue's rules are not decided
+  const why=[];
+  if(p.status==="New") why.push("New Problem from the AI");
+  const n=newFrs(p).length; if(n&&p.status!=="New") why.push(`${n} new Feature Request${n>1?"s":""}`);
+  if(p.gh&&p.gh.closed&&p.status!=="Shipped") why.push(`GitHub #${p.gh.n} closed: mark Shipped?`);
+  if(p.priority&&p.priority!==rec(p).level&&!p.overrideReason) why.push("Priority differs from recommended: reason needed");
+  if(!p.priority&&p.status!=="New") why.push("No Priority set");
+  return why;
+}
+const queue = ()=>problems.filter(p=>isOpen(p)&&attention(p).length);
+
+// ================= ui state =================
+const ui = {view:"problems",pid:null,tab:"All",sel:new Set(),frSel:new Set(),modal:null,sort:"rec",showBreak:false,boardMode:"board",solutions:{},drag:null};
+function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove("show"),2600);}
+
+// ================= shared building blocks =================
+const catTabs = (list)=>`<div class="tabs" role="tablist">${["All",...CATEGORIES].map(c=>`<button class="tab" role="tab" data-act="tab" data-v="${esc(c)}" aria-selected="${ui.tab===c}">${esc(c)}<span class="n">${c==="All"?list.length:list.filter(p=>p.cat===c).length}</span></button>`).join("")}</div>`;
+const byTab = list=>ui.tab==="All"?list:list.filter(p=>p.cat===ui.tab);
+const prioPill = p=>p.priority?`<span class="pill ${p.priority}">${p.priority}</span>`:`<span class="pill">Not set</span>`;
+const recPill = p=>{const r=rec(p);return `<span class="pill ai ${r.level}" title="Recommended Priority ${r.score}/100">${r.level} · ${r.score}</span>`;};
+const statusSel = p=>`<select data-act="status" data-id="${p.id}" aria-label="Status">${STATUSES.map(s=>`<option ${s===p.status?"selected":""}>${esc(s)}</option>`).join("")}</select>`;
+const catSel = p=>`<select data-act="cat" data-id="${p.id}" aria-label="Category">${CATEGORIES.map(c=>`<option ${c===p.cat?"selected":""}>${esc(c)}</option>`).join("")}</select>`;
+
+function priorityBlock(p,{compact=false}={}){
+  const r=rec(p), diff=p.priority&&p.priority!==r.level;
+  return `<div class="prio">
+    <div class="levels">
+      <div class="lv"><span class="label">✦ Recommended</span><b>${r.level} <span class="caption">${r.score}/100</span></b><span class="caption">Criteria v${p.version}</span></div>
+      <div class="lv"><span class="label">Priority (yours)</span>
+        <div class="row" style="margin-top:4px">${["High","Medium","Low"].map(l=>`<button class="btn sm ${p.priority===l?"":"ghost"}" data-act="prio" data-id="${p.id}" data-v="${l}">${l}</button>`).join("")}</div></div>
+    </div>
+    ${diff?`<label class="stack" style="gap:4px"><span class="caption">Your Priority differs from the recommendation. One-line reason (goes in the decision log):</span>
+      <input type="text" data-act="reason" data-id="${p.id}" value="${esc(p.overrideReason)}" placeholder="Why ${esc(p.priority)} rather than ${r.level}?">${p.overrideReason?"":`<span class="caption" style="color:var(--error)">Required before the Priority is saved.</span>`}</label>`:""}
+    <button class="link" data-act="break" style="justify-self:start;font-size:13px">${ui.showBreak?"Hide":"Show"} how the score was worked out</button>
+    ${ui.showBreak?`<table class="breakdown">${Object.entries(CRIT).map(([k,[name,w]])=>{
+      const rt=r.r[k]; const why=k==="reach"?`Code: ${frsOf(p.id).length} Feature Requests × 3 + ${ups(p.id)} Upvotes = ${reachRating(p.id)[1]} points.`:p.ai[k][1];
+      return `<tr><td class="r">${esc(name)} ${rt}/5</td><td>${esc(why)}<div class="caption">weight ${w} → ${Math.round(w*(rt-1)/4)} pts${k!=="reach"?" · rated by gpt-6-luna":""}</div></td></tr>`;}).join("")}</table>`:""}
+  </div>`;
+}
+function frList(p){
+  const list=frsOf(p.id), others=problems.filter(q=>q.id!==p.id&&isOpen(q));
+  const selN=list.filter(f=>ui.frSel.has(f.id)).length;
+  return `<div class="frs">${list.map(f=>`<div class="fr ${p.seenFrs&&!p.seenFrs.includes(f.id)&&p.status!=="New"?"new":""}">
+      <input type="checkbox" data-act="frsel" data-id="${f.id}" ${ui.frSel.has(f.id)?"checked":""} aria-label="Select ${esc(f.title)}">
+      <div><h4>${esc(f.title)}</h4><p>${esc(f.desc)}</p>
+        <div class="caption">${esc(f.email)} · ${esc(f.date)} · Requester picked: ${esc(f.cat)}</div>
+        <div class="why">${esc(f.why)}</div></div>
+      <div class="ups">▲ ${f.ups}</div></div>`).join("")}</div>
+    ${selN?`<div class="splitbar"><b>${selN} selected</b><span>Move to</span>
+      <select id="moveTo"><option value="__new">A new Problem</option>${others.map(q=>`<option value="${q.id}">${esc(q.title)}</option>`).join("")}</select>
+      <button class="btn sm" data-act="move" data-id="${p.id}">Move</button><button class="btn sm quiet" data-act="frclear">Cancel</button></div>`
+      :`<p class="caption" style="margin-top:6px">Tick Feature Requests to split them into a new Problem or move them to another one.</p>`}`;
+}
+function briefBlock(p){
+  if(p.brief==="none") return `<div class="row"><button class="btn" data-act="brief" data-id="${p.id}">✦ Generate Decision Brief</button><span class="caption">gpt-6.1-sol · about $0.01 · reads all ${frsOf(p.id).length} Feature Requests</span></div>`;
+  if(p.brief==="loading") return `<p class="muted">✦ Writing the brief from ${frsOf(p.id).length} Feature Requests…</p>`;
+  const fr=frsOf(p.id), c=(i)=>fr[i]?`<span class="cite" title="${esc(fr[i].title)}: “${esc(fr[i].desc)}”">${fr[i].id}</span>`:"";
+  return `<div class="brief stack" style="gap:6px">
+    ${p.brief==="stale"?`<div class="notice">Out of date: its Feature Requests changed since this brief was written. <button class="link" data-act="brief" data-id="${p.id}">Regenerate</button></div>`:""}
+    <div class="spread"><span class="caption">Generated Nov 4 · ${fr.length} Feature Requests · recommends no decision</span><button class="btn sm ghost" data-act="brief" data-id="${p.id}">Regenerate</button></div>
+    <h4>The underlying need</h4><p>Students want to judge, before they go, whether a place suits studying.${c(0)}${c(1)}</p>
+    <h4>Who's asking</h4><p>${fr.length} Requesters, ${ups(p.id)} Upvotes, mostly in the last month; exam-season timing comes up.${c(2)}</p>
+    <h4>What they ask for</h4><ul>${fr.slice(0,3).map((f,i)=>`<li>${esc(f.title)}${c(i)}</li>`).join("")}</ul>
+    <h4>How much it hurts</h4><p>Walking to a spot and leaving is the repeated story: “${esc(fr[1]?fr[1].desc:"")}”${c(1)}</p>
+    <h4>Open questions</h4><ul><li>Would crowd-sourced ratings be trusted? <span class="cite bad" title="The quote 'ratings from other students' was not found in any Feature Request">unverified</span></li><li>Is "quiet" one thing, or silent vs low chatter?${c(2)}</li></ul>
+    <div class="notice err">1 citation failed the check: the quoted words aren't in the cited Feature Request. Shown, but marked.</div>
+  </div>`;
+}
+function solutionsBlock(p){
+  const s=ui.solutions[p.id];
+  if(!s) return `<button class="btn quiet" data-act="sol" data-id="${p.id}">✦ Suggest Solutions</button> <span class="caption">reads Dustrunner369/studease (file tree, open issues/PRs)</span>`;
+  if(s==="loading") return `<p class="muted">✦ Picking files, then writing options…</p>`;
+  return `<div><span class="label">✦ Solution options (written only)</span>
+    <div class="sol"><b>1. Noise tag on spot reviews</b><span class="caption">Touches backend/Models/Spot.cs, app-frontend/mobile/lib/spots/spot_detail.dart. Small.</span></div>
+    <div class="sol"><b>2. "Quiet now" filter from recent check-ins</b><span class="caption">Builds on visits; needs a check-in prompt. Medium. Related open PR #231.</span></div>
+    <div class="sol"><b>3. Import library quiet-zone data</b><span class="caption">Per-campus data entry. Large.</span></div></div>`;
+}
+function ghBlock(p){
+  if(!p.gh) return `<button class="btn ghost sm" data-act="gh" data-id="${p.id}">Create GitHub issue</button>`;
+  return `<div class="ghline"><span>GitHub <b>#${p.gh.n}</b> ${p.gh.closed?"closed":"open"}</span>${p.gh.closed&&p.status!=="Shipped"?`<span class="notice">Issue closed. Mark Shipped? <button class="link" data-act="ship" data-id="${p.id}">Mark Shipped</button></span>`:""}</div>`;
+}
+function headerControls(p){
+  return `<div class="row"><label class="row" style="gap:6px"><span class="label">Status</span>${statusSel(p)}</label><label class="row" style="gap:6px"><span class="label">Category</span>${catSel(p)}</label>
+    <button class="btn sm ghost" data-act="rename" data-id="${p.id}">Rename</button><button class="btn sm ghost" data-act="mergeWith" data-id="${p.id}">Merge with…</button></div>`;
+}
+
+// ================= secondary screens (shared content) =================
+function outboxView(){
+  const items=outbox.filter(o=>o.state!=="discarded");
+  return `<div class="stack"><div><h2>Outbox</h2><p class="muted">Updates go to Requesters only when their Problem ships. The AI drafts them; nothing leaves until you approve. (Demo: approved mail stays here; there is no real email.)</p></div>
+  ${items.length?items.map(o=>`<div class="box stack" style="gap:8px"><div class="spread"><span><b>To ${esc(o.to)}</b> <span class="caption">about “${esc(frs.find(f=>f.id===o.fr).title)}” · ${esc(prob(o.pid).title)}</span></span>${o.state==="approved"?`<span class="pill Low">Approved</span>`:`<span class="pill ai">AI draft</span>`}</div>
+    ${o.state==="editing"?`<textarea data-act="mailedit" data-id="${o.id}">${esc(o.text)}</textarea>`:`<div class="mail">${esc(o.text)}</div>`}
+    ${o.state==="approved"?"":`<div class="row"><button class="btn sm" data-act="approve" data-id="${o.id}">Approve</button><button class="btn sm ghost" data-act="editmail" data-id="${o.id}">${o.state==="editing"?"Done editing":"Edit"}</button><button class="btn sm quiet" data-act="discard" data-id="${o.id}">Discard</button></div>`}</div>`).join(""):`<div class="empty"><span class="sketch sk-cup"></span>Nothing waiting to go out.</div>`}</div>`;
+}
+const logView = ()=>`<div class="stack"><div><h2>AI call log</h2><p class="muted">Every AI call, with its model, cost and result. (The field list gets revisited in the build.)</p></div>
+  <table class="tbl"><thead><tr><th>When</th><th>Step</th><th>Model</th><th>On</th><th>Result</th><th>Time</th><th>Cost</th></tr></thead><tbody>${log.map(l=>`<tr>${l.map((c,i)=>`<td>${i===4&&c!=="OK"?`<span class="pill warn">${esc(c)}</span>`:esc(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+const ghView = ()=>`<div class="stack" style="max-width:620px"><div><h2>GitHub</h2><p class="muted">One connected repo. Suggest Solutions reads it; "Create GitHub issue" writes to it. Linked issues are checked when /admin loads.</p></div>
+  <div class="box stack" style="gap:8px"><div class="spread"><b>Dustrunner369/studease</b><span class="pill Low">Connected</span></div><span class="caption">Fine-grained token (server secret), issues: read & write, contents: read · saved repo name on connect · last checked Nov 6 09:12</span>
+  <div class="row"><button class="btn sm ghost" data-act="noop">Replace token</button><button class="btn sm quiet" data-act="noop">Disconnect</button></div></div></div>`;
+function criteriaView(){
+  return `<div class="stack" style="max-width:860px"><div class="spread"><div><h2>Priority Criteria <span class="pill">v${criteriaVersion}</span></h2><p class="muted">Every save makes a new version; each Recommended Priority records the version it was scored against.</p></div><button class="btn" data-act="savecrit">Save as v${criteriaVersion+1}</button></div>
+  <div class="box"><span class="label">Studease product goals (for Strategic fit)</span><ol style="margin:6px 0 0">${GOALS.map(g=>`<li contenteditable="true">${esc(g)}</li>`).join("")}</ol></div>
+  <div class="box"><table class="tbl"><thead><tr><th>Criterion</th><th>Weight</th><th>Rated by</th></tr></thead><tbody>${Object.values(CRIT).map(([n,w])=>`<tr><td>${n}</td><td><input type="text" value="${w}" style="width:56px"></td><td>${n==="Reach"?"Code: Feature Requests × 3 + Upvotes, bands &lt;3 / 3–9 / 10–19 / 20–39 / 40+":"AI, 1–5 + reason"}</td></tr>`).join("")}</tbody></table>
+  <p class="caption" style="margin-top:8px">Levels: High ≥ <input type="text" value="70" style="width:44px">, Medium ≥ <input type="text" value="40" style="width:44px">, else Low.</p></div>
+  <div class="box"><table class="tbl"><thead><tr><th></th><th>Pain</th><th>Strategic fit</th><th>Retention risk</th></tr></thead><tbody>${[0,1,2,3,4].map(i=>`<tr><td><b>${i+1}</b></td><td contenteditable="true">${LEVEL_DESC.pain[i]}</td><td contenteditable="true">${LEVEL_DESC.fit[i]}</td><td contenteditable="true">${LEVEL_DESC.ret[i]}</td></tr>`).join("")}</tbody></table></div></div>`;
+}
+const archiveView = ()=>{const a=problems.filter(p=>!isOpen(p));return `<div class="stack"><div><h2>Archive</h2><p class="muted">Problems closed as Shipped or Won't do. Their Recommended Priority is frozen at closing.</p></div>
+  <table class="tbl"><thead><tr><th>Problem</th><th>Closed as</th><th>When</th><th>Recommended (frozen)</th><th>Priority</th><th>Note</th></tr></thead><tbody>${a.map(p=>`<tr><td><b>${esc(p.title)}</b><div class="caption">${frsOf(p.id).length} Feature Requests · ${ups(p.id)} Upvotes</div></td><td>${esc(p.status)}</td><td>${esc(p.closedAt||"today")}</td><td>${recPill(p)}</td><td>${prioPill(p)}</td><td class="caption">${esc(p.closedNote||"")}</td></tr>`).join("")}</tbody></table></div>`;};
+function metricsView(){
+  const m=(name,val,target,note)=>`<div class="box metric"><span class="label">${name}</span><span class="big">${val}%</span><div class="bar"><i style="width:${val}%"></i><s style="left:${target}%"></s></div><span class="caption">Target ≥ ${target}% · ${note}</span></div>`;
+  return `<div class="stack" style="max-width:900px"><div><h2>Metrics</h2><p class="muted">Measured on the seed backlog, scoring the AI's first answer against the answer key. Manual fixes don't change these numbers.</p></div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:var(--md)">
+    ${m("Duplicate catch",93,90,"136 of 146 seed duplicates matched to the intended Problem")}
+    ${m("Grouping accuracy",87,85,"131 of 150 requests in the intended Problem")}
+    ${ui.checking?`<div class="box metric"><span class="label">Priority consistency</span><p class="muted">✦ Re-scoring every Problem 3 times…</p></div>`:m("Priority consistency",lastCheck.pct,90,`last run ${lastCheck.when}; changed: ${lastCheck.changed.join(", ")||"none"}`)}
+  </div><div class="row"><button class="btn" data-act="check" ${ui.checking?"disabled":""}>✦ Run consistency check</button><span class="caption">Re-scores each open Problem 3× with gpt-6-luna · about $0.03</span></div></div>`;
+}
+const SECONDARY = {outbox:["Outbox",outboxView],log:["AI call log",logView],github:["GitHub",ghView],criteria:["Priority criteria",criteriaView],archive:["Archive",archiveView],metrics:["Metrics",metricsView]};
+const draftCount = ()=>outbox.filter(o=>o.state==="draft"||o.state==="editing").length;
+
+// ================= modal (merge / rename) =================
+function modalView(){
+  const m=ui.modal; if(!m) return "";
+  if(m.type==="rename"){const p=prob(m.id);return `<div class="scrim" data-act="close"><div class="modal" data-stop><h3>Rename Problem</h3><input type="text" id="renameInput" value="${esc(p.title)}"><p class="caption">Requesters never see Problem titles, so this is for the team only.</p><div class="row"><button class="btn" data-act="doRename" data-id="${p.id}">Save</button><button class="btn quiet" data-act="close">Cancel</button></div></div></div>`;}
+  if(m.type==="pick"){const p=prob(m.id);const others=problems.filter(q=>q.id!==p.id&&isOpen(q));
+    return `<div class="scrim" data-act="close"><div class="modal" data-stop><h3>Merge “${esc(p.title)}” with…</h3>${others.map(q=>`<label class="opt"><input type="radio" name="mpick" value="${q.id}"><span><b>${esc(q.title)}</b><br><span class="caption">${esc(q.cat)} · ${frsOf(q.id).length} Feature Requests · ${ups(q.id)} Upvotes</span></span></label>`).join("")}
+    <div class="row"><button class="btn" data-act="pickNext" data-id="${p.id}">Next</button><button class="btn quiet" data-act="close">Cancel</button></div></div></div>`;}
+  if(m.type==="merge"){const ps=m.ids.map(prob), all=ps.flatMap(p=>frsOf(p.id)), ghs=ps.filter(p=>p.gh);
+    return `<div class="scrim" data-act="close"><div class="modal" data-stop><h3>Merge ${ps.length} Problems</h3>
+      <div class="stack" style="gap:6px"><span class="label">Keep which title, category, status and Priority?</span>${ps.map((p,i)=>`<label class="opt"><input type="radio" name="keep" value="${p.id}" ${i===0?"checked":""}><span><b>${esc(p.title)}</b><br><span class="caption">${esc(p.cat)} · ${esc(p.status)} · Priority ${p.priority||"not set"}</span></span></label>`).join("")}</div>
+      <div><span class="label">What happens</span><ul>
+        <li>All ${all.length} Feature Requests and their ${all.reduce((a,f)=>a+f.ups,0)} Upvotes move to the kept Problem. Requesters notice nothing except more Related requests.</li>
+        <li>The other Problem${ps.length>2?"s are":" is"} removed (logged in the decision log, not the Archive).</li>
+        <li>Reach is recounted and the AI re-scores Pain, Strategic fit and Retention risk.</li>
+        <li>Any Decision Brief becomes out of date.</li>
+        ${ghs.length>1?`<li style="color:var(--error)">Both have GitHub issues (${ghs.map(p=>"#"+p.gh.n).join(", ")}): the kept one stays linked; close the other by hand.</li>`:ghs.length?`<li>GitHub #${ghs[0].gh.n} stays linked to the kept Problem.</li>`:""}
+        <li>Each Feature Request's first AI-given Problem is kept, so the metrics still score the AI's first answer.</li></ul></div>
+      <div class="row"><button class="btn" data-act="doMerge">Merge</button><button class="btn quiet" data-act="close">Cancel</button></div></div></div>`;}
+  return "";
+}
+
+// ================= Variant A: Triage queue =================
+function A(){
+  const nav=[["problems","Triage queue",queue().length],["all","All Problems",""],...Object.entries(SECONDARY).map(([k,[n]])=>[k,n,k==="outbox"?draftCount():""])];
+  const rail=`<aside class="rail"><span class="wordmark">Studease</span><span class="caption">Feature Intelligence · admin</span>
+    ${nav.map(([k,n,b],i)=>`${i===2?'<div class="sep"></div>':""}<button data-act="view" data-v="${k}" aria-current="${ui.view===k}"><span>${n}</span>${b?`<span class="badge">${b}</span>`:""}</button>`).join("")}</aside>`;
+  let body;
+  if(SECONDARY[ui.view]) body=SECONDARY[ui.view][1]();
+  else if(ui.view==="all"&&!ui.pid){const list=byTab(problems.filter(isOpen)).sort((a,b)=>rec(b).score-rec(a).score);
+    body=`<div class="qhead"><h1>All open Problems</h1></div>${catTabs(problems.filter(isOpen))}<table class="all" style="margin-top:var(--sm)">${list.map(p=>`<tr><td><button class="link" data-act="open" data-id="${p.id}">${esc(p.title)}</button><div class="cat">${esc(p.cat)} · ${esc(p.status)}</div></td><td>${frsOf(p.id).length} FRs · ${ups(p.id)} ▲</td><td>${recPill(p)}</td><td>${prioPill(p)}</td></tr>`).join("")}</table>`;}
+  else{
+    const q=byTab(queue()); const pool=ui.view==="all"?problems:q;
+    let cur=ui.pid&&prob(ui.pid)?prob(ui.pid):q[0];
+    if(!cur) body=`<div class="qhead"><h1>Triage queue</h1></div>${catTabs(queue())}<div class="empty"><span class="sketch sk-table"></span>Nothing needs you right now.<br><button class="link" data-act="view" data-v="all">See all Problems</button></div>`;
+    else{
+      const idx=q.indexOf(cur), why=attention(cur);
+      body=`<div class="qhead"><div><h1>${ui.view==="all"?"Problem":"Triage queue"}</h1><p class="muted">${ui.view==="all"?`<button class="link" data-act="view" data-v="all">← All Problems</button>`:`${queue().length} Problems need a decision. Work top to bottom.`}</p></div></div>
+      ${ui.view==="all"?"":catTabs(queue())}
+      <div class="queue" style="margin-top:var(--md)">
+        ${ui.view==="all"?"<div></div>":`<div class="qlist">${q.map(p=>`<button class="qitem" data-act="focus" data-id="${p.id}" aria-current="${p===cur}"><b>${esc(p.title)}</b><span class="reason">${esc(attention(p)[0])}</span><span class="caption">${esc(p.cat)} · ${frsOf(p.id).length} FRs · ${ups(p.id)} ▲</span></button>`).join("")}</div>`}
+        <div class="focus reveal" data-k="${cur.id}">
+          <div class="stack" style="gap:6px">${why.map(w=>`<span class="reason">● ${esc(w)}</span>`).join("")}
+            <div class="spread"><h2>${esc(cur.title)}</h2>${ghBlock(cur)}</div><span class="muted">${frsOf(cur.id).length} Feature Requests · ${ups(cur.id)} Upvotes · ${esc(cur.cat)}</span>${headerControls(cur)}</div>
+          <div class="decide">
+            <div class="box"><span class="label">1 · Is the grouping right?</span><p class="caption">Read why each Feature Request is here. Tick any that don't belong and move them.</p></div>
+            <div class="box"><span class="label">2 · Set the Priority</span><p class="caption">Start from the AI's recommendation; give a reason if you differ.</p></div>
+            <div class="box"><span class="label">3 · Decide the status</span><p class="caption">Under review, Planned, Won't do… Generate a Decision Brief if you need the evidence.</p></div>
+          </div>
+          <div class="box"><span class="label">Feature Requests</span>${frList(cur)}</div>
+          <div class="box">${priorityBlock(cur)}</div>
+          <div class="box stack" style="gap:8px"><span class="label">Decision Brief</span>${briefBlock(cur)}</div>
+          <div class="box">${solutionsBlock(cur)}</div>
+          ${ui.view==="all"?"":`<div class="stepper"><button class="btn ghost" data-act="step" data-v="-1" ${idx<=0?"disabled":""}>← Previous</button><button class="btn" data-act="done" data-id="${cur.id}">Done, next →</button></div>`}
+        </div></div>`;
+    }
+  }
+  return `<div class="A">${rail}<main>${body}</main></div>`;
+}
+
+// ================= Variant B: Table + drawer =================
+function B(){
+  const nav=[["problems","Problems"],...Object.entries(SECONDARY).map(([k,[n]])=>[k,n+(k==="outbox"&&draftCount()?` (${draftCount()})`:"")])];
+  const head=`<header><span class="wordmark">Studease</span><nav>${nav.map(([k,n])=>`<button data-act="view" data-v="${k}" aria-current="${ui.view===k}">${esc(n)}</button>`).join("")}</nav></header>`;
+  if(SECONDARY[ui.view]) return `<div class="B">${head}<main>${SECONDARY[ui.view][1]()}</main></div>`;
+  const sorters={rec:(a,b)=>rec(b).score-rec(a).score,ups:(a,b)=>ups(b.id)-ups(a.id),frs:(a,b)=>frsOf(b.id).length-frsOf(a.id).length,title:(a,b)=>a.title.localeCompare(b.title),status:(a,b)=>STATUSES.indexOf(a.status)-STATUSES.indexOf(b.status)};
+  const open=problems.filter(isOpen), list=byTab(open).sort(sorters[ui.sort]);
+  const th=(k,n)=>`<th data-act="sort" data-v="${k}">${n}${ui.sort===k?" ↓":""}</th>`;
+  const p=ui.pid&&prob(ui.pid);
+  return `<div class="B">${head}<main>
+    <div class="toolbar">${catTabs(open)}<span class="caption">${list.length} open Problems · click a title to open</span></div>
+    <table class="pt"><thead><tr><th></th>${th("title","Problem")}<th>Category</th>${th("status","Status")}${th("frs","FRs")}${th("ups","Upvotes")}${th("rec","✦ Recommended")}<th>Priority</th><th>GitHub</th><th>New</th></tr></thead><tbody>
+    ${list.map(q=>`<tr class="${ui.sel.has(q.id)?"sel":""} ${p===q?"open":""}"><td><input type="checkbox" data-act="sel" data-id="${q.id}" ${ui.sel.has(q.id)?"checked":""} aria-label="Select ${esc(q.title)}"></td>
+      <td class="t" data-act="open" data-id="${q.id}">${esc(q.title)}</td><td class="cat">${esc(q.cat)}</td><td>${esc(q.status)}</td><td class="num">${frsOf(q.id).length}</td><td class="num">${ups(q.id)}</td><td>${recPill(q)}</td><td>${prioPill(q)}${q.priority&&q.priority!==rec(q).level?` <span title="${esc(q.overrideReason||"reason missing")}">✎</span>`:""}</td>
+      <td>${q.gh?`#${q.gh.n}${q.gh.closed?" <span class='pill warn'>closed</span>":""}`:"–"}</td><td>${q.status==="New"?"<span class='pill ai'>new</span>":newFrs(q).length?`+${newFrs(q).length}`:""}</td></tr>`).join("")}
+    </tbody></table>
+    ${ui.sel.size>=2?`<div class="mergebar">${ui.sel.size} Problems selected <button class="btn sm" data-act="mergeSel">Merge…</button><button class="btn sm quiet" data-act="selclear">Clear</button></div>`:ui.sel.size===1?`<p class="caption" style="text-align:center;margin-top:var(--md)">Select one more to merge.</p>`:""}
+  </main>
+  ${p?`<aside class="drawer" data-k="${p.id}"><div class="spread"><span class="label">Problem</span><button class="btn sm quiet" data-act="closeP">Close ✕</button></div>
+    <h2>${esc(p.title)}</h2>${headerControls(p)}${ghBlock(p)}
+    ${priorityBlock(p)}
+    <details open><summary>Feature Requests (${frsOf(p.id).length})</summary>${frList(p)}</details>
+    <details ${p.brief!=="none"?"open":""}><summary>Decision Brief</summary>${briefBlock(p)}</details>
+    <details><summary>Suggest Solutions</summary>${solutionsBlock(p)}</details>
+  </aside>`:""}</div>`;
+}
+
+// ================= Variant C: Status board =================
+function C(){
+  const menu=[["problems","Board"],...Object.entries(SECONDARY).map(([k,[n]])=>[k,n+(k==="outbox"&&draftCount()?` · ${draftCount()}`:"")])];
+  const head=`<header><div class="left"><span class="wordmark">Studease</span><span class="caption">Feature Intelligence · admin</span></div><nav class="menu">${menu.map(([k,n])=>`<button data-act="view" data-v="${k}" aria-current="${ui.view===k}">${esc(n)}</button>`).join("")}</nav></header>`;
+  if(SECONDARY[ui.view]) return `<div class="C">${head}${SECONDARY[ui.view][1]()}</div>`;
+  const p=ui.pid&&prob(ui.pid);
+  if(p) return `<div class="C">${head}<button class="link" data-act="closeP">← Board</button>
+    <div class="page" style="margin-top:var(--md)"><div class="stack">
+      <div class="stack" style="gap:6px"><span class="cat">${esc(p.cat)} · ${esc(p.status)}</span><h1>${esc(p.title)}</h1>${headerControls(p)}</div>
+      <div class="box stack" style="gap:8px"><span class="label">Decision Brief</span>${briefBlock(p)}</div>
+      <div class="box"><span class="label">Feature Requests (${frsOf(p.id).length}) · ${ups(p.id)} Upvotes</span>${frList(p)}</div>
+    </div><div class="side">
+      <div class="box">${priorityBlock(p)}</div>
+      <div class="box stack" style="gap:8px"><span class="label">GitHub</span>${ghBlock(p)}</div>
+      <div class="box">${solutionsBlock(p)}</div>
+    </div></div></div>`;
+  const cols=[["New","review"],["Under review","review"],["Planned","Planned"],["In progress","progress"]];
+  const open=byTab(problems.filter(isOpen));
+  return `<div class="C">${head}<div class="spread" style="margin-bottom:var(--sm)">${catTabs(problems.filter(isOpen))}<span class="caption">Drag a card to another column to change its status · drop it on another card to merge</span></div>
+  <div class="board">${cols.map(([s,cls])=>{const cs=open.filter(p=>p.status===s).sort((a,b)=>rec(b).score-rec(a).score);
+    return `<section class="col ${cls}" data-drop="${esc(s)}"><h3>${esc(s)}<span class="caption">${cs.length}</span></h3>
+    ${cs.map(p=>`<article class="card" draggable="true" data-drag="${p.id}" data-act="open" data-id="${p.id}"><b>${esc(p.title)}</b><span class="cat">${esc(p.cat)}</span>
+      <div class="row" style="gap:6px">${recPill(p)}${prioPill(p)}</div><span class="caption">${frsOf(p.id).length} FRs · ${ups(p.id)} ▲${newFrs(p).length&&p.status!=="New"?` · <b style="color:var(--terracotta)">+${newFrs(p).length} new</b>`:""}${p.gh?` · #${p.gh.n}${p.gh.closed?" closed":""}`:""}</span></article>`).join("")||`<p class="caption" style="padding:6px">Nothing here.</p>`}</section>`;}).join("")}</div>
+  <p class="caption" style="margin-top:var(--sm)">Shipped and Won't do leave the board for the <button class="link" data-act="view" data-v="archive">Archive</button>.</p></div>`;
+}
+
+// ================= actions =================
+function seen(p){p.seenFrs=frsOf(p.id).map(f=>f.id);}
+function rescore(p,msg){p.version=criteriaVersion;toast(msg||`✦ Re-scored against Criteria v${criteriaVersion}: ${rec(p).level} ${rec(p).score}`);}
+function act(a,el,ev){
+  const id=el.dataset.id, v=el.dataset.v;
+  switch(a){
+    case "view": ui.view=v; ui.pid=null; ui.sel.clear(); ui.frSel.clear(); break;
+    case "tab": ui.tab=v; break;
+    case "open": if(ui.drag) return; ui.pid=id; ui.frSel.clear(); if(variant==="A") ui.view="all"; break;
+    case "focus": ui.pid=id; ui.frSel.clear(); break;
+    case "closeP": ui.pid=null; ui.frSel.clear(); break;
+    case "step": {const q=byTab(queue()); const cur=ui.pid?prob(ui.pid):q[0]; const i=q.indexOf(cur)+Number(v); if(q[i]) ui.pid=q[i].id; break;}
+    case "done": {const p=prob(id); seen(p); if(p.status==="New") p.status="Under review"; const q=byTab(queue()); ui.pid=q.length?q[0].id:null; ui.frSel.clear(); toast(`“${p.title}” triaged`); break;}
+    case "break": ui.showBreak=!ui.showBreak; break;
+    case "prio": {const p=prob(id); p.priority=v; if(v===rec(p).level) p.overrideReason=""; break;}
+    case "brief": {const p=prob(id); p.brief="loading"; setTimeout(()=>{p.brief="fresh"; log.unshift(["now","Decision Brief","gpt-6.1-sol",p.id,"Citation check: 1 quote not found","7.4 s","$0.011"]); render();},900); break;}
+    case "sol": ui.solutions[id]="loading"; setTimeout(()=>{ui.solutions[id]="done"; render();},900); break;
+    case "gh": {const p=prob(id); p.gh={n:240+Math.floor(Math.random()*20),closed:false}; toast(`Created GitHub issue #${p.gh.n} in Dustrunner369/studease`); break;}
+    case "ship": {const p=prob(id); setShipped(p); break;}
+    case "frsel": ui.frSel.has(id)?ui.frSel.delete(id):ui.frSel.add(id); break;
+    case "frclear": ui.frSel.clear(); break;
+    case "move": {const from=prob(id), to=$("#moveTo").value, moving=frs.filter(f=>ui.frSel.has(f.id));
+      let target;
+      if(to==="__new"){target=P("p"+(problems.length+1)+"x",moving[0].title,from.cat,"Under review",JSON.parse(JSON.stringify(from.ai)),"",{seenFrs:moving.map(f=>f.id)}); problems.push(target);}
+      else target=prob(to);
+      moving.forEach(f=>f.pid=target.id); [from,target].forEach(p=>{if(p.brief==="fresh") p.brief="stale";});
+      ui.frSel.clear(); rescore(target,`Moved ${moving.length} to “${target.title}”. ✦ Both Problems re-scored; briefs marked out of date.`);
+      if(!frsOf(from.id).length){problems=problems.filter(p=>p!==from); ui.pid=target.id;}
+      break;}
+    case "status": {const p=prob(id); if(el.value==="Shipped") setShipped(p); else {p.status=el.value; if(!isOpen(p)){p.closedAt="today"; ui.pid=null; toast(`Closed as ${p.status}: moved to the Archive`);}} break;}
+    case "cat": prob(id).cat=el.value; toast("Category changed: its Feature Requests now list under "+el.value); break;
+    case "reason": prob(id).overrideReason=el.value; return; // don't re-render while typing
+    case "rename": ui.modal={type:"rename",id}; break;
+    case "doRename": prob(id).title=$("#renameInput").value; ui.modal=null; break;
+    case "mergeWith": ui.modal={type:"pick",id}; break;
+    case "pickNext": {const c=document.querySelector("input[name=mpick]:checked"); if(!c) return; ui.modal={type:"merge",ids:[id,c.value]}; break;}
+    case "mergeSel": ui.modal={type:"merge",ids:[...ui.sel]}; break;
+    case "selclear": ui.sel.clear(); break;
+    case "sel": ui.sel.has(id)?ui.sel.delete(id):ui.sel.add(id); break;
+    case "doMerge": doMerge(ui.modal.ids, document.querySelector("input[name=keep]:checked").value); break;
+    case "close": ui.modal=null; break;
+    case "sort": ui.sort=v; break;
+    case "approve": outbox.find(o=>o.id===id).state="approved"; toast("Approved. (Demo: it stays in the outbox, no email is sent.)"); break;
+    case "editmail": {const o=outbox.find(o=>o.id===id); o.state=o.state==="editing"?"draft":"editing"; break;}
+    case "mailedit": outbox.find(o=>o.id===id).text=el.value; return;
+    case "discard": outbox.find(o=>o.id===id).state="discarded"; break;
+    case "savecrit": criteriaVersion++; toast(`Saved Priority Criteria v${criteriaVersion}. ✦ Open Problems will be re-scored against it.`); break;
+    case "check": ui.checking=true; setTimeout(()=>{ui.checking=false; lastCheck={when:"just now",pct:92,changed:["p4 (Medium → Low)"]}; render();},1200); break;
+    case "noop": toast("Not wired in the prototype"); return;
+    default: return;
+  }
+  render();
+}
+function setShipped(p){
+  p.status="Shipped"; p.closedAt="today"; ui.pid=null;
+  frsOf(p.id).forEach((f,i)=>outbox.push({id:"o"+Date.now()+i,pid:p.id,to:f.email,fr:f.id,state:"draft",text:`Hi! You asked for “${f.title}”. It's now in Studease: update the app to try it. Thanks for the idea.\n\nThe Studease team`}));
+  toast(`Shipped: its Feature Requests leave the portal; ✦ ${frsOf(p.id).length} update drafts are in the Outbox`);
+}
+function doMerge(ids,keepId){
+  const keep=prob(keepId), gone=ids.filter(i=>i!==keepId).map(prob);
+  gone.forEach(g=>{frsOf(g.id).forEach(f=>f.pid=keep.id); keep.seenFrs=(keep.seenFrs||[]).concat(g.seenFrs||[]); if(!keep.gh&&g.gh) keep.gh=g.gh;});
+  problems=problems.filter(p=>!gone.includes(p)); if(keep.status==="New") keep.status="Under review";
+  if(keep.brief==="fresh") keep.brief="stale";
+  ui.modal=null; ui.sel.clear(); ui.pid=keep.id; if(variant==="A") ui.view=ui.view==="problems"?"problems":"all";
+  rescore(keep,`Merged into “${keep.title}”. ✦ Re-scored: ${rec(keep).level} ${rec(keep).score}`);
+}
+
+// ================= wiring =================
+const VARIANTS = {A:["Triage queue",A],B:["Table + drawer",B],C:["Status board",C]};
+const keys = Object.keys(VARIANTS);
+let variant = new URLSearchParams(location.search).get("variant"); if(!VARIANTS[variant]) variant="A";
+function render(){
+  const focusId=document.activeElement&&document.activeElement.id;
+  $("#app").innerHTML = VARIANTS[variant][1]() + modalView();
+  $("#vlabel").textContent = `${variant} (${VARIANTS[variant][0]})`;
+  document.title = `Admin ${variant} · prototype`;
+  if(focusId&&document.getElementById(focusId)) document.getElementById(focusId).focus();
+}
+function go(d){ variant = keys[(keys.indexOf(variant)+d+keys.length)%keys.length]; history.replaceState(null,"",`?variant=${variant}`); ui.pid=null; ui.view="problems"; ui.sel.clear(); ui.frSel.clear(); ui.modal=null; render(); }
+$("#prev").onclick=()=>go(-1); $("#next").onclick=()=>go(1);
+document.addEventListener("keydown",e=>{ if(e.target.closest("input,textarea,select,[contenteditable]")) return; if(e.key==="ArrowLeft") go(-1); if(e.key==="ArrowRight") go(1); if(e.key==="Escape"&&ui.modal){ui.modal=null;render();} });
+document.addEventListener("click",e=>{ const el=e.target.closest("[data-act]"); if(!el) return; if(el.matches("select,input[type=text],textarea")) return; if(el.classList.contains("scrim")&&e.target.closest("[data-stop]")) return; act(el.dataset.act,el,e); });
+document.addEventListener("change",e=>{ const el=e.target.closest("select[data-act]"); if(el) act(el.dataset.act,el,e); });
+document.addEventListener("input",e=>{ const el=e.target.closest("input[type=text][data-act],textarea[data-act]"); if(el) act(el.dataset.act,el,e); });
+document.addEventListener("focusout",e=>{ if(e.target.matches("input[data-act=reason]")) render(); });
+// Variant C drag: change status by dropping on a column, merge by dropping on a card
+document.addEventListener("dragstart",e=>{const c=e.target.closest("[data-drag]"); if(c){ui.drag=c.dataset.drag; e.dataTransfer.setData("text/plain",ui.drag);}});
+document.addEventListener("dragover",e=>{ if(!ui.drag) return; const card=e.target.closest("[data-drag]"), col=e.target.closest("[data-drop]"); document.querySelectorAll(".target,.drop").forEach(n=>n.classList.remove("target","drop")); if(card&&card.dataset.drag!==ui.drag) card.classList.add("target"); else if(col) col.classList.add("drop"); if(card||col) e.preventDefault(); });
+document.addEventListener("drop",e=>{ e.preventDefault(); const id=ui.drag, card=e.target.closest("[data-drag]"), col=e.target.closest("[data-drop]");
+  if(card&&card.dataset.drag!==id) ui.modal={type:"merge",ids:[card.dataset.drag,id]};
+  else if(col){const p=prob(id); p.status=col.dataset.drop; if(p.status!=="New") seen(p); toast(`“${p.title}” → ${p.status}`);}
+  setTimeout(()=>{ui.drag=null;},0); render(); });
+document.addEventListener("dragend",()=>{ setTimeout(()=>{ui.drag=null;},0); document.querySelectorAll(".target,.drop").forEach(n=>n.classList.remove("target","drop")); });
+render();
+</script>
+</body>
+</html>
