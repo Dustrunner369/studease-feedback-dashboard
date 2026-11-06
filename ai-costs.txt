@@ -31,6 +31,10 @@ ESTIMATED MONTHLY COST (low traffic: 300 submissions, 20 briefs, 20 Suggest Solu
 - Priority scoring: ~$0.10/month (one call per submission plus re-scores on moves, merges, splits and criteria saves)
 - Everything else: pennies
 
+ESTIMATED COST PER SEED LOAD (~150 Feature Requests through the real pipeline)
+- Per request: embedding (~$0.000002) + Luna matching (~$0.0002) + Luna priority scoring (~$0.0003) = ~$0.0005
+- Whole load: ~$0.08, plus a few cents of re-scores from the pre-set product-team actions. Re-seeding during the build is effectively free.
+
 TALKING POINTS: WHY NOT JEV FOR MATCHING
 - At this traffic, Luna costs about 5 cents a month more than Jev.
 - What Luna buys: a written reason for every matching decision (observability), one vendor and key, the official OpenAI .NET library, and one consistent AI log.
