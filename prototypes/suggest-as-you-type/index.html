@@ -1,0 +1,350 @@
+<!doctype html>
+<!--
+  PROTOTYPE — THROWAWAY. Wayfinder ticket "Prototype the suggest-as-you-type flow".
+  Question: how does the similar-requests list behave while a Requester types (similarity threshold,
+  number of results, debounce timing) and how does it steer them to upvote instead of submitting?
+  Plan: design D's "Request a feature" pop-up, with three structurally different ways of steering,
+  switchable via ?variant=A|B|C, plus a dark tuning panel (not part of the design) for the numbers.
+  Verdict: B (Strong-match takeover); defaults max 4, 500ms, 4 chars, title + description, one row per Problem.
+  Run: python3 -m http.server 8124 -d prototypes/suggest-as-you-type  →  http://localhost:8124/?variant=A
+  SIMILARITY IS A STAND-IN: a word-overlap score with a small synonym list, not text-embedding-3-small.
+  Real embedding scores sit on a different scale, so the threshold *number* must be re-tuned on real
+  embeddings at build time; this prototype settles the behaviour around it.
+  Seed data is synthetic and in memory.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Suggest-as-you-type Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Pacifico&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EAE0C8; --field:#DED1AC; --ink:#2B2318; --muted:#7D7259; --line:#D6C7A1;
+  --terracotta:#BC6B47; --slate:#708090; --sage:#838C67; --focus:#D97A4E; --error:#9B4A2C;
+  --sm:12px; --md:16px; --lg:24px; --xl:40px;
+  --micro:120ms; --short:220ms; --long:420ms; --ease-out:cubic-bezier(.16,1,.3,1);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:"Fraunces",Georgia,serif;font-size:15.5px;line-height:1.45;-webkit-font-smoothing:antialiased;padding-bottom:96px}
+h1,h2,h3{margin:0;font-weight:800;letter-spacing:-.01em}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.wordmark{font-family:"Pacifico",cursive;font-size:28px;line-height:1}
+.muted{color:var(--muted)}
+.label{font-size:12.5px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;color:var(--muted)}
+.caption{font-size:11.5px;color:var(--muted)}
+.cat{font-size:12.5px;color:var(--muted);font-style:italic}
+.sketch{display:block;background:var(--ink);-webkit-mask:var(--src) center/contain no-repeat;mask:var(--src) center/contain no-repeat}
+.sk-books{--src:url(illustrations/coffeeOnBooks.png)} .sk-cup{--src:url(illustrations/coffeeWithSteam.png)}
+.btn{border:0;border-radius:999px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--terracotta);color:#FBF5E8;transition:transform var(--micro) var(--ease-out)}
+.btn:active{transform:scale(.98)}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--ink)}
+.btn.quiet{background:transparent;color:var(--muted);padding:10px 4px;text-decoration:underline;text-underline-offset:3px}
+.btn.sm{padding:6px 14px;font-size:14px}
+.up{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:14px;border:1.5px solid var(--line);background:var(--bg);cursor:pointer}
+.up:hover{border-color:var(--terracotta)}
+.up .arrow{font-size:13px;color:var(--terracotta)} .up .n{font-weight:800;font-size:14.5px}
+.up[aria-pressed=true]{background:var(--terracotta);border-color:var(--terracotta);color:#FBF5E8;cursor:default}
+.up[aria-pressed=true] .arrow{color:#FBF5E8}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tab{border:0;background:transparent;padding:6px 12px;border-radius:999px;color:var(--muted);font-weight:600}
+.tab[aria-selected=true]{background:var(--ink);color:var(--bg)}
+.field{display:flex;flex-direction:column;gap:6px}
+.field input,.field select,.field textarea{background:var(--bg);border:1.5px solid transparent;border-radius:12px;padding:10px 12px;outline:none}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--ink)}
+.field textarea{min-height:90px;resize:vertical}
+.toast{position:fixed;left:50%;top:var(--lg);transform:translate(-50%,-20px);opacity:0;background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-weight:600;transition:all var(--short) var(--ease-out);z-index:40;pointer-events:none;max-width:90vw;text-align:center}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* board (design D, read-only backdrop) */
+.D{max-width:1000px;margin:0 auto;padding:var(--lg) var(--md)}
+.D header{display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--xl)}
+.D header .left{display:flex;align-items:baseline;gap:12px}
+.D .intro{display:flex;justify-content:space-between;align-items:end;margin-bottom:var(--md)}
+.D .intro h1{font-size:30px}
+.D .intro .sketch{width:96px;height:120px}
+.D .tabs.cats{margin-bottom:var(--sm);padding-bottom:var(--sm);border-bottom:1px solid var(--line)}
+.D table{width:100%;border-collapse:collapse}
+.D td{padding:14px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+.D td.t{font-weight:700;font-size:16px} .D td.t .caption{display:block;font-weight:400;font-size:13.5px;margin-top:2px}
+.D td.c{text-align:right;white-space:nowrap}
+.scrim{position:fixed;inset:0;background:color-mix(in srgb,var(--ink) 35%,transparent);z-index:20}
+.modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(620px,calc(100% - 32px));max-height:calc(100vh - 48px);overflow:auto;background:var(--field);border-radius:20px;padding:var(--lg);display:grid;gap:var(--md);z-index:21}
+.modal .row{display:grid;grid-template-columns:1fr 1fr;gap:var(--md)}
+.modal .top{display:flex;justify-content:space-between;align-items:center}
+.modal .x{border:0;background:none;font-size:22px;cursor:pointer;color:var(--muted)}
+.actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+@media (max-width:640px){.D .intro .sketch,.D td.c{display:none}.modal .row{grid-template-columns:1fr}}
+
+/* suggestion slot, shared atoms */
+.slot{min-height:0}
+.searching{font-size:13px;color:var(--muted);font-style:italic;padding:2px 0}
+.match{display:grid;grid-template-columns:auto 1fr;gap:var(--sm);align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.match h4{margin:0;font-size:15px;font-weight:700} .match p{margin:2px 0 0;font-size:13px;color:var(--muted)}
+.fadein{animation:fi var(--short) var(--ease-out) both} @keyframes fi{from{opacity:0;transform:translateY(4px)}}
+
+/* A: quiet list under the description */
+.A-list{background:var(--bg);border-radius:14px;padding:10px 14px 4px}
+.A-list .match:first-of-type{border-top:0}
+
+/* B: strong-match banner that takes over the primary action */
+.B-banner{background:var(--ink);color:var(--bg);border-radius:16px;padding:var(--md);display:grid;gap:10px}
+.B-banner .label{color:color-mix(in srgb,var(--bg) 70%,transparent)}
+.B-banner h4{margin:0;font-size:17px} .B-banner p{margin:0;font-size:13.5px;opacity:.8}
+.B-banner .btn.ghost{color:var(--bg);border-color:var(--bg)}
+.B-more{font-size:13px}
+.B-more .match{border-top:1px dashed var(--line)}
+
+/* C: two-step gate */
+.steps{display:flex;gap:6px} .steps span{font-size:12px;padding:3px 10px;border-radius:999px;background:var(--bg);color:var(--muted)} .steps span.on{background:var(--ink);color:var(--bg);font-weight:700}
+.C-card{background:var(--bg);border-radius:16px;padding:var(--md);display:grid;grid-template-columns:auto 1fr auto;gap:var(--md);align-items:center}
+.C-card h4{margin:0;font-size:16px} .C-card p{margin:2px 0 0;font-size:13.5px;color:var(--muted)}
+
+/* ---------- Prototype chrome (not part of the design) ---------- */
+#panel{position:fixed;right:12px;top:12px;width:330px;max-height:calc(100vh - 100px);overflow:auto;background:#111;color:#eee;border-radius:14px;padding:12px 14px;font:12.5px/1.4 system-ui,sans-serif;z-index:90;box-shadow:0 6px 24px rgba(0,0,0,.35)}
+#panel h5{margin:10px 0 4px;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#9a9}
+#panel label{display:grid;grid-template-columns:120px 1fr 44px;gap:6px;align-items:center;margin:3px 0}
+#panel input[type=range]{width:100%}
+#panel select{background:#222;color:#eee;border:1px solid #444;border-radius:6px;padding:2px 4px;font:inherit}
+#panel .b{text-align:right;font-variant-numeric:tabular-nums}
+#panel table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+#panel td{padding:2px 4px;border-top:1px solid #2a2a2a;vertical-align:top}
+#panel tr.on td{color:#9f9} #panel tr.strong td{color:#ffcf70} #panel tr.off td{color:#777}
+#panel .hint{color:#888;font-size:11.5px}
+#panel .collapse{float:right;background:#333;border:0;color:#eee;border-radius:6px;cursor:pointer}
+#panel.min .body{display:none}
+#switcher{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);display:flex;align-items:center;gap:4px;background:#111;color:#fff;border-radius:999px;padding:6px;font:600 13px/1 system-ui,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,.35);z-index:100}
+#switcher button{background:#333;color:#fff;border:0;border-radius:999px;width:32px;height:32px;cursor:pointer}
+#switcher span{padding:0 12px;min-width:230px;text-align:center}
+@media (max-width:1100px){#panel{top:auto;bottom:70px;max-height:40vh}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="toast" id="toast" role="status"></div>
+<aside id="panel" aria-label="Prototype tuning panel">
+  <button class="collapse" id="collapse">–</button><b>Tuning panel</b> <span class="hint">(prototype only)</span>
+  <div class="body">
+    <h5>Knobs</h5>
+    <label>Show at score ≥<input type="range" id="k-threshold" min="0.05" max="0.8" step="0.01"><span class="b" id="v-threshold"></span></label>
+    <label>Strong match ≥<input type="range" id="k-strong" min="0.2" max="0.95" step="0.01"><span class="b" id="v-strong"></span></label>
+    <label>Max results<input type="range" id="k-max" min="1" max="8" step="1"><span class="b" id="v-max"></span></label>
+    <label>Debounce (ms)<input type="range" id="k-debounce" min="0" max="1500" step="50"><span class="b" id="v-debounce"></span></label>
+    <label>Start after (chars)<input type="range" id="k-minchars" min="1" max="30" step="1"><span class="b" id="v-minchars"></span></label>
+    <label>Search on<select id="k-source"><option value="title">Title only</option><option value="both">Title + description</option></select><span></span></label>
+    <label>One row per<select id="k-group"><option value="problem">Problem (best request)</option><option value="request">Feature Request</option></select><span></span></label>
+    <p class="hint">"Strong match" is only used by variant B. Variant C searches once, when you press Next, so debounce doesn't apply to it.</p>
+    <h5>Live state</h5>
+    <div id="live"></div>
+    <h5>Every candidate, scored</h5>
+    <div id="scores"></div>
+    <p class="hint">Stand-in score (word overlap + synonyms), not real embeddings. Shipped requests are never candidates; Won't do ones are.</p>
+  </div>
+</aside>
+<div id="switcher" aria-label="Prototype variant switcher">
+  <button id="prev" aria-label="Previous variant">←</button><span id="vlabel"></span><button id="next" aria-label="Next variant">→</button>
+</div>
+
+<script>
+// ================= Pure logic (liftable) =================
+const STOP = new Set("a an the to of for and or in on at is it i my me we you be can could would should please want need like just so with when where that this there from by as are was do does dont don't not no more some any get have has let make able see spot spots place places app study".split(" "));
+const SYN = {outlet:"power",outlets:"power",socket:"power",sockets:"power",plug:"power",charge:"power",charging:"power",charger:"power",laptop:"power",
+  open:"hours",opening:"hours",closed:"hours",close:"hours",closing:"hours",late:"hours",night:"hours","10pm":"hours",time:"hours",
+  send:"share",link:"share",invite:"share",friend:"share",friends:"share",group:"share",
+  photo:"photo",photos:"photo",picture:"photo",pictures:"photo",image:"photo",images:"photo",pic:"photo",pics:"photo",
+  streak:"streak",streaks:"streak",reward:"streak",badge:"streak",badges:"streak",
+  remind:"remind",reminder:"remind",notification:"remind",notify:"remind",forget:"remind",
+  dark:"dark",theme:"dark",bright:"dark",
+  login:"signin",signin:"signin",sign:"signin",apple:"apple",password:"signin",
+  quiet:"noise",noise:"noise",noisy:"noise",loud:"noise",
+  filter:"filter",filters:"filter",toggle:"filter",sort:"filter"};
+function terms(text){
+  return text.toLowerCase().replace(/[^a-z0-9' ]/g," ").split(/\s+/).map(w=>w.replace(/^'+|'+$/g,""))
+    .filter(w=>w&&!STOP.has(w)).map(w=>SYN[w]||w.replace(/(ing|ed|es|s)$/,"")).filter(w=>w.length>1);
+}
+function vec(text,weight=1,into={}){ for(const t of terms(text)) into[t]=(into[t]||0)+weight; return into; }
+function cosine(a,b){ let dot=0,na=0,nb=0; for(const k in a){na+=a[k]*a[k]; if(b[k])dot+=a[k]*b[k];} for(const k in b)nb+=b[k]*b[k]; return na&&nb?dot/Math.sqrt(na*nb):0; }
+// Score every eligible Feature Request against what the Requester has typed.
+function scoreAll(query, requests, problems){
+  const q = vec(query);
+  return requests
+    .filter(r=>problems[r.problem].status!=="Shipped")
+    .map(r=>({r, score: cosine(q, vec(r.title,2,vec(r.body)))}))
+    .sort((a,b)=>b.score-a.score);
+}
+// Decide what the Requester sees from the scored list.
+function pick(scored, {threshold, max, group}){
+  let shown = scored.filter(s=>s.score>=threshold);
+  if(group==="problem"){ const seen=new Set(); shown = shown.filter(s=>!seen.has(s.r.problem)&&seen.add(s.r.problem)); }
+  return shown.slice(0,max);
+}
+
+// ================= Synthetic seed data =================
+const CATEGORIES = ["Finding spots","Adding & editing spots","Spot details","Visits","Profile & account","Social","Other"];
+const problems = {
+  p1:{category:"Finding spots",status:"In progress"}, p2:{category:"Spot details",status:"Planned"},
+  p3:{category:"Social",status:"Shipped"}, p4:{category:"Visits",status:"Under review"},
+  p5:{category:"Adding & editing spots",status:"New"}, p6:{category:"Other",status:"New"},
+  p7:{category:"Profile & account",status:"Won't do"}, p8:{category:"Spot details",status:"New"},
+  p9:{category:"Social",status:"New"},
+};
+const requests = [
+  {id:"r1",problem:"p1",title:"Filter spots by opening hours",body:"I keep walking to cafés that turn out to be closed. A filter for hours would save so much time.",upvotes:41,date:"Oct 12"},
+  {id:"r2",problem:"p1",title:"Show which places are open after 10pm",body:"Exam season I study late — I just need to know where's still open.",upvotes:27,date:"Oct 20"},
+  {id:"r3",problem:"p1",title:"'Open now' toggle on the list",body:"Like Google Maps has. One tap.",upvotes:18,date:"Nov 1"},
+  {id:"r4",problem:"p2",title:"Rate spots on outlets",body:"Add an outlets rating next to noise and wifi so I know if my laptop will survive.",upvotes:33,date:"Sep 28"},
+  {id:"r5",problem:"p2",title:"Power socket tag",body:"Even just a tag would help me filter.",upvotes:12,date:"Oct 30"},
+  {id:"r6",problem:"p3",title:"Send a spot as a link",body:"I want to text my study group where we're meeting.",upvotes:22,date:"Aug 14"},
+  {id:"r8",problem:"p4",title:"Streak counter for visits",body:"Duolingo-style streak for logging study visits.",upvotes:15,date:"Oct 5"},
+  {id:"r9",problem:"p4",title:"Remind me to log a visit",body:"I forget to log it after I leave.",upvotes:6,date:"Oct 22"},
+  {id:"r10",problem:"p5",title:"Upload photos when adding a spot",body:"Pictures of the seating would help others decide.",upvotes:19,date:"Oct 18"},
+  {id:"r11",problem:"p6",title:"Dark mode please",body:"The cream background is lovely but bright at 1am.",upvotes:24,date:"Oct 9"},
+  {id:"r12",problem:"p7",title:"Sign in with Apple",body:"I don't use Google and don't want another password.",upvotes:11,date:"Oct 27"},
+  {id:"r13",problem:"p8",title:"Noise level filter",body:"I need properly quiet places, a noise rating I can filter on.",upvotes:29,date:"Oct 3"},
+  {id:"r14",problem:"p9",title:"See where my friends are studying",body:"Would love to see which spots friends checked in to today.",upvotes:14,date:"Oct 25"},
+];
+const upvoted = new Set();
+
+// ================= Page shell =================
+const $=(s,r=document)=>r.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const upBtn=r=>`<button type="button" class="up" data-up="${r.id}" aria-pressed="${upvoted.has(r.id)}" aria-label="Upvote ${esc(r.title)}"><span class="arrow">▲</span><span class="n">${r.upvotes}</span></button>`;
+const catSelect=()=>`<select required><option value="" selected disabled>Choose the part of the app…</option>${CATEGORIES.map(c=>`<option>${esc(c)}</option>`).join("")}</select>`;
+function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove("show"),2600)}
+
+const K = {threshold:0.30, strong:0.60, max:4, debounce:500, minchars:4, source:"both", group:"problem"};
+const S = {open:false, step:1, typed:"", pending:false, calls:0, lastQuery:"", shown:[], scored:[], dismissed:false, outcome:null, timer:null};
+
+function board(){
+  const rs = requests.filter(r=>problems[r.problem].status!=="Shipped").sort((a,b)=>b.upvotes-a.upvotes);
+  return `<div class="D"><header><div class="left"><span class="wordmark">Studease</span><span class="label">Feature requests</span></div><button class="btn" data-open>+ Request a feature</button></header>
+  <section class="intro"><div><h1>What people are asking for</h1><p class="muted" style="margin:6px 0 0">Upvote the requests you'd use too.</p></div><span class="sketch sk-books" aria-hidden="true"></span></section>
+  <div class="tabs cats">${["All",...CATEGORIES].map((c,i)=>`<span class="tab" aria-selected="${i===0}">${esc(c)}</span>`).join("")}</div>
+  <table><tbody>${rs.map(r=>`<tr><td style="width:84px">${upBtn(r)}</td><td class="t">${esc(r.title)}<span class="caption">${esc(r.body)}</span></td><td class="c"><span class="cat">${esc(problems[r.problem].category)}</span><span class="caption" style="display:block">${esc(r.date)}</span></td></tr>`).join("")}</tbody></table></div>`;
+}
+const titleField=()=>`<label class="field"><span class="label">Title</span><input id="f-title" required placeholder="e.g. Filter spots by opening hours"></label>`;
+const descField=()=>`<label class="field"><span class="label">What do you need, and why?</span><textarea id="f-desc" required></textarea></label>`;
+const restFields=()=>`<div class="row"><label class="field"><span class="label">Part of the app</span>${catSelect()}</label><label class="field"><span class="label">Your email</span><input type="email" required placeholder="So we can update you"></label></div>`;
+
+// ---- Variant A: Quiet list. Matches sit in the form's slot; Send stays primary. ----
+const A = {
+  name:"Quiet list",
+  form:()=>`${titleField()}${descField()}<div class="slot" id="slot"></div>${restFields()}<div class="actions"><button class="btn">Send request</button></div>`,
+  slot(){
+    if(S.pending && !S.shown.length) return `<div class="searching">Looking for similar requests…</div>`;
+    if(!S.shown.length) return "";
+    return `<div class="A-list fadein"><span class="label">Already asked? Upvote it instead</span>${S.shown.map(s=>`<div class="match">${upBtn(s.r)}<div><h4>${esc(s.r.title)}</h4><p>${esc(s.r.body)}</p></div></div>`).join("")}</div>`;
+  },
+};
+// ---- Variant B: Strong-match takeover. A near-duplicate swaps the primary action to Upvote. ----
+const B = {
+  name:"Strong-match takeover",
+  form:()=>`${titleField()}${descField()}<div class="slot" id="slot"></div>${restFields()}<div class="actions" id="b-actions"></div>`,
+  slot(){
+    const top = S.shown[0], strong = top && top.score>=K.strong && !S.dismissed;
+    const actions = strong
+      ? `<button class="btn ghost" type="submit">Send mine anyway</button>`
+      : `<button class="btn">Send request</button>`;
+    queueMicrotask(()=>{const a=$("#b-actions"); if(a) a.innerHTML=actions;});
+    if(S.pending && !S.shown.length) return `<div class="searching">Looking for similar requests…</div>`;
+    if(!S.shown.length) return "";
+    if(strong){
+      const rest=S.shown.slice(1);
+      return `<div class="B-banner fadein"><span class="label">Someone already asked for this</span><div><h4>${esc(top.r.title)}</h4><p>${esc(top.r.body)} · ${top.r.upvotes} upvotes</p></div>
+        <div class="actions"><button type="button" class="btn" data-up="${top.r.id}">▲ Upvote this instead</button><button type="button" class="btn ghost sm" data-dismiss>Mine's different</button></div></div>
+        ${rest.length?`<div class="B-more"><span class="caption">Also similar</span>${rest.map(s=>`<div class="match">${upBtn(s.r)}<div><h4>${esc(s.r.title)}</h4></div></div>`).join("")}</div>`:""}`;
+    }
+    return `<div class="B-more fadein"><span class="caption">Similar requests</span>${S.shown.map(s=>`<div class="match">${upBtn(s.r)}<div><h4>${esc(s.r.title)}</h4><p>${esc(s.r.body)}</p></div></div>`).join("")}</div>`;
+  },
+};
+// ---- Variant C: Check first. Title (+description) first, matches on their own step, then the rest. ----
+const C = {
+  name:"Check first (two steps)",
+  form(){
+    const steps=`<div class="steps"><span class="${S.step===1?"on":""}">1 · Describe it</span><span class="${S.step===2?"on":""}">2 · Already asked?</span><span class="${S.step===3?"on":""}">3 · Send</span></div>`;
+    if(S.step===1) return `${steps}${titleField()}${descField()}<div class="actions"><button type="button" class="btn" data-next>Next</button></div>`;
+    if(S.step===2) return `${steps}<div class="slot" id="slot"></div>`;
+    return `${steps}<p class="muted" style="margin:0">“${esc(S.typed.split("\n")[0])}”</p>${restFields()}<div class="actions"><button class="btn">Send request</button></div>`;
+  },
+  slot(){
+    if(S.pending) return `<div class="searching">Looking for similar requests…</div>`;
+    if(!S.shown.length){ queueMicrotask(()=>{S.step=3; render();}); return ""; } // nothing similar: skip straight to step 3
+    return `<h3 style="font-size:19px">Is it one of these?</h3><p class="muted" style="margin:-8px 0 0;font-size:14px">If so, upvote it. It counts the same and you'll be grouped with everyone who asked.</p>
+      ${S.shown.map(s=>`<div class="C-card fadein"><div><h4>${esc(s.r.title)}</h4><p>${esc(s.r.body)}</p></div><span class="caption">${s.r.upvotes} upvotes</span><button type="button" class="btn sm" data-up="${s.r.id}">▲ Upvote</button></div>`).join("")}
+      <div class="actions"><button type="button" class="btn ghost" data-next>None of these, continue</button><button type="button" class="btn quiet" data-back>Back</button></div>`;
+  },
+};
+
+const VARIANTS={A,B,C}; const keys=Object.keys(VARIANTS);
+let v=new URLSearchParams(location.search).get("variant"); if(!VARIANTS[v]) v="B";
+
+function modal(){ return S.open?`<div class="scrim" data-close></div><form class="modal" data-submit role="dialog" aria-label="Request a feature"><div class="top"><h2 style="font-size:23px">Request a feature</h2><button type="button" class="x" data-close aria-label="Close">×</button></div>${VARIANTS[v].form()}</form>`:""; }
+function render(){
+  const keep = {t:$("#f-title")?.value, d:$("#f-desc")?.value};
+  $("#app").innerHTML = board()+modal();
+  if($("#f-title")){ $("#f-title").value=keep.t||S.vt||""; $("#f-desc").value=keep.d||S.vd||""; }
+  renderSlot(); renderPanel();
+  $("#vlabel").textContent=`${v} (${VARIANTS[v].name})`;
+}
+function renderSlot(){ const s=$("#slot"); if(s) s.innerHTML=VARIANTS[v].slot(); renderPanel(); }
+
+// ---- search pipeline: debounce → "embedding call" → pick ----
+function queryText(){ const t=$("#f-title")?.value??S.vt??"", d=$("#f-desc")?.value??S.vd??""; return K.source==="title"?t:`${t}\n${d}`; }
+function onTyping(){
+  S.typed = queryText(); S.dismissed=false;
+  clearTimeout(S.timer);
+  if(S.typed.replace(/\s/g,"").length < K.minchars){ S.pending=false; S.shown=[]; S.scored=[]; renderSlot(); return; }
+  S.pending=true; renderSlot();
+  S.timer=setTimeout(runSearch, K.debounce);
+}
+function runSearch(){
+  S.calls++; S.lastQuery=S.typed; const q=S.typed;
+  setTimeout(()=>{ // simulated round trip to the embeddings endpoint
+    if(q!==S.typed) return; // stale
+    S.scored=scoreAll(q,requests,problems); S.shown=pick(S.scored,K); S.pending=false; renderSlot();
+  },150);
+}
+function rescore(){ if(S.lastQuery){ S.scored=scoreAll(S.lastQuery,requests,problems); S.shown=pick(S.scored,K);} renderSlot(); }
+
+function renderPanel(){
+  for(const k of ["threshold","strong","max","debounce","minchars"]){ $("#k-"+k).value=K[k]; $("#v-"+k).textContent=K[k]; }
+  $("#k-source").value=K.source; $("#k-group").value=K.group;
+  const shownIds=new Set(S.shown.map(s=>s.r.id));
+  $("#live").innerHTML=`<table>
+    <tr><td>Variant</td><td>${v} · ${VARIANTS[v].name}</td></tr>
+    <tr><td>Status</td><td>${S.pending?"waiting (debounce / call)":S.lastQuery?"results in":"idle"}</td></tr>
+    <tr><td>Embedding calls</td><td>${S.calls} <span class="hint">(each ≈ $0.000002)</span></td></tr>
+    <tr><td>Shown</td><td>${S.shown.length}</td></tr>
+    <tr><td>Last outcome</td><td>${S.outcome||"–"}</td></tr></table>`;
+  $("#scores").innerHTML = S.scored.length?`<table>${S.scored.map(s=>{const cls=shownIds.has(s.r.id)?(s===S.shown[0]&&s.score>=K.strong&&v==="B"?"strong":"on"):"off";return `<tr class="${cls}"><td>${s.score.toFixed(2)}</td><td>${esc(s.r.title)}<br><span class="hint">${s.r.problem} · ${problems[s.r.problem].status}</span></td></tr>`}).join("")}</table>`:`<span class="hint">Type at least ${K.minchars} characters in the pop-up.</span>`;
+}
+
+// ---- wiring ----
+function resetForm(){ Object.assign(S,{step:1,typed:"",pending:false,lastQuery:"",shown:[],scored:[],dismissed:false,vt:"",vd:""}); clearTimeout(S.timer); }
+function go(d){ v=keys[(keys.indexOf(v)+d+keys.length)%keys.length]; history.replaceState(null,"",`?variant=${v}`); resetForm(); render(); }
+$("#prev").onclick=()=>go(-1); $("#next").onclick=()=>go(1);
+$("#collapse").onclick=()=>$("#panel").classList.toggle("min");
+addEventListener("keydown",e=>{ if(e.target.closest("input,textarea,select,[contenteditable]"))return; if(e.key==="ArrowLeft")go(-1); if(e.key==="ArrowRight")go(1); if(e.key==="Escape"&&S.open){S.open=false;render();} });
+document.addEventListener("input",e=>{
+  if(e.target.closest("#panel")){ const id=e.target.id.slice(2); K[id]=e.target.type==="range"?+e.target.value:e.target.value; if(id==="minchars"||id==="source") onTyping(); else rescore(); return; }
+  if(e.target.id==="f-title"||e.target.id==="f-desc"){ S.vt=$("#f-title").value; S.vd=$("#f-desc").value; if(v!=="C") onTyping(); }
+});
+document.addEventListener("click",e=>{
+  const t=e.target.closest("[data-up],[data-open],[data-close],[data-dismiss],[data-next],[data-back]"); if(!t)return;
+  if(t.dataset.up){ const id=t.dataset.up; if(upvoted.has(id))return; upvoted.add(id); const r=requests.find(x=>x.id===id); r.upvotes++;
+    if(S.open){ S.outcome=`upvoted “${r.title}” instead of sending`; S.open=false; resetForm(); render(); toast(`Upvoted “${r.title}”. Thanks, no need to send a new one.`); }
+    else render(); return; }
+  if("open" in t.dataset){ S.open=true; resetForm(); render(); $("#f-title")?.focus(); }
+  if("close" in t.dataset){ S.open=false; S.outcome="closed the pop-up"; resetForm(); render(); }
+  if("dismiss" in t.dataset){ S.dismissed=true; S.outcome="said “mine's different”"; renderSlot(); }
+  if("next" in t.dataset){ if(S.step===1){ if(!$("#f-title").value.trim())return toast("Add a title first"); S.typed=queryText(); S.step=2; S.pending=true; render(); runSearch(); } else { S.outcome="saw matches, continued anyway"; S.step=3; render(); } }
+  if("back" in t.dataset){ S.step=1; render(); }
+});
+document.addEventListener("submit",e=>{ e.preventDefault(); S.outcome = S.shown.length?`sent a new request (${S.shown.length} matches were shown)`:"sent a new request (no matches)"; S.open=false; resetForm(); render(); toast("Thanks! We've got your request."); });
+render();
+</script>
+</body>
+</html>
