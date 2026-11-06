@@ -1,0 +1,423 @@
+<!doctype html>
+<!--
+  PROTOTYPE — THROWAWAY. Wayfinder ticket "Prototype the portal in the Studease design system".
+  Question: how should the customer portal look and feel in Studease's design system, as plain HTML/CSS?
+  Plan: three structurally different variants of the portal (browse + submit + public Problem),
+  switchable via ?variant=A|B|C, on one throwaway page. Seed data is synthetic and in memory.
+  Run: python3 -m http.server 8123 -d prototypes/portal-design  →  http://localhost:8123/?variant=D
+  Round 2: D (List board) is the user's direction: B's list as the main feature, A's form behind a corner button, no statuses.
+  (served, not file://, so the CSS-mask recolouring of the illustrations works.)
+  Suggest-as-you-type is NOT designed here; it has its own prototype ticket. Its slot is a stub.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Studease Portal Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Pacifico&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EAE0C8; --field:#DED1AC; --ink:#2B2318; --muted:#7D7259; --line:#D6C7A1;
+  --terracotta:#BC6B47; --slate:#708090; --sage:#838C67; --focus:#D97A4E; --error:#9B4A2C;
+  --s2:4px; --s1:8px; --sm:12px; --md:16px; --lg:24px; --xl:40px; --xl2:64px;
+  --micro:120ms; --short:220ms; --long:420ms;
+  --ease-out:cubic-bezier(.16,1,.3,1); --ease-in:cubic-bezier(.7,0,.84,0); --ease-io:cubic-bezier(.65,0,.35,1);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:"Fraunces",Georgia,serif;font-weight:400;font-size:15.5px;line-height:1.45;-webkit-font-smoothing:antialiased;padding-bottom:96px}
+h1,h2,h3{margin:0;font-weight:800;letter-spacing:-.01em}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.wordmark{font-family:"Pacifico",cursive;font-size:28px;line-height:1;color:var(--ink)}
+.muted{color:var(--muted)}
+.label{font-size:12.5px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;color:var(--muted)}
+.caption{font-size:11px;color:var(--muted)}
+.sketch{display:block;background:var(--ink);-webkit-mask:var(--src) center/contain no-repeat;mask:var(--src) center/contain no-repeat}
+.sk-books{--src:url(illustrations/coffeeOnBooks.png)}
+.sk-cup{--src:url(illustrations/coffeeWithSteam.png)}
+.sk-table{--src:url(illustrations/coffeeTable.png)}
+.sk-cat{--src:url(illustrations/confusedCat.png)}
+
+/* shared atoms */
+.pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;background:var(--field);color:var(--muted);white-space:nowrap}
+.pill.planned{background:color-mix(in srgb,var(--slate) 18%,transparent);color:#56636f}
+.pill.progress{background:color-mix(in srgb,var(--terracotta) 18%,transparent);color:#9a5235}
+.pill.shipped{background:color-mix(in srgb,var(--sage) 22%,transparent);color:#5f6748}
+.cat{font-size:12.5px;color:var(--muted);font-style:italic}
+.btn{border:0;border-radius:999px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--terracotta);color:#FBF5E8;transition:transform var(--micro) var(--ease-out),background var(--micro)}
+.btn:active{transform:scale(.98)}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--ink)}
+.up{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;min-width:56px;padding:8px 6px;border-radius:14px;border:1.5px solid var(--line);background:var(--bg);cursor:pointer;transition:transform var(--micro) var(--ease-out),background var(--micro),border-color var(--micro)}
+.up:hover{border-color:var(--terracotta)}
+.up:active{transform:scale(.96)}
+.up .arrow{font-size:13px;line-height:1;color:var(--terracotta)}
+.up .n{font-weight:800;font-size:17px;line-height:1.1}
+.up[aria-pressed=true]{background:var(--terracotta);border-color:var(--terracotta);color:#FBF5E8;cursor:default}
+.up[aria-pressed=true] .arrow{color:#FBF5E8}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tab{border:0;background:transparent;padding:6px 12px;border-radius:999px;cursor:pointer;color:var(--muted);font-weight:600}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected=true]{background:var(--ink);color:var(--bg)}
+.field{display:flex;flex-direction:column;gap:6px}
+.field input,.field select,.field textarea{background:var(--field);border:1.5px solid transparent;border-radius:12px;padding:10px 12px;outline:none;transition:border-color var(--micro)}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--ink)}
+.field textarea{min-height:96px;resize:vertical}
+.stub{border:1.5px dashed var(--line);border-radius:12px;padding:10px 12px;font-size:13px;color:var(--muted)}
+.howto ol{margin:8px 0 0;padding-left:20px}
+.howto li{margin:4px 0}
+.howto b{font-weight:700}
+.empty{text-align:center;padding:var(--xl) var(--md);color:var(--muted)}
+.empty .sketch{width:120px;height:120px;margin:0 auto var(--sm);background:var(--muted)}
+.reveal{animation:rise var(--long) var(--ease-out) both}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ---------- Variant A: Notice board (one column, inline submit) ---------- */
+.A{max-width:720px;margin:0 auto;padding:var(--lg) var(--md)}
+.A header{display:flex;align-items:baseline;gap:12px;margin-bottom:var(--xl)}
+.A .hero{display:grid;grid-template-columns:1fr 150px;gap:var(--lg);align-items:center;margin-bottom:var(--lg)}
+.A .hero h1{font-size:34px;line-height:1.1;margin-bottom:8px}
+.A .hero .sketch{width:150px;height:200px}
+.A .submit{background:var(--field);border-radius:20px;padding:var(--lg);display:grid;gap:var(--md);margin-bottom:var(--xl)}
+.A .submit .field input,.A .submit .field select,.A .submit .field textarea{background:var(--bg)}
+.A .submit .row{display:grid;grid-template-columns:1fr 1fr;gap:var(--md)}
+.A .tabs{margin-bottom:var(--md);padding-bottom:var(--sm);border-bottom:1px solid var(--line)}
+.A .item{display:grid;grid-template-columns:56px 1fr;gap:var(--md);padding:var(--md) 0;border-bottom:1px solid var(--line)}
+.A .item h3{font-size:17px;font-weight:700;margin-bottom:2px}
+.A .item p{margin:0 0 8px;color:var(--muted);font-size:14.5px}
+.A .meta{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.A .problem-link{background:none;border:0;padding:0;cursor:pointer;font-weight:600;color:var(--ink);text-decoration:underline;text-decoration-color:var(--terracotta);text-underline-offset:3px;font-size:13.5px}
+.A .howto{margin-top:var(--xl);padding-top:var(--lg);border-top:2px solid var(--ink)}
+.A .back{background:none;border:0;padding:0;cursor:pointer;color:var(--muted);margin-bottom:var(--lg)}
+.A .problem h1{font-size:30px;margin:8px 0}
+@media (max-width:560px){.A .hero{grid-template-columns:1fr}.A .hero .sketch{display:none}.A .submit .row{grid-template-columns:1fr}}
+
+/* ---------- Variant B: Roadmap board (public Problems first, submit in a sheet) ---------- */
+.B{max-width:1120px;margin:0 auto;padding:var(--lg) var(--md)}
+.B header{display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--lg)}
+.B header .left{display:flex;align-items:baseline;gap:12px}
+.B .board{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--md);margin-bottom:var(--xl)}
+.B .col{background:var(--field);border-radius:20px;padding:var(--md)}
+.B .col h2{font-size:19px;display:flex;justify-content:space-between;align-items:baseline;margin-bottom:var(--sm)}
+.B .col h2 .caption{font-weight:500}
+.B .pcard{display:block;width:100%;text-align:left;background:var(--bg);border:0;border-radius:14px;padding:var(--sm) var(--md);margin-bottom:10px;cursor:pointer;transition:transform var(--micro) var(--ease-out)}
+.B .pcard:hover{transform:translateY(-2px)}
+.B .pcard h3{font-size:15.5px;font-weight:700}
+.B .pcard p{margin:4px 0 8px;font-size:13.5px;color:var(--muted)}
+.B .col.planned{border-top:4px solid var(--slate)}
+.B .col.progress{border-top:4px solid var(--terracotta)}
+.B .col.shipped{border-top:4px solid var(--sage)}
+.B .section-head{display:flex;justify-content:space-between;align-items:end;gap:var(--md);flex-wrap:wrap;margin-bottom:var(--sm)}
+.B table{width:100%;border-collapse:collapse}
+.B td{padding:12px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+.B td.t{font-weight:600}
+.B td.t .caption{display:block;font-weight:400}
+.B .up{flex-direction:row;gap:6px;min-width:0;padding:5px 12px}
+.B .up .n{font-size:14.5px}
+.B .scrim{position:fixed;inset:0;background:color-mix(in srgb,var(--ink) 35%,transparent);opacity:0;pointer-events:none;transition:opacity var(--short) var(--ease-io);z-index:20}
+.B .scrim.open{opacity:1;pointer-events:auto}
+.B .sheet{position:fixed;left:50%;bottom:0;width:min(560px,100%);transform:translate(-50%,105%);background:var(--bg);border-radius:24px 24px 0 0;padding:var(--lg);display:grid;gap:var(--md);transition:transform var(--short) var(--ease-out);z-index:21;max-height:92vh;overflow:auto}
+.B .sheet:not(.open),.B .drawer:not(.open){visibility:hidden;transition:transform var(--short) var(--ease-in),visibility 0s var(--short)}
+.B .sheet.open{transform:translate(-50%,0)}
+.B .sheet .grab{width:44px;height:5px;border-radius:9px;background:var(--line);margin:-8px auto 0}
+.B .drawer{position:fixed;top:0;right:0;height:100%;width:min(480px,100%);background:var(--bg);border-left:1px solid var(--line);transform:translateX(105%);transition:transform var(--short) var(--ease-out);z-index:21;padding:var(--lg);overflow:auto}
+.B .drawer.open{transform:none}
+.B .drawer h1{font-size:26px;margin:8px 0}
+.B .howto{margin-top:var(--xl);display:grid;grid-template-columns:160px 1fr;gap:var(--lg);align-items:center;background:var(--field);border-radius:20px;padding:var(--lg)}
+.B .howto .sketch{width:140px;height:110px}
+@media (max-width:800px){.B .board{grid-template-columns:1fr}.B .howto{grid-template-columns:1fr}.B .howto .sketch{display:none}.B td.c{display:none}}
+
+/* ---------- Variant C: Journal (category sidebar, feed, always-open form) ---------- */
+.C{display:grid;grid-template-columns:220px minmax(0,1fr) 340px;gap:var(--lg);max-width:1240px;margin:0 auto;padding:var(--lg) var(--md)}
+.C aside.nav{position:sticky;top:var(--lg);align-self:start}
+.C aside.nav .wordmark{display:block;margin-bottom:4px}
+.C aside.nav nav{display:flex;flex-direction:column;gap:2px;margin:var(--lg) 0}
+.C aside.nav nav button{text-align:left;border:0;background:none;padding:8px 10px;border-radius:10px;cursor:pointer;color:var(--muted);display:flex;justify-content:space-between}
+.C aside.nav nav button[aria-selected=true]{background:var(--field);color:var(--ink);font-weight:700}
+.C aside.nav .howto{font-size:13.5px}
+.C main h1{font-size:30px;margin-bottom:4px}
+.C .sort{display:flex;gap:6px;margin:var(--md) 0}
+.C .entry{background:var(--field);border-radius:18px;padding:var(--md) var(--lg);margin-bottom:var(--sm);display:grid;grid-template-columns:1fr auto;gap:var(--md);align-items:start}
+.C .entry h3{font-size:18px;font-weight:700;margin-bottom:4px}
+.C .entry p{margin:0 0 10px;font-size:14.5px}
+.C .entry .by{font-size:12.5px;color:var(--muted);font-style:italic}
+.C .entry .linked{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.C .entry .linked button{background:none;border:0;padding:0;cursor:pointer;font-weight:700;color:var(--ink)}
+.C aside.form{position:sticky;top:var(--lg);align-self:start;background:var(--bg);border:1.5px solid var(--ink);border-radius:20px;padding:var(--lg);display:grid;gap:var(--md);box-shadow:6px 6px 0 var(--field)}
+.C aside.form .sketch{width:70px;height:80px;margin-bottom:-8px}
+.C .back{background:none;border:0;padding:0;cursor:pointer;color:var(--muted);margin-bottom:var(--md)}
+@media (max-width:1060px){.C{grid-template-columns:200px minmax(0,1fr)}.C aside.form{grid-column:1/-1;position:static}}
+@media (max-width:680px){.C{grid-template-columns:minmax(0,1fr)}.C aside.nav .howto{display:none}.C .entry{padding:var(--md)}.C .entry .linked button{text-align:left}.C aside.nav{position:static}.C aside.nav nav{flex-direction:row;flex-wrap:wrap}}
+
+/* ---------- Problem page bits (shared look) ---------- */
+.ptimeline{display:flex;gap:6px;margin:var(--md) 0 var(--lg);flex-wrap:wrap}
+.ptimeline span{font-size:12.5px;padding:4px 10px;border-radius:999px;background:var(--field);color:var(--muted)}
+.ptimeline span.on{background:var(--ink);color:var(--bg);font-weight:700}
+.reason{background:var(--field);border-radius:14px;padding:var(--sm) var(--md);margin-bottom:var(--lg);font-size:14.5px}
+.reason .label{display:block;margin-bottom:2px}
+.linkedlist .fr{display:grid;grid-template-columns:auto 1fr;gap:var(--sm);padding:var(--sm) 0;border-bottom:1px solid var(--line)}
+.linkedlist .fr h4{margin:0;font-size:15.5px;font-weight:700}
+.linkedlist .fr p{margin:2px 0 0;font-size:13.5px;color:var(--muted)}
+.toast{position:fixed;left:50%;top:var(--lg);transform:translate(-50%,-20px);opacity:0;background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-weight:600;transition:all var(--short) var(--ease-out);z-index:40;pointer-events:none}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* ---------- Variant D: List board (list first, corner button opens A's form) ---------- */
+.D{max-width:1000px;margin:0 auto;padding:var(--lg) var(--md)}
+.D header{display:flex;justify-content:space-between;align-items:center;gap:var(--md);margin-bottom:var(--xl)}
+.D header .left{display:flex;align-items:baseline;gap:12px}
+.D .intro{display:flex;justify-content:space-between;align-items:end;gap:var(--lg);margin-bottom:var(--md)}
+.D .intro h1{font-size:30px;line-height:1.1}
+.D .intro .sketch{width:96px;height:120px;flex:none}
+.D .tabs{margin-bottom:var(--sm);padding-bottom:var(--sm);border-bottom:1px solid var(--line)}
+.D .sort{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.D table{width:100%;border-collapse:collapse}
+.D td{padding:14px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+.D td.t{font-weight:700;font-size:16px}
+.D td.t .caption{display:block;font-weight:400;font-size:13.5px;margin-top:2px}
+.D td.c{text-align:right;white-space:nowrap}
+.D .up{flex-direction:row;gap:6px;min-width:0;padding:6px 12px}
+.D .up .n{font-size:14.5px}
+.D .howto{margin-top:var(--xl);padding-top:var(--lg);border-top:2px solid var(--ink);max-width:640px}
+.D .scrim{position:fixed;inset:0;background:color-mix(in srgb,var(--ink) 35%,transparent);z-index:20;animation:fade var(--short) var(--ease-out) both}
+.D .modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(620px,calc(100% - 32px));max-height:calc(100vh - 48px);overflow:auto;background:var(--field);border-radius:20px;padding:var(--lg);display:grid;gap:var(--md);z-index:21;animation:pop var(--short) var(--ease-out) both}
+.D .modal .field input,.D .modal .field select,.D .modal .field textarea{background:var(--bg)}
+.D .modal .row{display:grid;grid-template-columns:1fr 1fr;gap:var(--md)}
+.D .modal .top{display:flex;justify-content:space-between;align-items:center}
+.D .modal .x{border:0;background:none;font-size:22px;cursor:pointer;color:var(--muted);line-height:1}
+.D .rowlink{background:none;border:0;padding:0;cursor:pointer;text-align:left;font-weight:700;font-size:16px;color:var(--ink)}
+.D tr.click{cursor:pointer;transition:background var(--micro)}
+.D tr.click:hover{background:color-mix(in srgb,var(--field) 55%,transparent)}
+.D .back{background:none;border:0;padding:0;cursor:pointer;color:var(--muted);margin-bottom:var(--lg)}
+.D .fr-detail{display:grid;grid-template-columns:auto 1fr;gap:var(--lg);align-items:start;padding-bottom:var(--xl);border-bottom:1px solid var(--line)}
+.D .fr-detail .up{flex-direction:column;min-width:64px;padding:10px 8px}
+.D .fr-detail .up .n{font-size:20px}
+.D .fr-detail h1{font-size:30px;line-height:1.15;margin:6px 0 var(--sm)}
+.D .fr-detail p{margin:0;font-size:16px;max-width:60ch}
+.D .related{margin-top:var(--lg);display:grid;grid-template-columns:1fr 140px;gap:var(--lg)}
+.D .related h2{font-size:23px}
+.D .related .sketch{width:130px;height:110px;align-self:start}
+@media (max-width:640px){.D .related{grid-template-columns:1fr}.D .related .sketch{display:none}.D .fr-detail{gap:var(--md)}}
+@keyframes fade{from{opacity:0}}
+@keyframes pop{from{opacity:0;transform:translate(-50%,-46%)}}
+@media (max-width:640px){.D .intro .sketch,.D td.c{display:none}.D .modal .row{grid-template-columns:1fr}.D header .label{display:none}}
+
+/* ---------- Prototype switcher (not part of the design) ---------- */
+#switcher{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);display:flex;align-items:center;gap:4px;background:#111;color:#fff;border-radius:999px;padding:6px;font:600 13px/1 system-ui,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,.35);z-index:100}
+#switcher button{background:#333;color:#fff;border:0;border-radius:999px;width:32px;height:32px;cursor:pointer;font-size:15px}
+#switcher span{padding:0 12px;min-width:200px;text-align:center}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="toast" id="toast" role="status"></div>
+<div id="switcher" aria-label="Prototype variant switcher">
+  <button id="prev" aria-label="Previous variant">←</button>
+  <span id="vlabel"></span>
+  <button id="next" aria-label="Next variant">→</button>
+</div>
+
+<script>
+// ---------- Synthetic seed data (SEED, in memory only) ----------
+const CATEGORIES = ["Finding spots","Adding & editing spots","Spot details","Visits","Profile & account","Social","Other"];
+const PUBLIC = ["Planned","In progress","Shipped"];
+const STATUSES = ["New","Under review","Planned","In progress","Shipped","Won't do"];
+const problems = [
+  {id:"p1",title:"See which spots are open right now",desc:"Know a spot's opening hours before heading out, especially late at night.",category:"Finding spots",status:"In progress",reason:"Most-asked need from students studying in the evening; hours data is now available from the places API."},
+  {id:"p2",title:"Know whether a spot has power outlets",desc:"Find spots where you can plug in a laptop for a long session.",category:"Spot details",status:"Planned",reason:null},
+  {id:"p3",title:"Share a spot with a friend",desc:"Send a spot to someone so you can meet there.",category:"Social",status:"Shipped",reason:"Share links shipped in 1.4 — tap Share on any spot."},
+  {id:"p4",title:"Keep a study-visit streak going",desc:"Something that rewards coming back.",category:"Visits",status:"Under review",reason:null},
+  {id:"p5",title:"Add photos to a spot",desc:"",category:"Adding & editing spots",status:"New",reason:null},
+  {id:"p6",title:"Use the app in the dark",desc:"",category:"Other",status:"New",reason:null},
+  {id:"p7",title:"Sign in with Apple",desc:"",category:"Profile & account",status:"Under review",reason:null},
+];
+const requests = [
+  {id:"r1",problem:"p1",title:"Filter spots by opening hours",body:"I keep walking to cafés that turn out to be closed. A filter for hours would save so much time.",upvotes:41,date:"Oct 12"},
+  {id:"r2",problem:"p1",title:"Show which places are open after 10pm",body:"Exam season I study late — I just need to know where's still open.",upvotes:27,date:"Oct 20"},
+  {id:"r3",problem:"p1",title:"'Open now' toggle on the list",body:"Like Google Maps has. One tap.",upvotes:18,date:"Nov 1"},
+  {id:"r4",problem:"p2",title:"Rate spots on outlets",body:"Add an outlets rating next to noise and wifi so I know if my laptop will survive.",upvotes:33,date:"Sep 28"},
+  {id:"r5",problem:"p2",title:"Power socket tag",body:"Even just a tag would help me filter.",upvotes:12,date:"Oct 30"},
+  {id:"r6",problem:"p3",title:"Send a spot as a link",body:"I want to text my study group where we're meeting.",upvotes:22,date:"Aug 14"},
+  {id:"r7",problem:"p3",title:"Share to Instagram stories",body:"Would be cute to post the spot I'm at.",upvotes:9,date:"Sep 2"},
+  {id:"r8",problem:"p4",title:"Streak counter for visits",body:"Duolingo-style streak for logging study visits.",upvotes:15,date:"Oct 5"},
+  {id:"r9",problem:"p4",title:"Remind me to log a visit",body:"I forget to log it after I leave.",upvotes:6,date:"Oct 22"},
+  {id:"r10",problem:"p5",title:"Upload photos when adding a spot",body:"Pictures of the seating would help others decide.",upvotes:19,date:"Oct 18"},
+  {id:"r11",problem:"p6",title:"Dark mode please",body:"The cream background is lovely but bright at 1am.",upvotes:24,date:"Oct 9"},
+  {id:"r12",problem:"p7",title:"Sign in with Apple",body:"I don't use Google and don't want another password.",upvotes:11,date:"Oct 27"},
+];
+const upvoted = new Set(); // stands in for "this browser remembers"
+const HOWTO = [
+  ["Reach","how many people are asking for it."],
+  ["Pain","how much the problem gets in the way today."],
+  ["Strategic fit","how well it serves Studease's goals: finding new spots, coming back, the social side."],
+  ["Retention risk","whether it might make people stop using Studease."],
+];
+
+// ---------- helpers ----------
+const $ = (s,r=document)=>r.querySelector(s);
+const esc = s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const prob = id=>problems.find(p=>p.id===id);
+const isPublic = p=>PUBLIC.includes(p.status);
+const pillClass = s=>({"Planned":"planned","In progress":"progress","Shipped":"shipped"})[s]||"";
+const pill = p=>isPublic(p)?`<span class="pill ${pillClass(p.status)}">${esc(p.status)}</span>`:"";
+const reqsOf = pid=>requests.filter(r=>r.problem===pid);
+const total = pid=>reqsOf(pid).reduce((a,r)=>a+r.upvotes,0);
+const upBtn = r=>`<button class="up" data-up="${r.id}" aria-pressed="${upvoted.has(r.id)}" aria-label="Upvote ${esc(r.title)}"><span class="arrow">▲</span><span class="n">${r.upvotes}</span></button>`;
+const catSelect = ()=>`<select required><option value="" selected disabled>Choose the part of the app…</option>${CATEGORIES.map(c=>`<option>${esc(c)}</option>`).join("")}</select>`;
+const howto = ()=>`<h3 style="font-size:19px">How we prioritize</h3><p class="muted" style="margin:6px 0 0;font-size:14.5px">Similar requests are grouped into one problem. We weigh each problem on four things:</p><ol>${HOWTO.map(([n,t])=>`<li><b>${n}</b> — ${t}</li>`).join("")}</ol>`;
+const stub = ()=>`<div class="stub">Similar requests appear here as you type — designed in its own prototype ticket.</div>`;
+let state = {tab:"All", problem:null, sort:"top"};
+function visible(){
+  let rs = requests.filter(r=>state.tab==="All"||prob(r.problem).category===state.tab);
+  return rs.sort((a,b)=>state.sort==="new"?b.id.localeCompare(a.id,undefined,{numeric:true}):b.upvotes-a.upvotes);
+}
+function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove("show"),2200)}
+function problemTimeline(p){return `<div class="ptimeline">${PUBLIC.map(s=>`<span class="${s===p.status?"on":""}">${s}</span>`).join("")}</div>`}
+function problemBody(p){
+  return `${problemTimeline(p)}
+  ${p.reason?`<div class="reason"><span class="label">Latest update</span>${esc(p.reason)}</div>`:""}
+  <div class="label" style="margin-bottom:4px">${reqsOf(p.id).length} requests · ${total(p.id)} upvotes</div>
+  <div class="linkedlist">${reqsOf(p.id).map(r=>`<div class="fr">${upBtn(r)}<div><h4>${esc(r.title)}</h4><p>${esc(r.body)}</p></div></div>`).join("")}</div>`;
+}
+
+// ---------- Variant A: Notice board ----------
+function A(){
+  if(state.problem){const p=prob(state.problem);return `<div class="A reveal"><header><span class="wordmark">Studease</span><span class="label">Feature requests</span></header>
+    <button class="back" data-back>← All requests</button>
+    <div class="problem">${pill(p)} <span class="cat">${esc(p.category)}</span><h1>${esc(p.title)}</h1><p class="muted" style="margin:0">${esc(p.desc)}</p>${problemBody(p)}</div></div>`;}
+  const rs=visible();
+  return `<div class="A reveal">
+  <header><span class="wordmark">Studease</span><span class="label">Feature requests</span></header>
+  <section class="hero"><div><h1>What would make your study spots better?</h1><p class="muted" style="margin:0">Tell us what you need. Upvote what others asked for. We'll tell you when it's on the way.</p></div><span class="sketch sk-books" aria-hidden="true"></span></section>
+  <form class="submit" data-submit>
+    <h2 style="font-size:19px">Suggest a feature</h2>
+    <label class="field"><span class="label">Title</span><input required placeholder="e.g. Filter spots by opening hours"></label>
+    <label class="field"><span class="label">What do you need, and why?</span><textarea required></textarea></label>
+    ${stub()}
+    <div class="row"><label class="field"><span class="label">Part of the app</span>${catSelect()}</label>
+    <label class="field"><span class="label">Your email</span><input type="email" required placeholder="So we can tell you when it ships"></label></div>
+    <div><button class="btn">Send request</button></div>
+  </form>
+  <div class="tabs" role="tablist">${["All",...CATEGORIES].map(c=>`<button class="tab" role="tab" data-tab="${esc(c)}" aria-selected="${state.tab===c}">${esc(c)}</button>`).join("")}</div>
+  ${rs.length?rs.map(r=>{const p=prob(r.problem);return `<article class="item">${upBtn(r)}<div><h3>${esc(r.title)}</h3><p>${esc(r.body)}</p><div class="meta">${pill(p)}${isPublic(p)?`<button class="problem-link" data-problem="${p.id}">Part of “${esc(p.title)}”</button>`:""}<span class="cat">${esc(p.category)}</span><span class="caption">${esc(r.date)}</span></div></div></article>`}).join("")
+  :`<div class="empty"><span class="sketch sk-cat"></span>Nothing here yet. Be the first to ask.</div>`}
+  <section class="howto">${howto()}</section>
+  </div>`;
+}
+
+// ---------- Variant B: Roadmap board ----------
+function B(){
+  const rs=visible();
+  const col=(s)=>{const ps=problems.filter(p=>p.status===s);return `<div class="col ${pillClass(s)}"><h2>${s}<span class="caption">${ps.length}</span></h2>${ps.map(p=>`<button class="pcard" data-problem="${p.id}"><span class="cat">${esc(p.category)}</span><h3>${esc(p.title)}</h3><p>${esc(p.desc)}</p><span class="caption">${reqsOf(p.id).length} requests · ${total(p.id)} upvotes</span></button>`).join("")||`<p class="caption">Nothing yet.</p>`}</div>`};
+  const p=state.problem&&prob(state.problem);
+  return `<div class="B reveal">
+  <header><div class="left"><span class="wordmark">Studease</span><span class="label">Roadmap & requests</span></div><button class="btn" data-open-sheet>+ Suggest a feature</button></header>
+  <section class="board">${PUBLIC.map(col).join("")}</section>
+  <div class="section-head"><div><h2 style="font-size:23px">Everything people have asked for</h2><p class="muted" style="margin:2px 0 0">Upvote the ones you want too.</p></div>
+  <div class="tabs" role="tablist">${["All",...CATEGORIES].map(c=>`<button class="tab" role="tab" data-tab="${esc(c)}" aria-selected="${state.tab===c}">${esc(c)}</button>`).join("")}</div></div>
+  <table><tbody>${rs.map(r=>{const pp=prob(r.problem);return `<tr><td style="width:90px">${upBtn(r)}</td><td class="t">${esc(r.title)}<span class="caption">${esc(r.body)}</span></td><td class="c"><span class="cat">${esc(pp.category)}</span></td><td style="text-align:right">${isPublic(pp)?`<button class="pill ${pillClass(pp.status)}" style="border:0;cursor:pointer" data-problem="${pp.id}">${esc(pp.status)} →</button>`:`<span class="caption">Under consideration</span>`}</td></tr>`}).join("")}</tbody></table>
+  <section class="howto"><span class="sketch sk-table" aria-hidden="true"></span><div>${howto()}</div></section>
+  <div class="scrim ${p||state.sheet?"open":""}" data-close></div>
+  <form class="sheet ${state.sheet?"open":""}" data-submit><div class="grab"></div>
+    <h2 style="font-size:23px">Suggest a feature</h2>
+    <label class="field"><span class="label">Title</span><input required></label>
+    <label class="field"><span class="label">What do you need, and why?</span><textarea required></textarea></label>
+    ${stub()}
+    <label class="field"><span class="label">Part of the app</span>${catSelect()}</label>
+    <label class="field"><span class="label">Your email</span><input type="email" required placeholder="We'll only email about this request"></label>
+    <div style="display:flex;gap:8px"><button class="btn">Send request</button><button type="button" class="btn ghost" data-close>Cancel</button></div>
+  </form>
+  <aside class="drawer ${p?"open":""}">${p?`<button class="btn ghost" data-close style="padding:6px 14px">Close</button><div style="margin-top:var(--lg)">${pill(p)} <span class="cat">${esc(p.category)}</span><h1>${esc(p.title)}</h1><p class="muted" style="margin:0">${esc(p.desc)}</p>${problemBody(p)}</div>`:""}</aside>
+  </div>`;
+}
+
+// ---------- Variant C: Journal ----------
+function C(){
+  const counts=c=>requests.filter(r=>c==="All"||prob(r.problem).category===c).length;
+  const nav=`<aside class="nav"><span class="wordmark">Studease</span><span class="label">Feature requests</span>
+    <nav role="tablist">${["All",...CATEGORIES].map(c=>`<button role="tab" data-tab="${esc(c)}" aria-selected="${state.tab===c&&!state.problem}"><span>${esc(c)}</span><span class="caption">${counts(c)}</span></button>`).join("")}</nav>
+    <div class="howto">${howto()}</div></aside>`;
+  const form=`<aside class="form"><span class="sketch sk-cup" aria-hidden="true"></span><h2 style="font-size:23px">Got an idea?</h2>
+    <form data-submit style="display:grid;gap:var(--md)">
+    <label class="field"><span class="label">Title</span><input required></label>
+    <label class="field"><span class="label">What do you need, and why?</span><textarea required></textarea></label>
+    ${stub()}
+    <label class="field"><span class="label">Part of the app</span>${catSelect()}</label>
+    <label class="field"><span class="label">Your email</span><input type="email" required></label>
+    <button class="btn">Send request</button></form></aside>`;
+  let main;
+  if(state.problem){const p=prob(state.problem);main=`<main class="reveal"><button class="back" data-back>← Back to requests</button>${pill(p)} <span class="cat">${esc(p.category)}</span><h1 style="margin-top:8px">${esc(p.title)}</h1><p class="muted" style="margin:0">${esc(p.desc)}</p>${problemBody(p)}</main>`;}
+  else{const rs=visible();main=`<main class="reveal"><h1>${state.tab==="All"?"What people are asking for":esc(state.tab)}</h1><p class="muted" style="margin:0">Upvote what you'd use. Requests that need the same thing are grouped.</p>
+    <div class="sort tabs"><button class="tab" data-sort="top" aria-selected="${state.sort==="top"}">Most upvoted</button><button class="tab" data-sort="new" aria-selected="${state.sort==="new"}">Newest</button></div>
+    ${rs.map(r=>{const p=prob(r.problem);return `<article class="entry"><div><h3>${esc(r.title)}</h3><p>${esc(r.body)}</p><span class="by">${esc(r.date)} · ${esc(p.category)}</span>${isPublic(p)?`<div class="linked">${pill(p)}<button data-problem="${p.id}">${esc(p.title)} · ${reqsOf(p.id).length} requests →</button></div>`:""}</div>${upBtn(r)}</article>`}).join("")}</main>`;}
+  return `<div class="C">${nav}${main}${form}</div>`;
+}
+
+// ---------- Variant D: List board ----------
+function modal(){return state.sheet?`<div class="scrim" data-close></div>
+  <form class="modal" data-submit role="dialog" aria-label="Request a feature">
+    <div class="top"><h2 style="font-size:23px">Request a feature</h2><button type="button" class="x" data-close aria-label="Close">×</button></div>
+    <label class="field"><span class="label">Title</span><input required placeholder="e.g. Filter spots by opening hours"></label>
+    <label class="field"><span class="label">What do you need, and why?</span><textarea required></textarea></label>
+    ${stub()}
+    <div class="row"><label class="field"><span class="label">Part of the app</span>${catSelect()}</label>
+    <label class="field"><span class="label">Your email</span><input type="email" required placeholder="So we can update you"></label></div>
+    <div><button class="btn">Send request</button></div>
+  </form>`:"";}
+// No statuses on the portal. A Feature Request leaves the board once its Problem is Shipped.
+function D(){
+  const onBoard = r=>prob(r.problem).status!=="Shipped";
+  const rs=visible().filter(onBoard);
+  const header=`<header><div class="left"><span class="wordmark">Studease</span><span class="label">Feature requests</span></div><button class="btn" data-open-sheet>+ Request a feature</button></header>`;
+  if(state.fr){
+    const r=requests.find(x=>x.id===state.fr), p=prob(r.problem);
+    const rel=requests.filter(x=>x.problem===r.problem&&x.id!==r.id&&onBoard(x)).sort((a,b)=>b.upvotes-a.upvotes);
+    return `<div class="D reveal">${header}
+    <button class="back" data-back>← All requests</button>
+    <article class="fr-detail">${upBtn(r)}<div><span class="cat">${esc(p.category)}</span> <span class="caption">· ${esc(r.date)}</span><h1>${esc(r.title)}</h1><p>${esc(r.body)}</p></div></article>
+    <section class="related"><div>
+      <h2 style="margin-bottom:var(--sm)">Related requests</h2>
+      ${rel.length?`<table><tbody>${rel.map(x=>`<tr class="click" data-fr="${x.id}"><td style="width:84px">${upBtn(x)}</td><td class="t"><button class="rowlink" data-fr="${x.id}">${esc(x.title)}</button><span class="caption">${esc(x.body)}</span></td><td class="c"><span class="caption">${esc(x.date)}</span></td></tr>`).join("")}</tbody></table>`
+      :`<p class="caption" style="padding:var(--md) 0">No related requests yet. If someone asks for the same thing, it'll show up here.</p>`}
+    </div><span class="sketch sk-cup" aria-hidden="true"></span></section>
+    ${modal()}</div>`;
+  }
+  return `<div class="D reveal">
+  ${header}
+  <section class="intro"><div><h1>What people are asking for</h1><p class="muted" style="margin:6px 0 0">Upvote the requests you'd use too.</p></div><span class="sketch sk-books" aria-hidden="true"></span></section>
+  <div class="tabs" role="tablist">${["All",...CATEGORIES].map(c=>`<button class="tab" role="tab" data-tab="${esc(c)}" aria-selected="${state.tab===c}">${esc(c)}</button>`).join("")}</div>
+  <div class="sort"><span class="caption">${rs.length} requests</span><div class="tabs" style="border:0;margin:0;padding:0"><button class="tab" data-sort="top" aria-selected="${state.sort==="top"}">Most upvoted</button><button class="tab" data-sort="new" aria-selected="${state.sort==="new"}">Newest</button></div></div>
+  ${rs.length?`<table><tbody>${rs.map(r=>`<tr class="click" data-fr="${r.id}"><td style="width:84px">${upBtn(r)}</td><td class="t"><button class="rowlink" data-fr="${r.id}">${esc(r.title)}</button><span class="caption">${esc(r.body)}</span></td><td class="c"><span class="cat">${esc(prob(r.problem).category)}</span><span class="caption" style="display:block">${esc(r.date)}</span></td></tr>`).join("")}</tbody></table>`
+  :`<div class="empty"><span class="sketch sk-cat"></span>Nothing here yet. Be the first to ask.</div>`}
+  <section class="howto">${howto()}</section>
+  ${modal()}
+  </div>`;
+}
+
+// ---------- wiring ----------
+const VARIANTS = {D:["List board",D],A:["Notice board",A],B:["Roadmap board",B],C:["Journal",C]};
+const keys = Object.keys(VARIANTS);
+let v = new URLSearchParams(location.search).get("variant"); if(!VARIANTS[v]) v="D";
+state.fr = new URLSearchParams(location.search).get("fr"); // e.g. ?variant=D&fr=r1
+function render(){ $("#app").innerHTML = VARIANTS[v][1](); $("#vlabel").textContent = `${v} (${VARIANTS[v][0]})`; document.title=`Portal ${v} · prototype`; }
+function go(d){ v = keys[(keys.indexOf(v)+d+keys.length)%keys.length]; history.replaceState(null,"",`?variant=${v}`); state.problem=null; state.fr=null; state.sheet=false; render(); }
+$("#prev").onclick=()=>go(-1); $("#next").onclick=()=>go(1);
+addEventListener("keydown",e=>{ if(e.target.closest("input,textarea,select,[contenteditable]"))return; if(e.key==="ArrowLeft")go(-1); if(e.key==="ArrowRight")go(1); if(e.key==="Escape"&&(state.problem||state.sheet)){state.problem=null;state.sheet=false;render();} });
+document.addEventListener("click",e=>{
+  const t=e.target.closest("[data-up],[data-fr],[data-tab],[data-problem],[data-back],[data-open-sheet],[data-close],[data-sort]"); if(!t)return;
+  if(t.dataset.up){ if(upvoted.has(t.dataset.up))return; upvoted.add(t.dataset.up); requests.find(r=>r.id===t.dataset.up).upvotes++; toast("Upvoted — thanks!"); }
+  if(t.dataset.fr){ state.fr=t.dataset.fr; scrollTo({top:0}); }
+  if(t.dataset.tab){ state.tab=t.dataset.tab; state.problem=null; state.fr=null; }
+  if(t.dataset.problem){ state.problem=t.dataset.problem; scrollTo({top:0}); }
+  if("back" in t.dataset){ state.problem=null; state.fr=null; }
+  if("close" in t.dataset){ state.problem=null; state.sheet=false; }
+  if("openSheet" in t.dataset){ state.sheet=true; }
+  if(t.dataset.sort){ state.sort=t.dataset.sort; }
+  render();
+});
+document.addEventListener("submit",e=>{ e.preventDefault(); state.sheet=false; render(); toast("Thanks! We've got your request."); });
+render();
+</script>
+</body>
+</html>
