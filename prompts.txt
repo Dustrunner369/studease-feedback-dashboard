@@ -146,3 +146,27 @@ Response: Posted the resolution on "Should the portal use Studease's Firebase si
 [2026-11-06T05:32:02Z]
 Prompt: Asked to commit and push the uncommitted files.
 Response: Committed assumptions.txt and prompts.txt to main and pushed.
+
+[2026-11-06T05:32:47Z]
+Prompt: /mattpocock-skills:wayfinder with "Studease Feature Intelligence System map" (work the map; no ticket named).
+Response: Loaded the map, took the first frontier ticket "Prototype the portal in the Studease design system" and claimed it; built a throwaway three-variant portal prototype (A Notice board, B Roadmap board, C Journal) at prototypes/portal-design/index.html using the Studease palette, Fraunces, Pacifico wordmark and recoloured illustrations, and asked the user to pick a variant. Nothing committed; the ticket stays open until the user chooses.
+
+[2026-11-06T05:46:13Z]
+Prompt: Requesters should not see Planned/In progress/Shipped; the portal is just a board of what is being talked about and the requests made, and a request is removed when its feature is released. Liked the list of B and the request form of A; asked for the list as the main feature with a Request a feature button in the corner.
+Response: Added design D (List board) to the portal prototype as the default and raised the questions this change opens on the earlier charting decision.
+
+[2026-11-06T05:59:33Z]
+Prompt: Won't do requests stay on the board (enough traction could still get them built); Requesters are emailed only when the request is shipped, closed and removed; no public Problem page; asked to prototype clicking a Feature Request in design D to see a "Related to" section of grouped requests.
+Response: Added a Feature Request detail view with a Related to section to design D of the portal prototype.
+
+[2026-11-06T06:05:34Z]
+Prompt: Remove the "N related" count from list rows; rename "Related to" to "Related requests"; remove the explanatory subtext.
+Response: Made all three changes to design D of the portal prototype.
+
+[2026-11-06T06:06:34Z]
+Prompt: Confirmed design D is final; asked to close the ticket.
+Response: Saved the prototype on the prototype/portal-design branch, posted the resolution on "Prototype the portal in the Studease design system" and closed it, amended "Charting: destination and system shape", updated the map, GLOSSARY.md and assumptions.txt.
+
+[2026-11-06T06:09:57Z]
+Prompt: Asked to commit and push the uncommitted files.
+Response: Committed GLOSSARY.md, assumptions.txt and prompts.txt to main and pushed.
