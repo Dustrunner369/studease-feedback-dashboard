@@ -230,3 +230,35 @@ Response: Claimed the ticket, checked prod Neon read-only (Postgres 18.6, vector
 [2026-11-06T16:48:41Z]
 Prompt: Asked to commit and push the uncommitted files.
 Response: Committed assumptions.txt and prompts.txt to main and pushed.
+
+[2026-11-06T16:49:30Z]
+Prompt: /ask-matt "Just completed wayfinder, what is next?"
+Response: Explained that the map has no open tickets but still has fog under "Not yet specified", recommended one more /wayfinder session to turn that fog into tickets (or rule it build-time/out of scope), then /to-spec -> /to-tickets -> /implement or /implement-spec, with /retro at the end.
+
+[2026-11-06T16:58:10Z]
+Prompt: /wayfinder "work through the map".
+Response: Frontier was empty, so asked how to settle the remaining fog. Per the answers, created "Prototype the /admin triage workspace", "Decide what happens when an AI step fails" and "Define the feedback schema and API" (blocked by the /admin prototype); moved prompt wording, AI call log fields, suggest thresholds and deployment to "Left to the build" on the map. Claimed the /admin prototype ticket and built three variants (A Triage queue, B Table + drawer, C Status board) on the prototype/admin-workspace branch; awaiting the user's pick.
+
+[2026-11-06T17:13:42Z]
+Prompt: Picked variant B; wants a graph/visual showing top priority at a glance; move AI call log, GitHub, Priority Criteria and Archive into a Settings panel; Priority Criteria should be set once and left alone.
+Response: Asked two follow-ups (criteria read-only in Settings; ranked bars chosen). Built round 2 of B on prototype/admin-workspace: a Top priorities ranked-bar chart (validated one-hue ramp, tooltip, click to open), a calmer table, nav Problems/Outbox/Metrics/Settings, read-only criteria with no versions. Checked it in Chrome, pushed, commented on the ticket; awaiting confirmation before resolving.
+
+[2026-11-06T17:26:40Z]
+Prompt: Gets overwhelmed by information; the round-2 table feels better; no charts at all, just a clean table; remove the "+1 new" pill from the table.
+Response: Built round 3 of B on prototype/admin-workspace: removed the ranked-bar chart and the new pill, leaving category tabs and the clean table. Checked it in Chrome, pushed, commented on the ticket; awaiting confirmation before resolving.
+
+[2026-11-06T17:29:21Z]
+Prompt: Relaunch the server.
+Response: Stopped the old server on port 8124, switched the working tree to prototype/admin-workspace, and started python3 -m http.server 8124 serving round 3 at http://localhost:8124/?variant=B.
+
+[2026-11-06T23:46:58Z]
+Prompt: Remove the Recommended Priority from the table; keep it only on the Problem detail page.
+Response: Round 4 of B: dropped the Recommended column and the override mark from the table (rows still ordered by Recommended score); it stays in the drawer. Pushed and commented on the ticket; server still running at :8124.
+
+[2026-11-06T23:49:34Z]
+Prompt: "Great looks good to me for now" (approved round 4 of the /admin prototype).
+Response: Stopped the server and switched back to main. Posted the resolution on "Prototype the /admin triage workspace" (design B, minimal table, drawer, Settings panel, merge/split behaviour) and closed it; amended "Write the business criteria for AI priority scoring" (criteria set once, read-only, no versions); updated GLOSSARY.md, assumptions.txt (11), ai-costs.txt and the map. "Define the feedback schema and API" is now unblocked.
+
+[2026-11-06T23:49:54Z]
+Prompt: Asked to commit and push the uncommitted files.
+Response: Committed GLOSSARY.md, assumptions.txt, ai-costs.txt and prompts.txt to main and pushed.

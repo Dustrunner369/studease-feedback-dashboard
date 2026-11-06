@@ -28,7 +28,7 @@ ESTIMATED MONTHLY COST (low traffic: 300 submissions, 20 briefs, 20 Suggest Solu
 - Matching: Luna ~$0.07 vs Jev ~$0.02 (about 5 cents/month difference)
 - At 100,000 submissions/month, matching would be ~$22 with Luna vs ~$6 with Jev
 - Briefs + Suggest Solutions: Sol ~$3.50/month vs Astra ~$17/month
-- Priority scoring: ~$0.10/month (one call per submission plus re-scores on moves, merges, splits and criteria saves)
+- Priority scoring: ~$0.10/month (one call per submission plus re-scores on moves, merges and splits)
 - Everything else: pennies
 
 ESTIMATED COST PER SEED LOAD (~150 Feature Requests through the real pipeline)

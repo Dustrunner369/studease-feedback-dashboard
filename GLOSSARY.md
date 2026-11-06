@@ -25,11 +25,11 @@ One of seven fixed areas of the Studease app (Finding spots, Adding & editing sp
 _Avoid_: Tag, type, area, section
 
 **Priority Criteria**:
-The written, versioned rules a Problem is scored against: Studease's product goals, the four criteria (Reach, Pain, Strategic fit, Retention risk), what each rating level means, the weights, and the level cut-offs.
+The written rules a Problem is scored against: Studease's product goals, the four criteria (Reach, Pain, Strategic fit, Retention risk), what each rating level means, the weights, and the level cut-offs. Set once in a config file and left alone; /admin shows them read-only in Settings.
 _Avoid_: Rubric, scoring rules, framework
 
 **Recommended Priority**:
-The AI's suggested level (High, Medium or Low) and 0–100 score for a Problem, worked out against one version of the Priority Criteria.
+The AI's suggested level (High, Medium or Low) and 0–100 score for a Problem, worked out against the Priority Criteria.
 _Avoid_: AI priority, suggested priority, score
 
 **Priority**:
