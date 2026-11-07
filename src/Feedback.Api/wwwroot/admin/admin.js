@@ -1,4 +1,4 @@
-// Studease /admin. Hash routes: #problems[/<id>], #outbox, #metrics, #settings/ai-calls[?status=Failed&problem=<id>].
+// Studease /admin. Hash routes: #problems[/<id>], #outbox, #metrics, #settings/ai-calls[?status=Failed&problem=<id>], #settings/criteria.
 // All user and AI text goes into the DOM through textContent (via el), never innerHTML.
 import { el, CATEGORIES, toast, formatDate } from "/js/portal.js";
 
@@ -35,11 +35,12 @@ async function render() {
     if (a.dataset.view === r.view) a.setAttribute("aria-current", "page");
     else a.removeAttribute("aria-current");
   }
+  if (r.view !== "problems") document.querySelector(".drawer")?.remove();
   try {
     if (r.view === "problems") await problemsView(r.sub ? Number(r.sub) : null);
     else if (r.view === "outbox") placeholder("Outbox", "AI-drafted updates for Requesters appear here when a Problem ships. Coming in a later slice.");
     else if (r.view === "metrics") placeholder("Metrics", "Duplicate catch rate, grouping accuracy and priority consistency appear here. Coming in a later slice.");
-    else if (r.view === "settings") await settingsView(r.params);
+    else if (r.view === "settings") await (r.sub === "criteria" ? criteriaView() : settingsView(r.params));
     else location.hash = "#problems";
     top.hidden = false;
   } catch (e) {
@@ -174,8 +175,8 @@ async function drawer(id) {
     el("p", { class: "muted" }, p.description),
     el("div", { class: "meta" },
       el("div", {}, el("span", { class: "label" }, "Status"), el("span", {}, p.status)),
-      el("div", {}, el("span", { class: "label" }, "Category"), el("span", {}, p.category)),
-      el("div", {}, el("span", { class: "label" }, "Priority"), priorityPill(p.priority))),
+      el("div", {}, el("span", { class: "label" }, "Category"), el("span", {}, p.category))),
+    priorityBlock(p),
     el("details", { open: true },
       el("summary", {}, `Feature Requests (${p.featureRequests.length})`),
       el("div", { class: "frs" }, p.featureRequests.map(requestRow))),
@@ -185,6 +186,58 @@ async function drawer(id) {
   document.body.append(aside);
   aside.querySelector("button").focus();
 }
+
+// ✦ Recommended Priority next to the team's Priority; the breakdown opens on demand.
+function priorityBlock(p) {
+  const rec = p.recommended;
+  const breakdown = el("table", { class: "breakdown", hidden: true },
+    el("tbody", {}, (rec?.breakdown ?? []).map((c) => el("tr", {},
+      el("td", { class: "r" }, `${c.criterion} ${c.rating}/5`),
+      el("td", {},
+        c.reason,
+        c.goal ? el("div", { class: "caption" }, `Goal: ${c.goal}`) : null,
+        el("div", { class: "caption" },
+          `weight ${c.weight} → ${formatPoints(c.points)} pts${c.criterion === "Reach" ? " · worked out by code" : " · rated by the AI"}`))))));
+  const toggle = el("button", { class: "link", type: "button", style: "justify-self:start;font-size:13px" }, "Show how the score was worked out");
+  toggle.addEventListener("click", () => {
+    breakdown.hidden = !breakdown.hidden;
+    toggle.textContent = `${breakdown.hidden ? "Show" : "Hide"} how the score was worked out`;
+  });
+
+  const retry = el("button", { class: "link", type: "button" }, "Retry");
+  retry.addEventListener("click", async () => {
+    retry.disabled = true;
+    retry.textContent = "Scoring…";
+    try {
+      const fresh = await api(`/problems/${p.id}/retry-scoring`, { method: "POST" });
+      document.querySelector(".drawer .prio")?.replaceWith(priorityBlock(fresh));
+      toast(fresh.scoringFailed ? "Scoring failed again. See the AI call log." : "Recommended Priority updated.");
+    } catch (e) {
+      if (e instanceof SignedOut) return signIn();
+      toast("Couldn't retry. Try again.");
+      retry.disabled = false;
+      retry.textContent = "Retry";
+    }
+  });
+
+  const recommended = el("div", { class: "lv" },
+    el("span", { class: "label" }, el("span", { class: "ai-mark" }, "✦ "), "Recommended Priority"),
+    rec ? el("b", {}, rec.level, " ", el("span", { class: "caption" }, `${rec.score}/100`))
+      : p.scoringFailed ? null : el("span", { class: "caption" }, "Not scored yet."),
+    p.scoringFailed
+      ? el("span", { class: "failed", role: "status" }, "Recommended Priority: scoring failed · ", retry)
+      : null,
+    p.scoringFailed && rec ? el("span", { class: "caption" }, "Showing the last score that worked.") : null);
+
+  return el("div", { class: "prio" },
+    el("div", { class: "levels" },
+      recommended,
+      el("div", { class: "lv" }, el("span", { class: "label" }, "Priority (yours)"), el("div", {}, priorityPill(p.priority)))),
+    rec ? toggle : null,
+    rec ? breakdown : null);
+}
+
+const formatPoints = (n) => Number.isInteger(n) ? String(n) : Number(n).toFixed(2).replace(/0$/, "");
 
 function requestRow(r) {
   return el("div", { class: "fr" },
@@ -231,13 +284,55 @@ async function settingsView(params) {
     problemPick.append(el("option", { value: problem, selected: true }, `Problem ${problem}`));
 
   app.replaceChildren(el("div", { class: "stack reveal" },
-    el("div", { class: "tabs", role: "tablist", "aria-label": "Settings" },
-      el("button", { class: "tab", role: "tab", type: "button", "aria-selected": "true" }, "AI call log")),
+    settingsTabs("ai-calls"),
     el("div", {}, el("h2", {}, "AI call log"),
       el("p", { class: "muted" }, "Every AI call, with its result, model, tokens, cost and what it was for.")),
     el("div", { class: "spread" }, statusTabs, problemPick),
     calls.length ? el("div", { class: "table-wrap" }, callsTable(calls, { showFor: true }))
       : el("div", { class: "empty" }, el("span", { class: "sketch sk-cup", "aria-hidden": "true" }), "No AI calls match.")));
+}
+
+const SETTINGS_TABS = [["ai-calls", "AI call log"], ["criteria", "Priority criteria"]];
+
+function settingsTabs(current) {
+  return el("div", { class: "tabs", role: "tablist", "aria-label": "Settings" },
+    SETTINGS_TABS.map(([key, label]) => el("button", {
+      class: "tab", role: "tab", type: "button", "aria-selected": String(key === current),
+      onclick: () => { location.hash = `#settings/${key}`; },
+    }, label)));
+}
+
+// ---------- Settings → Priority criteria (read-only; set once in the config file) ----------
+async function criteriaView() {
+  const c = await api("/criteria");
+  const rated = c.criteria.filter((x) => x.levels);
+  const bands = c.reachBands.map((b, i) => {
+    const next = c.reachBands[i + 1];
+    const range = next ? (b.minPoints === 0 ? `under ${next.minPoints}` : `${b.minPoints}–${next.minPoints - 1}`) : `${b.minPoints}+`;
+    return `${range} → ${b.rating}`;
+  }).join(", ");
+
+  app.replaceChildren(el("div", { class: "stack criteria reveal" },
+    settingsTabs("criteria"),
+    el("div", {}, el("h2", {}, "Priority criteria"),
+      el("p", { class: "muted" }, "Set once in the repo's config file and left alone; shown here so you can see how every Recommended Priority is worked out. Read-only.")),
+    el("div", { class: "box" },
+      el("span", { class: "label" }, "Studease product goals (for Strategic fit)"),
+      el("ol", {}, c.goals.map((g) => el("li", {}, g)))),
+    el("div", { class: "box table-wrap" },
+      el("table", { class: "tbl" },
+        el("thead", {}, el("tr", {}, ["Criterion", "Weight", "Rated by"].map((h) => el("th", {}, h)))),
+        el("tbody", {}, c.criteria.map((x) => el("tr", {},
+          el("td", {}, x.name), el("td", { class: "mono" }, String(x.weight)),
+          el("td", {}, x.ratedBy, x.levels ? null : el("div", { class: "caption" }, `Reach points in bands: ${bands}`)))))),
+      el("p", { class: "caption", style: "margin-top:8px" },
+        `Score = Σ weight × (rating − 1) / 4, so 0–100. Levels: High ≥ ${c.cutOffs.high}, Medium ${c.cutOffs.medium}–${c.cutOffs.high - 1}, Low < ${c.cutOffs.medium}.`)),
+    el("div", { class: "box table-wrap" },
+      el("table", { class: "tbl" },
+        el("thead", {}, el("tr", {}, el("th", {}, "Rating"), rated.map((x) => el("th", {}, x.name)))),
+        el("tbody", {}, [0, 1, 2, 3, 4].map((i) => el("tr", {},
+          el("td", {}, el("b", {}, String(i + 1))), rated.map((x) => el("td", {}, x.levels[i] ?? "")))))),
+      el("p", { class: "caption", style: "margin-top:8px" }, `A core task means ${c.coreTasks}.`))));
 }
 
 function callsTable(list, { showFor }) {
