@@ -1,5 +1,7 @@
 # Studease Feature Request Intelligence System
 
+## Built off my iOS app [Studease](https://apps.apple.com/us/app/studease-study-spot-journal/id6807210226)
+
 ## Results on the seed backlog
 
 - **150 Feature Requests converted into 30 underlying customer problems -> 80% less for the product team to review**
