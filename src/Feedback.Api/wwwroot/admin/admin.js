@@ -8,7 +8,8 @@ const CLOSED = ["Shipped", "Won't do"];
 const app = document.getElementById("app");
 const top = document.getElementById("top");
 
-const ui = { tab: "All", sort: null, dir: 1 };
+// sel: ticked Problems (merge); frSel: ticked Feature Requests in the open drawer (move).
+const ui = { tab: "All", sort: null, dir: 1, sel: new Set(), frSel: new Set(), frSelFor: null };
 
 class SignedOut extends Error {}
 
@@ -35,6 +36,20 @@ async function patchProblem(id, body) {
   return { drawer: await res.json() };
 }
 
+/** POST to /api/admin: { data } on success, { errors } (keyed by field) on a 400. */
+async function post(path, body) {
+  const res = await fetch(`/api/admin${path}`, {
+    method: "POST", headers: { "Content-Type": "application/json" }, credentials: "same-origin",
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  if (res.status === 401) throw new SignedOut();
+  if (res.status === 400) return { errors: (await res.json()).errors ?? {} };
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return { data: await res.json() };
+}
+
+const firstError = (errors) => Object.values(errors).flat()[0] ?? "That change wasn't saved.";
+
 function route() {
   const [path, query = ""] = location.hash.replace(/^#/, "").split("?");
   const parts = path.split("/").filter(Boolean);
@@ -47,7 +62,8 @@ async function render() {
     if (a.dataset.view === r.view) a.setAttribute("aria-current", "page");
     else a.removeAttribute("aria-current");
   }
-  if (r.view !== "problems") document.querySelector(".drawer")?.remove();
+  if (r.view !== "problems") { document.querySelector(".drawer")?.remove(); ui.sel.clear(); }
+  closeModal();
   try {
     if (r.view === "problems") await problemsView(r.sub ? Number(r.sub) : null);
     else if (r.view === "outbox") placeholder("Outbox", "AI-drafted updates for Requesters appear here when a Problem ships. Coming in a later slice.");
@@ -118,10 +134,26 @@ async function problemsView(openId) {
   const th = (key, label, cls) => el("th", { class: cls, "aria-sort": ui.sort === key ? (ui.dir > 0 ? "ascending" : "descending") : null },
     el("button", { type: "button", onclick: () => sortBy(key) }, label, ui.sort === key ? (ui.dir > 0 ? " ↑" : " ↓") : ""));
 
+  // Ticks survive re-renders, but only for Problems still in the table.
+  for (const id of ui.sel) if (!page.problems.some((p) => p.id === id)) ui.sel.delete(id);
+  let mergeBar = mergeBarFor(page.problems);
+  const tick = (p) => el("td", { class: "tick" }, el("input", {
+    type: "checkbox", checked: ui.sel.has(p.id), "aria-label": `Select ${p.title}`,
+    onchange: (e) => {
+      if (e.target.checked) ui.sel.add(p.id); else ui.sel.delete(p.id);
+      e.target.closest("tr").classList.toggle("sel", e.target.checked);
+      const next = mergeBarFor(page.problems);
+      mergeBar.replaceWith(next);
+      mergeBar = next;
+    },
+  }));
+
   const table = rows.length
     ? el("div", { class: "table-wrap" }, el("table", { class: "pt" },
-        el("thead", {}, el("tr", {}, th("title", "Problem"), th("status", "Status"), th("requests", "Requests", "num"), th("priority", "Priority"))),
-        el("tbody", {}, rows.map((p) => el("tr", { class: p.id === openId ? "open" : null },
+        el("thead", {}, el("tr", {}, el("th", { class: "tick", "aria-label": "Select" }),
+          th("title", "Problem"), th("status", "Status"), th("requests", "Requests", "num"), th("priority", "Priority"))),
+        el("tbody", {}, rows.map((p) => el("tr", { class: [p.id === openId ? "open" : "", ui.sel.has(p.id) ? "sel" : ""].join(" ").trim() || null },
+          tick(p),
           el("td", { class: "t" },
             el("button", { type: "button", onclick: () => { location.hash = `#problems/${p.id}`; } }, p.title),
             el("span", { class: "cat" }, p.category)),
@@ -133,10 +165,12 @@ async function problemsView(openId) {
 
   const review = page.needsReview
     ? el("p", { class: "notice review-line" },
-        `${page.needsReview} Feature Request${page.needsReview === 1 ? "" : "s"} need${page.needsReview === 1 ? "s" : ""} review: the AI couldn't match ${page.needsReview === 1 ? "it" : "them"}.`)
+        el("button", { class: "link", type: "button", onclick: needsReview },
+          `${page.needsReview} Feature Request${page.needsReview === 1 ? "" : "s"} need${page.needsReview === 1 ? "s" : ""} review`),
+        `: the AI couldn't match ${page.needsReview === 1 ? "it" : "them"} to a Problem yet.`)
     : null;
 
-  app.replaceChildren(el("div", { class: "reveal" }, review, el("div", { class: "toolbar" }, tabs), table));
+  app.replaceChildren(el("div", { class: "reveal" }, review, el("div", { class: "toolbar" }, tabs), table, mergeBar));
   document.querySelector(".drawer")?.remove();
   if (openId) await drawer(openId);
 }
@@ -145,6 +179,17 @@ function sortBy(key) {
   if (ui.sort === key) ui.dir = -ui.dir;
   else { ui.sort = key; ui.dir = key === "requests" ? -1 : 1; }
   render();
+}
+
+// Two or more ticked rows → Merge…; one → a hint.
+function mergeBarFor(problems) {
+  const picked = problems.filter((p) => ui.sel.has(p.id));
+  if (picked.length === 0) return el("span", { hidden: true });
+  if (picked.length === 1) return el("p", { class: "caption merge-hint" }, "Select one more to merge.");
+  return el("div", { class: "mergebar", role: "region", "aria-label": "Selected Problems" },
+    `${picked.length} Problems selected`,
+    el("button", { class: "btn sm", type: "button", onclick: () => mergeModal(picked.map((p) => p.id)) }, "Merge…"),
+    el("button", { class: "btn sm quiet", type: "button", onclick: () => { ui.sel.clear(); render(); } }, "Clear"));
 }
 
 // No sort chosen keeps the server's order (Recommended score).
@@ -178,8 +223,13 @@ async function drawer(id) {
     return;
   }
   const close = () => { location.hash = "#problems"; };
+  if (ui.frSelFor !== p.id) { ui.frSel.clear(); ui.frSelFor = p.id; }
+  for (const fid of ui.frSel) if (!p.featureRequests.some((r) => r.id === fid)) ui.frSel.delete(fid);
+  const open = !CLOSED.includes(p.status);
 
   const calls = el("div", {}, el("p", { class: "caption" }, "Loading…"));
+  let moveBar = open ? moveBarFor(p) : el("span", { hidden: true });
+  const onTick = open ? () => { const next = moveBarFor(p); moveBar.replaceWith(next); moveBar = next; } : null;
   const aside = el("aside", { class: "drawer", "aria-label": `Problem: ${p.title}` },
     el("div", { class: "spread" }, el("span", { class: "label" }, "Problem"),
       el("button", { class: "btn sm quiet", type: "button", onclick: close }, "Close ✕")),
@@ -188,7 +238,8 @@ async function drawer(id) {
     priorityBlock(p),
     el("details", { open: true },
       el("summary", {}, `Feature Requests (${p.featureRequests.length})`),
-      el("div", { class: "frs" }, p.featureRequests.map(requestRow))),
+      el("div", { class: "frs" }, p.featureRequests.map((r) => requestRow(r, onTick))),
+      moveBar),
     el("details", {},
       el("summary", {}, `Decision log (${p.decisions.length})`),
       p.decisions.length ? el("ul", { class: "decisions" }, p.decisions.map(decisionRow))
@@ -245,7 +296,9 @@ function titleBlock(p) {
   });
   cancel.addEventListener("click", () => { form.hidden = true; view.hidden = false; rename.hidden = false; });
   rename.addEventListener("click", () => { view.hidden = true; rename.hidden = true; form.hidden = false; title.focus(); });
-  return el("div", { class: "stack", style: "gap:6px" }, view, form, el("div", {}, rename));
+  const mergeWith = CLOSED.includes(p.status) ? null
+    : el("button", { class: "btn sm quiet", type: "button", onclick: () => mergeWithModal(p) }, "Merge with…");
+  return el("div", { class: "stack", style: "gap:6px" }, view, form, el("div", { class: "row", style: "gap:6px" }, rename, mergeWith));
 }
 
 // Status and Category. Won't do asks for a one-line reason before it is saved.
@@ -294,7 +347,12 @@ const DECISION_LABEL = { status: "Status", priority: "Priority", merge: "Merge",
 
 function decisionRow(d) {
   const x = d.details ?? {};
-  const what = d.kind === "rename"
+  const titles = (list) => (list ?? []).map((q) => `“${q.title}”`).join(", ");
+  const n = (x.featureRequestIds ?? []).length;
+  const requests = `${n} Feature Request${n === 1 ? "" : "s"}`;
+  const what = d.kind === "merge" ? `Merged in ${titles(x.removed)} (${requests})`
+    : d.kind === "move" ? `${requests} ${x.from?.length ? `from ${titles(x.from)}` : "that needed review"} to “${x.to?.title}”`
+    : d.kind === "rename"
     ? (x.field === "description" ? "Description changed" : `“${x.from}” → “${x.to}”`)
     : ("from" in x || "to" in x) ? `${x.from ?? "Not set"} → ${x.to ?? "Not set"}` : "";
   return el("li", {},
@@ -391,8 +449,14 @@ function priorityBlock(p) {
 
 const formatPoints = (n) => Number.isInteger(n) ? String(n) : Number(n).toFixed(2).replace(/0$/, "");
 
-function requestRow(r) {
-  return el("div", { class: "fr" },
+// onTick is null when the Problem is closed (its requests can't be moved).
+function requestRow(r, onTick) {
+  const tick = onTick ? el("input", {
+    type: "checkbox", checked: ui.frSel.has(r.id), "aria-label": `Select ${r.title}`,
+    onchange: (e) => { if (e.target.checked) ui.frSel.add(r.id); else ui.frSel.delete(r.id); onTick(); },
+  }) : null;
+  return el("div", { class: `fr${tick ? " tickable" : ""}` },
+    tick,
     el("div", {},
       el("h4", {}, r.title),
       el("p", {}, r.description),
@@ -400,6 +464,207 @@ function requestRow(r) {
       el("div", { class: "why" }, el("b", {}, "✦ Why it's here: "), r.matchReason ?? "No reason recorded.",
         r.isBundled ? el("span", { class: "pill warn", style: "margin-left:6px" }, "Bundled") : null)),
     el("div", { class: "ups", "aria-label": `${r.upvotes} Upvotes` }, `▲ ${r.upvotes}`));
+}
+
+// ---------- Move (split) ----------
+// The ticked Feature Requests go to a new Problem or another open one; a Problem left empty is removed.
+function moveBarFor(p) {
+  const n = p.featureRequests.filter((r) => ui.frSel.has(r.id)).length;
+  if (!n) return el("p", { class: "caption" }, "Tick Feature Requests to split them into a new Problem or move them to another one.");
+  const target = destinationPicker(p.category, p.id);
+  const error = el("span", { class: "caption", style: "color:var(--error)", hidden: true });
+  const button = el("button", { class: "btn sm", type: "button" }, "Move");
+  button.addEventListener("click", async () => {
+    error.hidden = true;
+    button.disabled = true;
+    const result = await moveRequests({ featureRequestIds: [...ui.frSel], ...target.body() });
+    button.disabled = false;
+    if (!result) return;
+    if (result.errors) { error.textContent = firstError(result.errors); error.hidden = false; return; }
+    ui.frSel.clear();
+    const emptied = result.data.removedProblemIds.includes(p.id);
+    toast(`Moved ${n} Feature Request${n === 1 ? "" : "s"}.${emptied ? " The emptied Problem was removed." : ""}`);
+    if (emptied) location.hash = `#problems/${result.data.problemId}`; else await render();
+  });
+  return el("div", { class: "splitbar", role: "region", "aria-label": "Move selected Feature Requests" },
+    el("b", {}, `${n} selected`), el("span", {}, "Move to"), target.node, button,
+    el("button", { class: "btn sm quiet", type: "button", onclick: () => { ui.frSel.clear(); render(); } }, "Cancel"),
+    error);
+}
+
+/** "A new Problem" (title + Category) or an existing open Problem; body() gives the move's destination fields. */
+function destinationPicker(category, exceptId, title = "") {
+  const to = el("select", { "aria-label": "Move to" }, el("option", { value: "new" }, "A new Problem"));
+  const name = el("input", { type: "text", maxlength: "120", "aria-label": "New Problem title", placeholder: "New Problem title", value: title });
+  const cat = el("select", { "aria-label": "New Problem Category" },
+    CATEGORIES.map((c) => el("option", { value: c, selected: c === category }, c)));
+  const fresh = el("span", { class: "row", style: "gap:6px" }, name, cat);
+  to.addEventListener("change", () => { fresh.hidden = to.value !== "new"; });
+  api("/problems").then((page) => to.append(...page.problems.filter((q) => q.id !== exceptId)
+    .map((q) => el("option", { value: String(q.id) }, q.title)))).catch(() => {});
+  return {
+    node: el("span", { class: "row", style: "gap:6px" }, to, fresh),
+    body: () => to.value === "new" ? { newProblem: { title: name.value, category: cat.value } } : { toProblemId: Number(to.value) },
+  };
+}
+
+/** POST /feature-requests/move; null after a sign-out or network error (already reported). */
+async function moveRequests(body) {
+  try {
+    return await post("/feature-requests/move", body);
+  } catch (e) {
+    if (e instanceof SignedOut) signIn(); else toast("Couldn't move. Try again.");
+    return null;
+  }
+}
+
+// ---------- Pop-ups (merge, needs review) ----------
+let onModalClose = null;
+
+function openModal(title, onClose, ...children) {
+  closeModal();
+  const box = el("div", { class: "modal", role: "dialog", "aria-modal": "true", "aria-label": title }, el("h3", {}, title), ...children);
+  const scrim = el("div", { class: "scrim", onclick: (e) => { if (e.target === scrim) closeModal(); } }, box);
+  document.body.append(scrim);
+  onModalClose = onClose;
+  box.querySelector("input,select,button")?.focus();
+}
+
+function closeModal() {
+  const scrim = document.querySelector(".scrim");
+  if (!scrim) return;
+  scrim.remove();
+  const then = onModalClose;
+  onModalClose = null;
+  then?.();
+}
+
+const cancelButton = () => el("button", { class: "btn quiet", type: "button", onclick: closeModal }, "Cancel");
+
+// From the drawer: pick the other Problem, then the usual merge pop-up.
+async function mergeWithModal(p) {
+  let page;
+  try { page = await api("/problems"); } catch (e) { if (e instanceof SignedOut) return signIn(); return toast("Couldn't load Problems."); }
+  const others = page.problems.filter((q) => q.id !== p.id);
+  if (!others.length) return toast("There's no other open Problem to merge with.");
+  openModal(`Merge “${p.title}” with…`, null,
+    el("div", { class: "stack", style: "gap:6px" }, others.map((q, i) => el("label", { class: "opt" },
+      el("input", { type: "radio", name: "mergeWith", value: String(q.id), checked: i === 0 }),
+      el("span", {}, el("b", {}, q.title), el("br"),
+        el("span", { class: "caption" }, `${q.category} · ${q.featureRequests} Feature Requests · ${q.upvotes} Upvotes`))))),
+    el("div", { class: "row" },
+      el("button", { class: "btn", type: "button", onclick: () => {
+        const picked = document.querySelector("input[name=mergeWith]:checked");
+        if (picked) mergeModal([p.id, Number(picked.value)]);
+      } }, "Next"),
+      cancelButton()));
+}
+
+// Pick the Problem whose title, Category, status and Priority to keep; the pop-up lists what will happen.
+async function mergeModal(ids) {
+  let problems;
+  try { problems = await Promise.all(ids.map((id) => api(`/problems/${id}`))); }
+  catch (e) { if (e instanceof SignedOut) return signIn(); return toast("Couldn't load those Problems."); }
+  const requests = problems.reduce((n, p) => n + p.featureRequests.length, 0);
+  const upvotes = problems.reduce((n, p) => n + p.featureRequests.reduce((m, r) => m + r.upvotes, 0), 0);
+  const others = problems.length - 1;
+  const error = el("p", { class: "notice err", role: "alert", hidden: true });
+  const go = el("button", { class: "btn", type: "button" }, "Merge");
+  go.addEventListener("click", async () => {
+    const keepId = Number(document.querySelector("input[name=keep]:checked").value);
+    go.disabled = true;
+    error.hidden = true;
+    try {
+      const result = await post("/problems/merge", { problemIds: ids, keepId });
+      if (result.errors) { error.textContent = firstError(result.errors); error.hidden = false; go.disabled = false; return; }
+      ui.sel.clear();
+      closeModal();
+      toast(`Merged ${problems.length} Problems.`);
+      if (location.hash === `#problems/${keepId}`) await render(); else location.hash = `#problems/${keepId}`;
+    } catch (e) {
+      if (e instanceof SignedOut) return signIn();
+      error.textContent = "Couldn't merge. Try again.";
+      error.hidden = false;
+      go.disabled = false;
+    }
+  });
+  openModal(`Merge ${problems.length} Problems`, null,
+    el("div", { class: "stack", style: "gap:6px" },
+      el("span", { class: "label" }, "Keep which title, Category, status and Priority?"),
+      problems.map((p, i) => el("label", { class: "opt" },
+        el("input", { type: "radio", name: "keep", value: String(p.id), checked: i === 0 }),
+        el("span", {}, el("b", {}, p.title), el("br"), el("span", { class: "caption" },
+          `${p.category} · ${p.status} · Priority ${p.priority ?? "not set"} · ${p.featureRequests.length} Feature Requests`))))),
+    el("div", {}, el("span", { class: "label" }, "What happens"), el("ul", {},
+      el("li", {}, `All ${requests} Feature Requests and their ${upvotes} Upvotes move to the kept Problem. Requesters notice nothing except more Related requests.`),
+      el("li", {}, `The other Problem${others > 1 ? "s are" : " is"} removed (logged in the decision log, not the Archive).`),
+      el("li", {}, "Reach is recounted and the AI re-scores Strategic fit, Pain and Retention risk."),
+      el("li", {}, "Any Decision Brief becomes out of date."),
+      el("li", {}, "If more than one has a GitHub issue, the kept one stays linked; close the other by hand."))),
+    error,
+    el("div", { class: "row" }, go, cancelButton()));
+}
+
+// "N Feature Requests need review": each with Retry AI or Match by hand (to an existing Problem or a new one).
+async function needsReview() {
+  let items;
+  try { items = await api("/feature-requests/needs-review"); }
+  catch (e) { if (e instanceof SignedOut) return signIn(); return toast("Couldn't load the list."); }
+  let changed = false;
+  const list = el("div", { class: "frs review-list" });
+  const settled = (row, message) => {
+    row.remove();
+    changed = true;
+    toast(message);
+    if (!list.children.length) list.append(el("p", { class: "caption" }, "All matched."));
+  };
+  for (const r of items) list.append(reviewRow(r, settled));
+  if (!items.length) list.append(el("p", { class: "caption" }, "Nothing needs review right now."));
+  openModal("Feature Requests that need review", () => { if (changed) render(); },
+    el("p", { class: "caption" }, "The AI couldn't match these to a Problem. Retry the AI, or match them by hand."),
+    list,
+    el("div", { class: "row" }, el("button", { class: "btn quiet", type: "button", onclick: closeModal }, "Done")));
+}
+
+function reviewRow(r, settled) {
+  const row = el("div", { class: "fr review" });
+  const failure = r.failure
+    ? el("div", { class: "err-msg" }, `${r.failure.step} failed · ${r.failure.failureKind ?? "?"}${r.failure.errorMessage ? `: ${r.failure.errorMessage}` : ""}`)
+    : el("div", { class: "caption" }, "No failed AI call logged: it may still be waiting in the queue.");
+  const retry = el("button", { class: "btn sm", type: "button" }, "Retry AI");
+  retry.addEventListener("click", async () => {
+    retry.disabled = true;
+    retry.textContent = "Matching…";
+    try {
+      const result = await post(`/feature-requests/${r.id}/retry-match`);
+      if (result.data?.problemId) return settled(row, "Matched.");
+      toast("The AI failed again. See the AI call log, or match it by hand.");
+    } catch (e) {
+      if (e instanceof SignedOut) return signIn();
+      toast("Couldn't retry. Try again.");
+    }
+    retry.disabled = false;
+    retry.textContent = "Retry AI";
+  });
+  const target = destinationPicker(r.category, null, r.title);
+  const error = el("span", { class: "caption", style: "color:var(--error)", hidden: true });
+  const match = el("button", { class: "btn sm quiet", type: "button" }, "Match by hand");
+  match.addEventListener("click", async () => {
+    error.hidden = true;
+    match.disabled = true;
+    const result = await moveRequests({ featureRequestIds: [r.id], ...target.body() });
+    match.disabled = false;
+    if (!result) return;
+    if (result.errors) { error.textContent = firstError(result.errors); error.hidden = false; return; }
+    settled(row, "Matched by hand.");
+  });
+  row.append(el("div", { class: "stack", style: "gap:6px" },
+    el("div", {}, el("h4", {}, r.title), el("p", {}, r.description),
+      el("div", { class: "caption" }, `${r.email} · ${formatDate(r.createdAt)} · Requester picked: ${r.category} · ▲ ${r.upvotes}`),
+      failure),
+    el("div", { class: "row", style: "gap:6px" }, retry, el("span", { class: "caption" }, "or match by hand to"), target.node, match),
+    error));
+  return row;
 }
 
 async function loadCalls(node, problemId) {
@@ -540,7 +805,9 @@ function placeholder(title, text) {
 }
 
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && document.querySelector(".drawer")) location.hash = "#problems";
+  if (e.key !== "Escape") return;
+  if (document.querySelector(".scrim")) closeModal();
+  else if (document.querySelector(".drawer")) location.hash = "#problems";
 });
 window.addEventListener("hashchange", render);
 render();

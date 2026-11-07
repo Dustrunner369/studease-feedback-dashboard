@@ -25,6 +25,7 @@ builder.Services.AddSingleton<IntakeQueue>();
 builder.Services.AddScoped<MatchingStep>();
 builder.Services.AddScoped<PriorityScorer>();
 builder.Services.AddScoped<ProblemDecisions>();
+builder.Services.AddScoped<Regrouping>();
 builder.Services.AddHostedService<IntakeWorker>();
 
 builder.Services.Configure<AiOptions>(builder.Configuration.GetSection(AiOptions.Section));
