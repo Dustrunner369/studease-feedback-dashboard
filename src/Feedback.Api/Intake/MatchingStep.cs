@@ -56,29 +56,17 @@ public sealed class MatchingStep(FeedbackDbContext db, IAiGateway ai, AiCallLog 
         await db.SaveChangesAsync(ct);
     }
 
-    /// <summary>The text embedded for a Feature Request (also what suggest-as-you-type should embed).</summary>
-    public static string EmbeddingText(FeatureRequest r) => $"{r.Title}\n\n{r.Description}";
+    /// <summary>The text embedded for a Feature Request (suggest-as-you-type embeds the typed text the same way).</summary>
+    public static string EmbeddingText(FeatureRequest r) => EmbeddingText(r.Title, r.Description);
 
-    // The best-matching Feature Request per Problem, then the closest Problems. Shipped Problems are never candidates.
+    public static string EmbeddingText(string title, string description) => $"{title}\n\n{description}";
+
+    // The 5 closest Problems by their best-matching request. Shipped Problems are never candidates.
     private async Task<IReadOnlyList<MatchCandidate>> ShortlistAsync(FeatureRequest request, CancellationToken ct)
     {
-        var rows = await db.Database.SqlQuery<ShortlistRow>($"""
-            SELECT best.problem_id, p.title, p.description, p.category,
-                   best.title AS closest_title, best.description AS closest_description, best.distance
-            FROM (
-                SELECT DISTINCT ON (fr.problem_id) fr.problem_id, fr.title, fr.description,
-                       fr.embedding <=> {request.Embedding} AS distance
-                FROM feature_requests fr
-                WHERE fr.problem_id IS NOT NULL AND fr.embedding IS NOT NULL AND fr.id <> {request.Id}
-                ORDER BY fr.problem_id, distance
-            ) best
-            JOIN problems p ON p.id = best.problem_id
-            WHERE p.status <> {ProblemStatuses.Shipped}
-            ORDER BY best.distance, best.problem_id
-            LIMIT {ShortlistSize}
-            """).ToListAsync(ct);
+        var rows = await ClosestProblems.FindAsync(db, request.Embedding!, ShortlistSize, ct, excludeRequestId: request.Id);
         return rows.Select(r => new MatchCandidate(
-            r.ProblemId, r.Title, r.Description, r.Category, r.ClosestTitle, r.ClosestDescription, r.Distance)).ToList();
+            r.ProblemId, r.ProblemTitle, r.ProblemDescription, r.ProblemCategory, r.Title, r.Description, r.Distance)).ToList();
     }
 
     // The strict form guarantees the shape; this checks what JSON schema can't.
@@ -96,8 +84,4 @@ public sealed class MatchingStep(FeedbackDbContext db, IAiGateway ai, AiCallLog 
             _ => null,
         };
     }
-
-    private sealed record ShortlistRow(
-        long ProblemId, string Title, string Description, string Category,
-        string ClosestTitle, string ClosestDescription, double Distance);
 }

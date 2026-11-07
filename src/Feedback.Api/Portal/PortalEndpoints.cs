@@ -12,6 +12,7 @@ public static class PortalEndpoints
     {
         var api = app.MapGroup("/api").RequireRateLimiting(PortalRateLimit.Policy);
         api.MapUpvotes();
+        api.MapSuggest();
 
         api.MapPost("/requests", async (SubmitRequestBody body, IntakePipeline intake, CancellationToken ct) =>
         {
@@ -61,7 +62,7 @@ public static class PortalEndpoints
     // A matched request is listed under its Problem's Category; an unmatched one under the Requester's pick.
     // Keep this the last step of a query: EF can't filter or sort on the projected record.
     // upvoted is true only for the asking browser's own token (false with no token).
-    private static IQueryable<FeatureRequestView> ToViews(IQueryable<FeatureRequest> requests, FeedbackDbContext db, string? token) =>
+    internal static IQueryable<FeatureRequestView> ToViews(IQueryable<FeatureRequest> requests, FeedbackDbContext db, string? token) =>
         requests.Select(r => new FeatureRequestView(
             r.Id, r.Title, r.Description, r.Problem != null ? r.Problem.Category : r.Category, r.CreatedAt,
             db.Upvotes.Count(u => u.FeatureRequestId == r.Id),
