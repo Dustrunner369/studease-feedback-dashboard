@@ -10,7 +10,24 @@ public sealed class RateLimitTests(FeedbackDatabase database) : ApiTest(database
     {
         ["Portal:RateLimit:PermitLimit"] = "3",
         ["Portal:RateLimit:WindowSeconds"] = "60",
+        ["Portal:RateLimit:ClientIpHeader"] = "", // not behind a trusted proxy
     };
+
+    [Fact]
+    public async Task Without_a_trusted_proxy_a_client_ip_header_is_ignored()
+    {
+        var statuses = new List<HttpStatusCode>();
+        for (var i = 0; i < 4; i++)
+        {
+            var message = new HttpRequestMessage(HttpMethod.Get, "/api/requests");
+            message.Headers.Add("Fly-Client-IP", $"203.0.113.{i + 1}"); // a fresh spoofed IP each time
+            statuses.Add((await Client.SendAsync(message)).StatusCode);
+        }
+
+        Assert.Equal(
+            [HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.TooManyRequests],
+            statuses);
+    }
 
     [Fact]
     public async Task Submitting_too_often_from_one_IP_is_refused()
