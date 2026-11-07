@@ -1,4 +1,4 @@
-// Studease /admin. Hash routes: #problems[/<id>], #outbox, #metrics, #settings/ai-calls[?status=Failed&problem=<id>], #settings/criteria, #settings/archive, #settings/github.
+// Studease /admin. Hash routes: #problems[/<id>], #outbox[/sent], #metrics, #settings/ai-calls[?status=Failed&problem=<id>], #settings/criteria, #settings/archive, #settings/github.
 // All user and AI text goes into the DOM through textContent (via el), never innerHTML.
 import { el, CATEGORIES, toast, formatDate } from "/js/portal.js";
 
@@ -51,7 +51,7 @@ async function render() {
   if (r.view !== "problems") ui.lastView = r.view;
   try {
     if (r.view === "problems") await problemsView(r.sub ? Number(r.sub) : null);
-    else if (r.view === "outbox") placeholder("Outbox", "AI-drafted updates for Requesters appear here when a Problem ships. Coming in a later slice.");
+    else if (r.view === "outbox") await outboxView(r.sub === "sent" ? "sent" : "drafts");
     else if (r.view === "metrics") placeholder("Metrics", "Duplicate catch rate, grouping accuracy and priority consistency appear here. Coming in a later slice.");
     else if (r.view === "settings") await (r.sub === "criteria" ? criteriaView() : r.sub === "archive" ? archiveView()
       : r.sub === "github" ? githubView() : settingsView(r.params));
@@ -220,7 +220,9 @@ async function save(p, body, { onErrors, done } = {}) {
     }
     const fresh = result.drawer;
     if (CLOSED.includes(fresh.status) && !CLOSED.includes(p.status)) {
-      toast(`Closed as ${fresh.status}: moved to the Archive.`);
+      toast(fresh.status === "Shipped"
+        ? "Shipped: moved to the Archive. ✦ Requester updates are drafted in the Outbox."
+        : `Closed as ${fresh.status}: moved to the Archive.`);
       location.hash = "#problems";
       return true;
     }
@@ -618,6 +620,110 @@ function callsTable(list, { showFor }) {
       el("td", { class: "mono" }, tokens(c)),
       el("td", { class: "mono" }, cost(c)),
       el("td", { class: "mono" }, `${(c.latencyMs / 1000).toFixed(1)} s`)))));
+}
+
+// ---------- Outbox: Drafts / Sent on the left, the chosen message on the right ----------
+const OUTBOX_STATE = { Drafting: ["", "✦ Drafting…"], "Draft failed": ["warn", "Draft failed"], Ready: ["Medium", "✦ AI draft"], Sent: ["Low", "Sent"] };
+
+async function outboxView(tab) {
+  const [drafts, sent] = await Promise.all([api("/outbox?tab=drafts"), api("/outbox?tab=sent")]);
+  const list = tab === "sent" ? sent : drafts;
+  if (!list.some((m) => m.id === ui.outboxId)) ui.outboxId = list[0]?.id ?? null;
+  const chosen = list.find((m) => m.id === ui.outboxId);
+
+  const tabLink = (key, label, count) => el("a", {
+    class: "tab", href: key === "sent" ? "#outbox/sent" : "#outbox", role: "tab", "aria-selected": String(tab === key),
+  }, `${label} · ${count}`);
+  const item = (m) => el("button", {
+    type: "button", class: "ob-item", "aria-current": m.id === ui.outboxId ? "true" : null,
+    onclick: () => { ui.outboxId = m.id; render(); },
+  },
+    el("span", { class: "spread" }, el("b", {}, m.toEmail), statePill(m.status)),
+    el("span", { class: "caption" }, m.subject || (m.status === "Draft failed" ? "No draft yet" : "…")),
+    el("span", { class: "caption" }, `${m.problemTitle ?? "Problem removed"} · ${formatDate(m.sentAt ?? m.createdAt)}`));
+
+  app.replaceChildren(el("div", { class: "stack reveal" },
+    el("div", {}, el("h2", {}, "Outbox"),
+      el("p", { class: "muted" }, "When a Problem ships, the AI drafts one update per Requester. Nothing goes out until you approve it. (Demo: approved updates move to Sent; no email is really delivered.)")),
+    el("div", { class: "outbox" },
+      el("aside", { class: "ob-list" },
+        el("div", { class: "tabs", role: "tablist", "aria-label": "Outbox" }, tabLink("drafts", "Drafts", drafts.length), tabLink("sent", "Sent", sent.length)),
+        list.length ? list.map(item)
+          : el("div", { class: "empty" }, el("span", { class: "sketch sk-cup", "aria-hidden": "true" }),
+            tab === "sent" ? "Nothing sent yet." : "Nothing waiting to go out.")),
+      chosen ? messagePane(chosen) : null)));
+}
+
+function statePill(status) {
+  const [cls, label] = OUTBOX_STATE[status] ?? ["", status];
+  return el("span", { class: `pill ${cls}` }, label);
+}
+
+function messagePane(m, editing = false) {
+  const pane = el("section", { class: "ob-pane box", "aria-label": `Update to ${m.toEmail}` });
+  const act = async (path, method, done) => {
+    try {
+      await api(`/outbox/${m.id}${path}`, { method });
+      if (done) toast(done);
+    } catch (e) {
+      if (e instanceof SignedOut) return signIn();
+      toast("That didn't work. Try again.");
+    }
+    render();
+  };
+  const head = el("div", { class: "stack", style: "gap:4px" },
+    el("div", { class: "spread" }, el("span", {}, "To ", el("b", {}, m.toEmail)), statePill(m.status)),
+    el("span", { class: "caption" }, "About ",
+      m.problemId ? el("a", { class: "link", href: `#problems/${m.problemId}` }, m.problemTitle ?? `Problem ${m.problemId}`) : "a removed Problem",
+      " · their requests: ", m.featureRequests.map((r, i) => [i ? ", " : "",
+        el("a", { class: "link", href: `/requests/${r.id}`, target: "_blank", rel: "noopener" }, `“${r.title}”`)])));
+
+  if (editing) {
+    const subject = el("input", { type: "text", value: m.subject, "aria-label": "Subject", maxlength: "200", required: true });
+    const body = el("textarea", { rows: "10", "aria-label": "Message", maxlength: "5000", required: true });
+    body.value = m.body;
+    const error = el("p", { class: "notice err", role: "alert", hidden: true });
+    const form = el("form", { class: "stack", style: "gap:10px" },
+      subject, body, error,
+      el("div", { class: "row" }, el("button", { class: "btn sm" }, "Save"),
+        el("button", { class: "btn sm quiet", type: "button", onclick: () => pane.replaceWith(messagePane(m)) }, "Cancel")));
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const res = await fetch(`/api/admin/outbox/${m.id}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "same-origin",
+        body: JSON.stringify({ subject: subject.value, body: body.value }),
+      });
+      if (res.status === 401) return signIn();
+      if (res.status === 400) {
+        error.textContent = Object.values((await res.json()).errors ?? {}).flat()[0] ?? "That wasn't saved.";
+        error.hidden = false;
+        return;
+      }
+      if (!res.ok) { toast("Couldn't save. Try again."); return render(); }
+      toast("Saved.");
+      render();
+    });
+    pane.append(head, form);
+    setTimeout(() => subject.focus());
+    return pane;
+  }
+
+  const sent = m.status === "Sent";
+  const failed = m.status === "Draft failed" || m.status === "Drafting";
+  pane.append(head,
+    failed
+      ? el("p", { class: "failed" }, m.status === "Drafting" ? "✦ Still drafting. If it's stuck, retry. " : "Draft failed · ",
+        el("button", { class: "link", type: "button", onclick: () => act("/retry", "POST", null) }, "Retry"),
+        el("span", { class: "caption" }, " or write it yourself with Edit."))
+      : null,
+    m.subject ? el("div", { class: "ob-mail" }, el("b", {}, m.subject), el("p", {}, m.body)) : null,
+    sent
+      ? el("p", { class: "caption" }, `Approved and marked Sent ${formatDate(m.sentAt)}.`)
+      : el("div", { class: "row" },
+        el("button", { class: "btn sm", type: "button", disabled: m.status !== "Ready", onclick: () => act("/send", "POST", "Approved: moved to Sent.") }, "Approve"),
+        el("button", { class: "btn sm quiet", type: "button", onclick: () => pane.replaceWith(messagePane(m, true)) }, "Edit"),
+        el("button", { class: "btn sm quiet", type: "button", onclick: () => act("", "DELETE", "Draft discarded.") }, "Discard")));
+  return pane;
 }
 
 function placeholder(title, text) {

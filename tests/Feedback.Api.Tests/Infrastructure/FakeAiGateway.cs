@@ -44,6 +44,22 @@ public sealed class FakeAiGateway : IAiGateway
         return Task.FromResult(new AiReply<ScoreRatings>(Score(input), ChatModel, 1200, 150));
     }
 
+    /// <summary>Default: subject "It's here: &lt;Problem title&gt;", body listing the request titles.</summary>
+    public Func<DraftUpdateInput, UpdateDraft> DraftUpdate { get; set; } = DefaultDraft;
+
+    /// <summary>Every DraftUpdateAsync input, in call order.</summary>
+    public ConcurrentQueue<DraftUpdateInput> DraftUpdateCalls { get; } = new();
+
+    public Task<AiReply<UpdateDraft>> DraftUpdateAsync(DraftUpdateInput input, CancellationToken ct)
+    {
+        DraftUpdateCalls.Enqueue(input);
+        return Task.FromResult(new AiReply<UpdateDraft>(DraftUpdate(input), ChatModel, 400, 120));
+    }
+
+    public static UpdateDraft DefaultDraft(DraftUpdateInput input) => new(
+        $"It's here: {input.Problem.Title}",
+        $"Thanks for asking for {string.Join(" and ", input.FeatureRequests.Select(r => r.Title))}. It's in Studease now.\n\nThe Studease team");
+
     public static MatchDecision NewProblemFromRequest(MatchInput input) => new(
         null,
         new NewProblemDraft($"Need: {input.Request.Title}", input.Request.Description, input.Request.Category),

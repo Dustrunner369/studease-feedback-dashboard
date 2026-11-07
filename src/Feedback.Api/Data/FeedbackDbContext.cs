@@ -14,6 +14,7 @@ public sealed class FeedbackDbContext(DbContextOptions<FeedbackDbContext> option
     public DbSet<AiCall> AiCalls => Set<AiCall>();
     public DbSet<PriorityScoring> PriorityScorings => Set<PriorityScoring>();
     public DbSet<DecisionLogEntry> DecisionLog => Set<DecisionLogEntry>();
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
     protected override void OnModelCreating(ModelBuilder model)
     {
@@ -89,5 +90,6 @@ public sealed class FeedbackDbContext(DbContextOptions<FeedbackDbContext> option
         });
 
         model.Entity<AiCall>(AiCall.Configure);
+        model.Entity<OutboxMessage>(OutboxMessage.Configure);
     }
 }
