@@ -1128,7 +1128,7 @@ function messagePane(m, editing = false) {
 }
 
 // ---------- metrics ----------
-// Seed metrics are saved by `seed load`; the priority consistency check (#31) fills the last slot.
+// Seed metrics are saved by `seed load`; the priority consistency check runs from its own box.
 async function metricsView() {
   const m = await api("/metrics");
   const s = m.seed;
@@ -1159,9 +1159,45 @@ async function metricsView() {
         el("p", { class: "caption" }, s.failedMatches === 0 ? "No failed matches."
           : `${s.failedMatches} failed ${s.failedMatches === 1 ? "match" : "matches"} (counted as wrong).`)))
       : el("div", { class: "empty" }, el("span", { class: "sketch sk-cup", "aria-hidden": "true" }), "No seed metrics yet."),
-    el("div", { class: "box metric", id: "consistency" },
-      el("span", { class: "label" }, "Priority consistency"),
-      el("p", { class: "caption" }, "Re-scores every open Problem 3 times against the Priority Criteria. Coming in a later slice."))));
+    consistencyBox(m.consistency, m.targets.priorityConsistency, pct)));
+}
+
+// The last consistency check (POST /metrics/consistency-check re-scores every open Problem 3 times; saved scores never change).
+function consistencyBox(c, target, pct) {
+  const button = el("button", { class: "btn sm", type: "button" }, c ? "Run again" : "Run consistency check");
+  button.onclick = async () => {
+    button.disabled = true;
+    button.textContent = "Re-scoring every open Problem 3 times…";
+    try {
+      await post("/metrics/consistency-check");
+      await metricsView();
+      toast("Consistency check finished.");
+    } catch (e) {
+      if (e instanceof SignedOut) return signIn();
+      button.disabled = false;
+      button.textContent = "Run consistency check";
+      toast("The consistency check didn't finish. Try again.");
+    }
+  };
+  const met = c?.sameLevelShare != null && c.sameLevelShare >= target;
+  const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+  return el("div", { class: "box metric", id: "consistency" },
+    el("span", { class: "label" }, "Priority consistency"),
+    c ? el("div", { class: "metric-value" }, pct(c.sameLevelShare)) : null,
+    c ? el("div", { class: "row" },
+      el("span", { class: `pill ${met ? "met" : "missed"}` }, met ? "On target" : "Below target"),
+      el("span", { class: "caption" }, `Target ≥${pct(target)}`)) : null,
+    el("p", { class: "caption" }, c
+      ? `Share of ${plural(c.checked, "open Problem", "open Problems")} that kept the same level on all 3 re-scores. Ran ${formatDate(c.ranAt)}.`
+      : "Re-scores every open Problem 3 times against the Priority Criteria and shows how often the level holds. Saved scores never change."),
+    c && c.averageSpread != null ? el("p", {}, `Average score spread: ${c.averageSpread.toFixed(1)} points (of 100).`) : null,
+    c && c.couldntCheck > 0 ? el("p", {}, `Couldn't check: ${plural(c.couldntCheck, "Problem", "Problems")} (a re-score failed; see the AI call log).`) : null,
+    c && c.changed.length ? el("div", {},
+      el("p", {}, "Changed level:"),
+      el("ul", {}, ...c.changed.map((p) => el("li", {},
+        el("a", { href: `#problems/${p.problemId}` }, p.title),
+        el("span", { class: "caption" }, ` ${p.levels.join(" → ")} (${p.scores.join(", ")})`))))) : null,
+    el("div", {}, button));
 }
 
 document.addEventListener("keydown", (e) => {

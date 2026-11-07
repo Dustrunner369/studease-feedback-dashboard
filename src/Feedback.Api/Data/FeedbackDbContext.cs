@@ -18,6 +18,8 @@ public sealed class FeedbackDbContext(DbContextOptions<FeedbackDbContext> option
     public DbSet<SeedMetrics> SeedMetrics => Set<SeedMetrics>();
     public DbSet<DecisionBrief> DecisionBriefs => Set<DecisionBrief>();
     public DbSet<SolutionSuggestion> SolutionSuggestions => Set<SolutionSuggestion>();
+    public DbSet<ConsistencyRun> ConsistencyRuns => Set<ConsistencyRun>();
+    public DbSet<ConsistencyResult> ConsistencyResults => Set<ConsistencyResult>();
 
     protected override void OnModelCreating(ModelBuilder model)
     {
@@ -97,5 +99,7 @@ public sealed class FeedbackDbContext(DbContextOptions<FeedbackDbContext> option
         model.Entity<SeedMetrics>(Data.SeedMetrics.Configure);
         model.Entity<DecisionBrief>(DecisionBrief.Configure);
         model.Entity<SolutionSuggestion>(SolutionSuggestion.Configure);
+        model.Entity<ConsistencyRun>(ConsistencyRun.Configure);
+        model.Entity<ConsistencyResult>(ConsistencyResult.Configure);
     }
 }

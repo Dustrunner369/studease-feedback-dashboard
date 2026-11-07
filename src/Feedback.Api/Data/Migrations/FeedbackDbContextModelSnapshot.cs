@@ -107,6 +107,60 @@ namespace Feedback.Api.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Feedback.Api.Data.ConsistencyResult", b =>
+                {
+                    b.Property<long>("RunId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("run_id");
+
+                    b.Property<long>("ProblemId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("problem_id");
+
+                    b.Property<bool>("CouldntCheck")
+                        .HasColumnType("boolean")
+                        .HasColumnName("couldnt_check");
+
+                    b.PrimitiveCollection<string[]>("Levels")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("levels");
+
+                    b.PrimitiveCollection<int[]>("Scores")
+                        .IsRequired()
+                        .HasColumnType("integer[]")
+                        .HasColumnName("scores");
+
+                    b.HasKey("RunId", "ProblemId")
+                        .HasName("pk_consistency_results");
+
+                    b.HasIndex("ProblemId")
+                        .HasDatabaseName("ix_consistency_results_problem_id");
+
+                    b.ToTable("consistency_results", "feedback");
+                });
+
+            modelBuilder.Entity("Feedback.Api.Data.ConsistencyRun", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTimeOffset>("RanAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ran_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.HasKey("Id")
+                        .HasName("pk_consistency_runs");
+
+                    b.ToTable("consistency_runs", "feedback");
+                });
+
             modelBuilder.Entity("Feedback.Api.Data.DecisionBrief", b =>
                 {
                     b.Property<long>("Id")
@@ -613,6 +667,23 @@ namespace Feedback.Api.Data.Migrations
                         .HasName("pk_upvotes");
 
                     b.ToTable("upvotes", "feedback");
+                });
+
+            modelBuilder.Entity("Feedback.Api.Data.ConsistencyResult", b =>
+                {
+                    b.HasOne("Feedback.Api.Data.Problem", null)
+                        .WithMany()
+                        .HasForeignKey("ProblemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_consistency_results_problems_problem_id");
+
+                    b.HasOne("Feedback.Api.Data.ConsistencyRun", null)
+                        .WithMany()
+                        .HasForeignKey("RunId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_consistency_results_consistency_runs_run_id");
                 });
 
             modelBuilder.Entity("Feedback.Api.Data.DecisionBrief", b =>
