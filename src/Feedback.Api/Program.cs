@@ -1,5 +1,6 @@
 using Feedback.Api.Admin;
 using Feedback.Api.Ai;
+using Feedback.Api.Briefs;
 using Feedback.Api.Data;
 using Feedback.Api.GitHub;
 using Feedback.Api.Intake;
@@ -7,6 +8,7 @@ using Feedback.Api.Outbox;
 using Feedback.Api.Portal;
 using Feedback.Api.Scoring;
 using Feedback.Api.Seed;
+using Feedback.Api.Solutions;
 using Feedback.Api.Triage;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -32,6 +34,7 @@ builder.Services.AddScoped<PriorityScorer>();
 builder.Services.AddScoped<ProblemDecisions>();
 builder.Services.AddScoped<Regrouping>();
 builder.Services.AddScoped<OutboxDrafter>();
+builder.Services.AddScoped<DecisionBriefs>();
 builder.Services.AddScoped<IShippedHook>(services => services.GetRequiredService<OutboxDrafter>());
 builder.Services.AddHostedService<IntakeWorker>();
 
@@ -47,6 +50,8 @@ builder.Services.Configure<GitHubOptions>(builder.Configuration.GetSection(GitHu
 GitHubApiGateway.AddHttpClient(builder.Services);
 builder.Services.AddSingleton<IGitHubGateway, GitHubApiGateway>();
 builder.Services.AddSingleton<GitHubConnection>();
+builder.Services.Configure<SolutionsOptions>(builder.Configuration.GetSection(SolutionsOptions.Section));
+builder.Services.AddScoped<SolutionSuggester>();
 builder.Services.AddHostedService<GitHubStartupCheck>();
 
 var app = builder.Build();

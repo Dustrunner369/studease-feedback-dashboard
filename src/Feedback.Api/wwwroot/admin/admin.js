@@ -244,7 +244,11 @@ async function drawer(id) {
     titleBlock(p),
     headerControls(p),
     priorityBlock(p),
+    solutionsBlock(p),
     githubBlock(p),
+    el("details", { open: !!p.brief },
+      el("summary", {}, p.brief?.outOfDate ? "Decision Brief · out of date" : "Decision Brief"),
+      briefBlock(p)),
     el("details", { open: true },
       el("summary", {}, `Feature Requests (${p.featureRequests.length})`),
       el("div", { class: "frs" }, p.featureRequests.map((r) => requestRow(r, onTick))),
@@ -354,6 +358,49 @@ function headerControls(p) {
     wontDo, closed);
 }
 
+// ✦ Suggest Solutions: reads the connected repo and writes options. The latest result is kept; a failure shows Try again.
+function solutionsBlock(p) {
+  const s = p.solutions;
+  const error = el("p", { class: "notice err", role: "alert", hidden: true });
+  const status = el("p", { class: "caption", hidden: true }, "Reading the repo and writing options… this can take a minute.");
+  const run = el("button", { class: "btn sm", type: "button" }, s ? "Run again" : "✦ Suggest Solutions");
+  run.addEventListener("click", async () => {
+    run.disabled = true;
+    error.hidden = true;
+    status.hidden = false;
+    const fail = (message) => {
+      status.hidden = true;
+      error.replaceChildren(message, " ",
+        el("button", { class: "btn sm", type: "button", onclick: () => run.click() }, "Try again"));
+      error.hidden = false;
+      run.disabled = false;
+    };
+    try {
+      const res = await fetch(`/api/admin/problems/${p.id}/solutions`, { method: "POST", credentials: "same-origin" });
+      if (res.status === 401) return signIn();
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        return fail(body.detail ?? `Suggest Solutions failed (HTTP ${res.status}).`);
+      }
+      ui.solutionsOpen = p.id;
+      toast("✦ Solutions written.");
+      await render();
+    } catch {
+      fail("Couldn't reach the server.");
+    }
+  });
+  const result = s
+    ? [
+        el("p", { class: "caption" }, `Generated ${formatDate(s.generatedAt)} · read ${s.files.length} file${s.files.length === 1 ? "" : "s"}`),
+        s.files.length ? el("ul", { class: "sol-files" }, s.files.map((f) => el("li", {}, el("code", {}, f)))) : null,
+        el("div", { class: "sol-body" }, s.body),
+      ]
+    : [el("p", { class: "caption" }, "Reads the connected GitHub repo (file tree, about 8 chosen files, open issues and PRs) and writes options.")];
+  return el("details", { class: "solutions", open: ui.solutionsOpen === p.id || !s },
+    el("summary", {}, s ? "✦ Suggested solutions" : "✦ Suggest Solutions"),
+    el("div", { class: "stack", style: "gap:6px" }, ...result, el("div", { class: "row" }, run), status, error));
+}
+
 // GitHub: Create GitHub issue (by hand), then the linked issue's state as of the last refresh.
 function githubBlock(p) {
   const issue = p.gitHubIssue;
@@ -398,6 +445,95 @@ function githubBlock(p) {
       el("span", { class: `pill ${issue.state === "closed" ? "Low" : ""}` }, issue.state),
       issue.checkedAt ? el("span", { class: "caption" }, `checked ${formatDate(issue.checkedAt)}`) : null),
     prompt);
+}
+
+// ---------- Decision Brief ----------
+// Generate / Regenerate / Try again; claims cite Feature Requests as chips that open the original text.
+function briefBlock(p) {
+  const b = p.brief;
+  const n = p.featureRequests.length;
+  const status = el("div", { role: "status" });
+  const generate = (label, cls = "btn sm") => {
+    const button = el("button", { class: cls, type: "button" }, label);
+    button.addEventListener("click", async () => {
+      body.querySelectorAll("button[data-gen]").forEach((x) => { x.disabled = true; });
+      status.replaceChildren(el("p", { class: "caption" }, `✦ Writing the brief from ${n} Feature Request${n === 1 ? "" : "s"}…`));
+      try {
+        const res = await fetch(`/api/admin/problems/${p.id}/brief`, { method: "POST", credentials: "same-origin" });
+        if (res.status === 401) return signIn();
+        if (!res.ok) {
+          status.replaceChildren(el("p", { class: "notice err", role: "alert" },
+            b ? "The brief couldn't be written. The previous brief is kept. " : "The brief couldn't be written. ",
+            generate("Try again", "btn sm")));
+          body.querySelectorAll("button[data-gen]").forEach((x) => { x.disabled = false; });
+          return;
+        }
+        toast("Decision Brief written.");
+        await render();
+      } catch {
+        status.replaceChildren(el("p", { class: "notice err", role: "alert" }, "Couldn't reach the server. ", generate("Try again")));
+      }
+    });
+    button.dataset.gen = "1";
+    return button;
+  };
+
+  const body = el("div", { class: "brief stack", style: "gap:6px" });
+  if (!b) {
+    body.append(el("div", { class: "row" }, generate("✦ Generate brief", "btn"),
+      el("span", { class: "caption" }, `Reads all ${n} Feature Request${n === 1 ? "" : "s"} · recommends no decision`)), status);
+    return body;
+  }
+  if (b.outOfDate) {
+    body.append(el("p", { class: "notice" }, "Out of date: this Problem's Feature Requests changed since the brief was written. ",
+      generate("Regenerate")));
+  }
+  const unverified = b.sections.flatMap((s) => s.claims).filter((c) => !c.verified).length;
+  body.append(
+    el("div", { class: "spread" },
+      el("span", { class: "caption" }, `Written ${formatDate(b.writtenAt)} · ${b.whoIsAsking.featureRequests} Feature Requests · recommends no decision`),
+      b.outOfDate ? null : generate("Regenerate", "btn sm quiet")),
+    status,
+    ...b.sections.map((s) => el("section", {},
+      el("h4", {}, s.title),
+      s.key === "whoIsAsking" ? whoIsAsking(b.whoIsAsking)
+        : s.claims.length ? el("ul", {}, s.claims.map(claimItem))
+        : el("p", { class: "caption" }, "Nothing here."))),
+    unverified ? el("p", { class: "notice err" },
+      `${unverified} claim${unverified === 1 ? "" : "s"} failed the citation check. Shown, but marked.`) : null,
+    el("p", { class: "caption" }, "Code checks that cited requests and quotes exist; open a chip to judge whether it supports the claim."));
+  return body;
+}
+
+function whoIsAsking(w) {
+  const range = w.firstAt ? (formatDate(w.firstAt) === formatDate(w.lastAt) ? formatDate(w.firstAt)
+    : `${formatDate(w.firstAt)} – ${formatDate(w.lastAt)}`) : "—";
+  return el("ul", {},
+    el("li", {}, `${w.featureRequests} Feature Request${w.featureRequests === 1 ? "" : "s"}, ${w.upvotes} Upvote${w.upvotes === 1 ? "" : "s"}`),
+    el("li", {}, `Submitted ${range}`),
+    el("li", {}, "Requesters picked: ", w.categoryPicks.map((c) => `${c.category} (${c.count})`).join(", ")));
+}
+
+function claimItem(c) {
+  return el("li", {},
+    c.text,
+    c.quote ? el("q", { class: "quote" }, c.quote) : null,
+    c.citations.map(citationChip),
+    c.verified ? null : el("span", { class: "cite bad", title: c.problem ?? "" }, "⚠ unverified citation"));
+}
+
+function citationChip(c) {
+  const moved = c.state === "moved";
+  const label = `#${c.featureRequestId}${moved ? " ⚠ no longer on this Problem" : ""}`;
+  return el("button", {
+    class: `cite${c.state === "ok" ? "" : " bad"}`, type: "button",
+    title: c.title ?? "No such Feature Request",
+    onclick: () => openModal(c.title ?? `Feature Request #${c.featureRequestId}`, null,
+      c.title ? el("p", { class: "original" }, c.description) : el("p", { class: "caption" }, "No Feature Request has this ID."),
+      moved ? el("p", { class: "notice" }, "This request has moved to another Problem since the brief was written.") : null,
+      c.state === "unverified" ? el("p", { class: "notice err" }, "This request isn't one of this Problem's Feature Requests.") : null,
+      el("div", { class: "row" }, el("button", { class: "btn quiet", type: "button", onclick: closeModal }, "Close"))),
+  }, label);
 }
 
 const DECISION_LABEL = { status: "Status", priority: "Priority", merge: "Merge", move: "Move", rename: "Rename", category: "Category" };

@@ -13,8 +13,8 @@ using Pgvector;
 namespace Feedback.Api.Data.Migrations
 {
     [DbContext(typeof(FeedbackDbContext))]
-    [Migration("20261107015350_AddSeedMetrics")]
-    partial class AddSeedMetrics
+    [Migration("20261107015021_AddSolutionSuggestions")]
+    partial class AddSolutionSuggestions
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -475,45 +475,40 @@ namespace Feedback.Api.Data.Migrations
                         });
                 });
 
-            modelBuilder.Entity("Feedback.Api.Data.SeedMetrics", b =>
+            modelBuilder.Entity("Feedback.Api.Data.SolutionSuggestion", b =>
                 {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
+                    b.Property<long>("ProblemId")
                         .HasColumnType("bigint")
-                        .HasColumnName("id");
+                        .HasColumnName("problem_id");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("body");
 
-                    b.Property<int>("AiProblemCount")
-                        .HasColumnType("integer")
-                        .HasColumnName("ai_problem_count");
+                    b.PrimitiveCollection<string[]>("Files")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("files");
 
-                    b.Property<DateTimeOffset>("ComputedAt")
+                    b.Property<DateTimeOffset>("GeneratedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("computed_at")
+                        .HasColumnName("generated_at")
                         .HasDefaultValueSql("now()");
 
-                    b.Property<double?>("DuplicateCatchRate")
-                        .HasColumnType("double precision")
-                        .HasColumnName("duplicate_catch_rate");
+                    b.Property<long>("PickerAiCallId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("picker_ai_call_id");
 
-                    b.Property<int>("FailedMatches")
-                        .HasColumnType("integer")
-                        .HasColumnName("failed_matches");
+                    b.Property<long>("WriteAiCallId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("write_ai_call_id");
 
-                    b.Property<double?>("GroupingAccuracy")
-                        .HasColumnType("double precision")
-                        .HasColumnName("grouping_accuracy");
+                    b.HasKey("ProblemId")
+                        .HasName("pk_solution_suggestions");
 
-                    b.Property<int>("IntendedProblemCount")
-                        .HasColumnType("integer")
-                        .HasColumnName("intended_problem_count");
-
-                    b.HasKey("Id")
-                        .HasName("pk_seed_metrics");
-
-                    b.ToTable("seed_metrics", "feedback");
+                    b.ToTable("solution_suggestions", "feedback");
                 });
 
             modelBuilder.Entity("Feedback.Api.Data.Upvote", b =>
@@ -593,6 +588,16 @@ namespace Feedback.Api.Data.Migrations
                         .HasConstraintName("fk_problems_priority_scorings_first_scoring_id");
 
                     b.Navigation("CurrentScoring");
+                });
+
+            modelBuilder.Entity("Feedback.Api.Data.SolutionSuggestion", b =>
+                {
+                    b.HasOne("Feedback.Api.Data.Problem", null)
+                        .WithOne()
+                        .HasForeignKey("Feedback.Api.Data.SolutionSuggestion", "ProblemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_solution_suggestions_problems_problem_id");
                 });
 
             modelBuilder.Entity("Feedback.Api.Data.Upvote", b =>

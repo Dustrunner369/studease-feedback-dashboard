@@ -12,7 +12,6 @@ namespace Feedback.Api.Ai;
 /// Requester text goes in as data, never as instructions.
 /// </para>
 /// Callers wrap each call in AiCallLog.RunAsync, which logs the ai_calls row.
-/// Later tickets add: write a brief, pick files, write solutions.
 /// </summary>
 public interface IAiGateway
 {
@@ -27,7 +26,51 @@ public interface IAiGateway
 
     /// <summary>Drafts the update telling one Requester that the Problem behind their Feature Requests has shipped.</summary>
     Task<AiReply<UpdateDraft>> DraftUpdateAsync(DraftUpdateInput input, CancellationToken ct);
+
+    /// <summary>Writes a Problem's Decision Brief as cited claims (code checks the citations and fills Who's asking).</summary>
+    Task<AiReply<BriefForm>> WriteBriefAsync(BriefInput input, CancellationToken ct);
+
+    /// <summary>Suggest Solutions, call 1: picks the repo files (about <see cref="PickFilesInput.MaxFiles"/>) most relevant to a Problem.</summary>
+    Task<AiReply<FilePicks>> PickFilesAsync(PickFilesInput input, CancellationToken ct);
+
+    /// <summary>Suggest Solutions, call 2: writes solution options for a Problem, grounded in the chosen files and open issues/PRs. Plain text.</summary>
+    Task<AiReply<string>> WriteSolutionsAsync(WriteSolutionsInput input, CancellationToken ct);
 }
+
+/// <summary>What the picker chooses from: the Problem (never Requester emails) and the repo's filtered file paths.</summary>
+public sealed record PickFilesInput(ScoreProblem Problem, IReadOnlyList<string> Paths, int MaxFiles);
+
+/// <summary>The strict picker form: the chosen paths (from <see cref="PickFilesInput.Paths"/>) and why.</summary>
+public sealed record FilePicks(IReadOnlyList<string> Paths, string Reason);
+
+/// <summary>
+/// What solutions are written from: the Problem, the filtered path list, the chosen files' text (capped; Truncated
+/// when cut) and every open issue and PR. Never Requester emails.
+/// </summary>
+public sealed record WriteSolutionsInput(
+    ScoreProblem Problem, IReadOnlyList<string> Paths, IReadOnlyList<SourceFile> Files, IReadOnlyList<RepoItem> OpenItems);
+
+public sealed record SourceFile(string Path, string Text, bool Truncated);
+
+/// <summary>An open issue or pull request in the connected repo.</summary>
+public sealed record RepoItem(int Number, string Title, string Body, bool IsPullRequest);
+
+/// <summary>
+/// What a Decision Brief is written from: the Problem, every linked Feature Request and the product goals.
+/// Never emails, the Recommended Priority or the repo.
+/// </summary>
+public sealed record BriefInput(ScoreProblem Problem, IReadOnlyList<BriefRequest> FeatureRequests, IReadOnlyList<string> Goals);
+
+/// <summary>A linked Feature Request as the brief sees it. Category is the Requester's own pick.</summary>
+public sealed record BriefRequest(long Id, string Title, string Description, string Category, DateTimeOffset CreatedAt, int Upvotes);
+
+/// <summary>The strict brief form: the four AI-written sections, each a list of claims. Who's asking is code's.</summary>
+public sealed record BriefForm(
+    IReadOnlyList<BriefClaim> Need, IReadOnlyList<BriefClaim> AskingFor,
+    IReadOnlyList<BriefClaim> PainAndImpact, IReadOnlyList<BriefClaim> OpenQuestions);
+
+/// <summary>One claim: its text, the Feature Requests it cites (at least one) and an optional verbatim quote from one of them.</summary>
+public sealed record BriefClaim(string Text, IReadOnlyList<long> FeatureRequestIds, string? Quote);
 
 /// <summary>
 /// What a Requester update is drafted from: the shipped Problem and this one Requester's
