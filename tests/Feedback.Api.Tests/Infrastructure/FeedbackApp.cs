@@ -18,6 +18,9 @@ namespace Feedback.Api.Tests.Infrastructure;
 public sealed class FeedbackApp(FeedbackDatabase database, IDictionary<string, string?>? settings = null)
     : WebApplicationFactory<Program>
 {
+    /// <summary>The admin key the test app is configured with (a server secret in production).</summary>
+    public const string AdminKey = "test-admin-key-0123456789";
+
     public FakeAiGateway Ai { get; } = new();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -26,6 +29,7 @@ public sealed class FeedbackApp(FeedbackDatabase database, IDictionary<string, s
         builder.UseSetting("ConnectionStrings:Feedback", database.ConnectionString);
         // Generous by default so tests never trip it by accident.
         builder.UseSetting("Portal:RateLimit:PermitLimit", "10000");
+        builder.UseSetting("Admin:Key", AdminKey);
         foreach (var (key, value) in settings ?? new Dictionary<string, string?>())
             builder.UseSetting(key, value);
         builder.ConfigureTestServices(services =>

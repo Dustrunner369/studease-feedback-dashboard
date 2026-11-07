@@ -1,3 +1,5 @@
+using System.Net.Http.Json;
+
 namespace Feedback.Api.Tests.Infrastructure;
 
 [CollectionDefinition(Name)]
@@ -20,12 +22,19 @@ public abstract class ApiTest(FeedbackDatabase database) : IAsyncLifetime
 
     protected virtual IDictionary<string, string?>? Settings => null;
 
-    public async Task InitializeAsync()
+    public virtual async Task InitializeAsync()
     {
         App = new FeedbackApp(Database, Settings);
         await App.MigrateAsync();
         await Database.ResetAsync();
         Client = App.CreateClient();
+    }
+
+    /// <summary>Signs <see cref="Client"/> in to /admin; its cookie then rides on every later call.</summary>
+    protected async Task SignInAsync()
+    {
+        var response = await Client.PostAsJsonAsync("/api/admin/login", new { key = FeedbackApp.AdminKey });
+        response.EnsureSuccessStatusCode();
     }
 
     public async Task DisposeAsync()

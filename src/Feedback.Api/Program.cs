@@ -1,3 +1,4 @@
+using Feedback.Api.Admin;
 using Feedback.Api.Ai;
 using Feedback.Api.Data;
 using Feedback.Api.Intake;
@@ -26,6 +27,8 @@ builder.Services.Configure<AiOptions>(builder.Configuration.GetSection(AiOptions
 builder.Services.AddSingleton<IAiGateway, OpenAiGateway>();
 builder.Services.AddScoped<AiCallLog>();
 builder.Services.AddPortalRateLimit(builder.Configuration);
+builder.Services.Configure<AdminOptions>(builder.Configuration.GetSection(AdminOptions.Section));
+builder.Services.AddSingleton<AdminAuth>();
 
 var app = builder.Build();
 
@@ -34,6 +37,7 @@ app.UseStaticFiles();
 app.UseRateLimiter();
 
 app.MapPortalApi();
+app.MapAdminApi();
 app.MapFallbackToFile("/requests/{id:long}", "request.html");
 
 app.Run();
