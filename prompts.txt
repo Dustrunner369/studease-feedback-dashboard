@@ -306,3 +306,11 @@ Response: Merged the AI call log view into the /admin sign-in slice and publishe
 [2026-11-07T01:05:00Z]
 Prompt: /implement-spec (the v1 spec and its 14 tickets).
 Response: Started the build on an integration branch, with implementer subagents per ticket in their own worktrees.
+
+[2026-11-07T02:30:00Z]
+Prompt: Answered four code-review decisions: keep the Shipped exclusion in matching; keep reopen but add an AI re-score; keep one GitHub issue per Problem but show the others in the merge pop-up; Outbox discard behaviour is fine as it is.
+Response: All 14 tickets were merged into build/v1 (178 tests passing). Ran the two-axis code review and sent the clear-cut findings plus the two decided changes (re-score on reopen, issues to close in the merge pop-up) to one fixer on fix/code-review.
+
+[2026-11-07T02:50:00Z]
+Prompt: (continuation of /implement-spec)
+Response: Merged the code-review fixes into build/v1 (head 4a12a23); the full suite passes (189 tests). Closed the 14 build tickets, left the spec issue open, removed all implementer worktrees. build/v1 is not merged to main yet.
