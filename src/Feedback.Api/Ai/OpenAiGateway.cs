@@ -15,7 +15,7 @@ namespace Feedback.Api.Ai;
 /// the key from the <c>OpenAI:ApiKey</c> secret. Temporary errors get the package's retry policy (2 retries).
 /// Not exercised by the automated tests (they use a fake); smoke-test by hand with a real key.
 /// </summary>
-public sealed class OpenAiGateway(IOptions<AiOptions> options, IConfiguration configuration) : IAiGateway
+public sealed partial class OpenAiGateway(IOptions<AiOptions> options, IConfiguration configuration) : IAiGateway
 {
     private const int EmbeddingDimensions = 1536;
     private static readonly JsonSerializerOptions Json = new()

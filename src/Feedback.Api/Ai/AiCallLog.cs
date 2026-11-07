@@ -18,16 +18,17 @@ public sealed class AiCallLog(FeedbackDbContext db, IOptions<AiOptions> options,
     /// Optional check of the parsed answer beyond the strict form (e.g. "the id must be on the shortlist").
     /// Returning a message fails the call as Invalid output. No retry either way.
     /// </param>
+    /// <param name="noteFor">Optional note worked out from an accepted answer (e.g. "2 claims unverified"); the call stays OK.</param>
     /// <returns>The answer, or null if the call failed (the failure is logged, never thrown).</returns>
     public async Task<T?> RunAsync<T>(
         string step, AiCallFor @for, Func<CancellationToken, Task<AiReply<T>>> call,
-        CancellationToken ct, Func<T, string?>? check = null, string? note = null) where T : class =>
-        (await RunLoggedAsync(step, @for, call, ct, check, note)).Value;
+        CancellationToken ct, Func<T, string?>? check = null, string? note = null, Func<T, string?>? noteFor = null) where T : class =>
+        (await RunLoggedAsync(step, @for, call, ct, check, note, noteFor)).Value;
 
     /// <summary>As <see cref="RunAsync{T}"/>, also returning the ai_calls row id (for rows that point at their call).</summary>
     public async Task<AiCallResult<T>> RunLoggedAsync<T>(
         string step, AiCallFor @for, Func<CancellationToken, Task<AiReply<T>>> call,
-        CancellationToken ct, Func<T, string?>? check = null, string? note = null) where T : class
+        CancellationToken ct, Func<T, string?>? check = null, string? note = null, Func<T, string?>? noteFor = null) where T : class
     {
         var row = new AiCall
         {
@@ -47,7 +48,11 @@ public sealed class AiCallLog(FeedbackDbContext db, IOptions<AiOptions> options,
             row.OutputTokens = reply.OutputTokens;
             row.CostUsd = Cost(step, reply.InputTokens, reply.OutputTokens);
             var problem = check?.Invoke(reply.Value);
-            if (problem is null) result = reply.Value;
+            if (problem is null)
+            {
+                result = reply.Value;
+                if (noteFor?.Invoke(result) is { } extra) row.Note = row.Note is null ? extra : $"{row.Note} {extra}";
+            }
             else Fail(row, AiFailureKind.InvalidOutput, problem);
         }
         catch (AiCallException e)

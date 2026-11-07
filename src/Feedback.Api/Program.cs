@@ -1,5 +1,6 @@
 using Feedback.Api.Admin;
 using Feedback.Api.Ai;
+using Feedback.Api.Briefs;
 using Feedback.Api.Data;
 using Feedback.Api.GitHub;
 using Feedback.Api.Intake;
@@ -29,6 +30,7 @@ builder.Services.AddScoped<PriorityScorer>();
 builder.Services.AddScoped<ProblemDecisions>();
 builder.Services.AddScoped<Regrouping>();
 builder.Services.AddScoped<OutboxDrafter>();
+builder.Services.AddScoped<DecisionBriefs>();
 builder.Services.AddScoped<IShippedHook>(services => services.GetRequiredService<OutboxDrafter>());
 builder.Services.AddHostedService<IntakeWorker>();
 

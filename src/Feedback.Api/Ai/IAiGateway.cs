@@ -12,7 +12,7 @@ namespace Feedback.Api.Ai;
 /// Requester text goes in as data, never as instructions.
 /// </para>
 /// Callers wrap each call in AiCallLog.RunAsync, which logs the ai_calls row.
-/// Later tickets add: write a brief, pick files, write solutions.
+/// Later tickets add: pick files, write solutions.
 /// </summary>
 public interface IAiGateway
 {
@@ -27,7 +27,27 @@ public interface IAiGateway
 
     /// <summary>Drafts the update telling one Requester that the Problem behind their Feature Requests has shipped.</summary>
     Task<AiReply<UpdateDraft>> DraftUpdateAsync(DraftUpdateInput input, CancellationToken ct);
+
+    /// <summary>Writes a Problem's Decision Brief as cited claims (code checks the citations and fills Who's asking).</summary>
+    Task<AiReply<BriefForm>> WriteBriefAsync(BriefInput input, CancellationToken ct);
 }
+
+/// <summary>
+/// What a Decision Brief is written from: the Problem, every linked Feature Request and the product goals.
+/// Never emails, the Recommended Priority or the repo.
+/// </summary>
+public sealed record BriefInput(ScoreProblem Problem, IReadOnlyList<BriefRequest> FeatureRequests, IReadOnlyList<string> Goals);
+
+/// <summary>A linked Feature Request as the brief sees it. Category is the Requester's own pick.</summary>
+public sealed record BriefRequest(long Id, string Title, string Description, string Category, DateTimeOffset CreatedAt, int Upvotes);
+
+/// <summary>The strict brief form: the four AI-written sections, each a list of claims. Who's asking is code's.</summary>
+public sealed record BriefForm(
+    IReadOnlyList<BriefClaim> Need, IReadOnlyList<BriefClaim> AskingFor,
+    IReadOnlyList<BriefClaim> PainAndImpact, IReadOnlyList<BriefClaim> OpenQuestions);
+
+/// <summary>One claim: its text, the Feature Requests it cites (at least one) and an optional verbatim quote from one of them.</summary>
+public sealed record BriefClaim(string Text, IReadOnlyList<long> FeatureRequestIds, string? Quote);
 
 /// <summary>
 /// What a Requester update is drafted from: the shipped Problem and this one Requester's

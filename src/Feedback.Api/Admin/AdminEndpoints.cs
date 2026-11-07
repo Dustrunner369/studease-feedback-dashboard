@@ -1,3 +1,4 @@
+using Feedback.Api.Briefs;
 using Feedback.Api.GitHub;
 using Feedback.Api.Outbox;
 using Feedback.Api.Portal;
@@ -37,6 +38,7 @@ public static class AdminEndpoints
         signedIn.MapArchive();
         signedIn.MapGitHub();
         signedIn.MapOutbox();
+        signedIn.MapBriefs();
     }
 }
 

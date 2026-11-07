@@ -107,6 +107,49 @@ namespace Feedback.Api.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Feedback.Api.Data.DecisionBrief", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("AiCallId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("ai_call_id");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("content");
+
+                    b.PrimitiveCollection<long[]>("CoveredFeatureRequestIds")
+                        .IsRequired()
+                        .HasColumnType("bigint[]")
+                        .HasColumnName("covered_feature_request_ids");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<long>("ProblemId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("problem_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_decision_briefs");
+
+                    b.HasIndex("ProblemId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_decision_briefs_problem_id");
+
+                    b.ToTable("decision_briefs", "feedback");
+                });
+
             modelBuilder.Entity("Feedback.Api.Data.DecisionLogEntry", b =>
                 {
                     b.Property<long>("Id")
@@ -493,6 +536,16 @@ namespace Feedback.Api.Data.Migrations
                         .HasName("pk_upvotes");
 
                     b.ToTable("upvotes", "feedback");
+                });
+
+            modelBuilder.Entity("Feedback.Api.Data.DecisionBrief", b =>
+                {
+                    b.HasOne("Feedback.Api.Data.Problem", null)
+                        .WithMany()
+                        .HasForeignKey("ProblemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_decision_briefs_problems_problem_id");
                 });
 
             modelBuilder.Entity("Feedback.Api.Data.DecisionLogEntry", b =>
