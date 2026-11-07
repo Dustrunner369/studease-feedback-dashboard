@@ -219,6 +219,72 @@ namespace Feedback.Api.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Feedback.Api.Data.OutboxMessage", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("AiCallId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("ai_call_id");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("body");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.PrimitiveCollection<long[]>("FeatureRequestIds")
+                        .IsRequired()
+                        .HasColumnType("bigint[]")
+                        .HasColumnName("feature_request_ids");
+
+                    b.Property<long?>("ProblemId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("problem_id");
+
+                    b.Property<DateTimeOffset?>("SentAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("sent_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("status");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("subject");
+
+                    b.Property<string>("ToEmail")
+                        .IsRequired()
+                        .HasMaxLength(254)
+                        .HasColumnType("character varying(254)")
+                        .HasColumnName("to_email");
+
+                    b.HasKey("Id")
+                        .HasName("pk_outbox_messages");
+
+                    b.HasIndex("ProblemId")
+                        .HasDatabaseName("ix_outbox_messages_problem_id");
+
+                    b.ToTable("outbox_messages", "feedback", t =>
+                        {
+                            t.HasCheckConstraint("ck_outbox_messages_status", "status IN ('Drafting', 'Draft failed', 'Ready', 'Sent')");
+                        });
+                });
+
             modelBuilder.Entity("Feedback.Api.Data.PriorityScoring", b =>
                 {
                     b.Property<long>("Id")
@@ -429,6 +495,15 @@ namespace Feedback.Api.Data.Migrations
                         .HasConstraintName("fk_feature_requests_problems_problem_id");
 
                     b.Navigation("Problem");
+                });
+
+            modelBuilder.Entity("Feedback.Api.Data.OutboxMessage", b =>
+                {
+                    b.HasOne("Feedback.Api.Data.Problem", null)
+                        .WithMany()
+                        .HasForeignKey("ProblemId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_outbox_messages_problems_problem_id");
                 });
 
             modelBuilder.Entity("Feedback.Api.Data.PriorityScoring", b =>

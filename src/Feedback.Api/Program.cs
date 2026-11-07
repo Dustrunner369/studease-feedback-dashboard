@@ -2,6 +2,7 @@ using Feedback.Api.Admin;
 using Feedback.Api.Ai;
 using Feedback.Api.Data;
 using Feedback.Api.Intake;
+using Feedback.Api.Outbox;
 using Feedback.Api.Portal;
 using Feedback.Api.Scoring;
 using Feedback.Api.Triage;
@@ -25,6 +26,8 @@ builder.Services.AddSingleton<IntakeQueue>();
 builder.Services.AddScoped<MatchingStep>();
 builder.Services.AddScoped<PriorityScorer>();
 builder.Services.AddScoped<ProblemDecisions>();
+builder.Services.AddScoped<OutboxDrafter>();
+builder.Services.AddScoped<IShippedHook>(services => services.GetRequiredService<OutboxDrafter>());
 builder.Services.AddHostedService<IntakeWorker>();
 
 builder.Services.Configure<AiOptions>(builder.Configuration.GetSection(AiOptions.Section));
