@@ -56,6 +56,34 @@ public sealed class FakeAiGateway : IAiGateway
         return Task.FromResult(new AiReply<UpdateDraft>(DraftUpdate(input), ChatModel, 400, 120));
     }
 
+    public const string WriterModel = "gpt-6.1-sol-fake";
+
+    /// <summary>Default: the first MaxFiles paths.</summary>
+    public Func<PickFilesInput, FilePicks> PickFiles { get; set; } = input =>
+        new(input.Paths.Take(input.MaxFiles).ToList(), "The first files listed.");
+
+    /// <summary>Every PickFilesAsync input, in call order.</summary>
+    public ConcurrentQueue<PickFilesInput> PickFilesCalls { get; } = new();
+
+    public Task<AiReply<FilePicks>> PickFilesAsync(PickFilesInput input, CancellationToken ct)
+    {
+        PickFilesCalls.Enqueue(input);
+        return Task.FromResult(new AiReply<FilePicks>(PickFiles(input), ChatModel, 3000, 120));
+    }
+
+    /// <summary>Default: "Options for &lt;Problem title&gt;" plus the files it read.</summary>
+    public Func<WriteSolutionsInput, string> WriteSolutions { get; set; } = input =>
+        $"Options for {input.Problem.Title}, from {string.Join(", ", input.Files.Select(f => f.Path))}.";
+
+    /// <summary>Every WriteSolutionsAsync input, in call order.</summary>
+    public ConcurrentQueue<WriteSolutionsInput> WriteSolutionsCalls { get; } = new();
+
+    public Task<AiReply<string>> WriteSolutionsAsync(WriteSolutionsInput input, CancellationToken ct)
+    {
+        WriteSolutionsCalls.Enqueue(input);
+        return Task.FromResult(new AiReply<string>(WriteSolutions(input), WriterModel, 20000, 1500));
+    }
+
     public static UpdateDraft DefaultDraft(DraftUpdateInput input) => new(
         $"It's here: {input.Problem.Title}",
         $"Thanks for asking for {string.Join(" and ", input.FeatureRequests.Select(r => r.Title))}. It's in Studease now.\n\nThe Studease team");
