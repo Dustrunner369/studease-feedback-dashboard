@@ -396,15 +396,14 @@ function solutionsBlock(p) {
     el("div", { class: "stack", style: "gap:6px" }, ...result, el("div", { class: "row" }, run), status, error));
 }
 
-// One Solution Idea: bold title with an effort chip, its one sentence, then files and #issue links in small grey.
+// One Solution Idea: bold title with an effort chip, its one sentence, then any #issue links in small grey.
 function solutionIdea(idea, repo) {
   const issues = idea.issues.map((n, i) => [i ? ", " : "",
     repo ? el("a", { class: "link", href: `https://github.com/${repo}/issues/${n}`, target: "_blank", rel: "noopener" }, `#${n}`) : `#${n}`]);
-  const meta = [...idea.files.map((f) => el("code", {}, f)), ...(issues.length ? [el("span", {}, ...issues.flat())] : [])];
   return el("li", { class: "idea" },
     el("div", { class: "idea-head" }, el("strong", {}, idea.title), el("span", { class: `effort effort-${idea.effort.toLowerCase()}` }, idea.effort)),
     el("p", {}, idea.description),
-    meta.length ? el("div", { class: "idea-meta" }, ...meta) : null);
+    issues.length ? el("div", { class: "idea-meta" }, ...issues.flat()) : null);
 }
 
 // GitHub: Create GitHub issue (by hand), then the linked issue's state as of the last refresh.

@@ -101,9 +101,9 @@ public sealed class FakeAiGateway : IAiGateway
 
     /// <summary>Three Solution Ideas, the first with this title.</summary>
     public static SolutionIdeas Ideas(string firstTitle) => Ideas(
-        new SolutionIdea(firstTitle, "A first short idea.", "Small", [], []),
-        new SolutionIdea("Second idea", "A second short idea.", "Medium", [], []),
-        new SolutionIdea("Third idea", "A third short idea.", "Large", [], []));
+        new SolutionIdea(firstTitle, "A first short idea.", "Small", []),
+        new SolutionIdea("Second idea", "A second short idea.", "Medium", []),
+        new SolutionIdea("Third idea", "A third short idea.", "Large", []));
 
     public static SolutionIdeas Ideas(params SolutionIdea[] ideas) => new(ideas);
 

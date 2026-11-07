@@ -57,9 +57,9 @@ public sealed record SolutionIdeas(IReadOnlyList<SolutionIdea> Ideas);
 
 /// <summary>
 /// One short way the product team could address a Problem: a title (~8 words), one sentence in product terms,
-/// effort (Small / Medium / Large), up to 3 repo paths it would touch, and related open issue/PR numbers.
+/// effort (Small / Medium / Large), and related open issue/PR numbers.
 /// </summary>
-public sealed record SolutionIdea(string Title, string Description, string Effort, IReadOnlyList<string> Files, IReadOnlyList<int> Issues);
+public sealed record SolutionIdea(string Title, string Description, string Effort, IReadOnlyList<int> Issues);
 
 /// <summary>An open issue or pull request in the connected repo.</summary>
 public sealed record RepoItem(int Number, string Title, string Body, bool IsPullRequest);

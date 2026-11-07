@@ -118,7 +118,7 @@ public sealed partial class OpenAiGateway(IOptions<AiOptions> options, IConfigur
         });
         var reply = await CompleteAsync<IdeasForm>(step, "solution_ideas", IdeasSchema, SolutionsInstructions, data, ct);
         return reply.ToReply(new SolutionIdeas(reply.Value.Ideas
-            .Select(i => new SolutionIdea(i.Title, i.Description, i.Effort, i.Files, i.Issues)).ToList()));
+            .Select(i => new SolutionIdea(i.Title, i.Description, i.Effort, i.Issues)).ToList()));
     });
 
     private async Task<FormReply<T>> CompleteAsync<T>(
@@ -294,9 +294,9 @@ public sealed partial class OpenAiGateway(IOptions<AiOptions> options, IConfigur
 
     private sealed record IdeasForm(IReadOnlyList<IdeaForm> Ideas);
 
-    private sealed record IdeaForm(string Title, string Description, string Effort, IReadOnlyList<string> Files, IReadOnlyList<int> Issues);
+    private sealed record IdeaForm(string Title, string Description, string Effort, IReadOnlyList<int> Issues);
 
-    // Guardrail layer 1: exactly 3 ideas, at most 3 files, and one-line length patterns (strict forms have no maxLength).
+    // Guardrail layer 1: exactly 3 ideas and one-line length patterns (strict forms have no maxLength).
     private const string IdeasSchema = """
         {
           "type": "object",
@@ -313,10 +313,9 @@ public sealed partial class OpenAiGateway(IOptions<AiOptions> options, IConfigur
                   "title": { "type": "string", "pattern": "^[^\n]{1,80}$" },
                   "description": { "type": "string", "pattern": "^[^\n]{1,240}$" },
                   "effort": { "type": "string", "enum": ["Small", "Medium", "Large"] },
-                  "files": { "type": "array", "maxItems": 3, "items": { "type": "string" } },
                   "issues": { "type": "array", "maxItems": 5, "items": { "type": "integer" } }
                 },
-                "required": ["title", "description", "effort", "files", "issues"]
+                "required": ["title", "description", "effort", "issues"]
               }
             }
           },
@@ -336,7 +335,6 @@ public sealed partial class OpenAiGateway(IOptions<AiOptions> options, IConfigur
         - title: at most about 8 words;
         - description: ONE sentence, in product terms, saying what would change for students;
         - effort: Small, Medium or Large;
-        - files: up to 3 paths it would mainly touch, only paths from the data;
         - issues: numbers of open issues or pull requests from the data that overlap, if any.
         Don't say which idea to pick, don't list risks, don't write code, don't invent files or issues,
         and never put personal data in your answer.

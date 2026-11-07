@@ -83,14 +83,14 @@ public sealed class SolutionSuggester(
             c => ai.WriteSolutionsAsync(new WriteSolutionsInput(about, paths, files, items), c), ct,
             check: a => a.Ideas.Count > 0 ? null : "No Solution Ideas.",
             note: $"{files.Count} files, {items.Count} open issues and PRs.",
-            noteFor: a => SolutionIdeaRules.Clean(a.Ideas, known, open).Shortened switch
+            noteFor: a => SolutionIdeaRules.Clean(a.Ideas, open).Shortened switch
             {
                 0 => null,
                 1 => "1 idea shortened.",
                 var n => $"{n} ideas shortened.",
             });
         if (written.Value is not { } answer) return SuggestOutcome.Failed("The AI couldn't write solutions.");
-        var ideas = SolutionIdeaRules.Write(SolutionIdeaRules.Clean(answer.Ideas, known, open).Ideas);
+        var ideas = SolutionIdeaRules.Write(SolutionIdeaRules.Clean(answer.Ideas, open).Ideas);
 
         var row = await db.SolutionSuggestions.SingleOrDefaultAsync(s => s.ProblemId == problemId, ct);
         if (row is null)
@@ -112,15 +112,14 @@ public sealed class SolutionSuggester(
 
 /// <summary>
 /// Guardrail layer 3 for Solution Ideas: at most 3 ideas, titles and sentences on one line and cut with "…" at
-/// <see cref="MaxTitle"/> / <see cref="MaxDescription"/> characters, at most 3 files that are really in the repo list,
-/// and only open issue/PR numbers. Also stores the ideas as JSON and reads them back.
+/// <see cref="MaxTitle"/> / <see cref="MaxDescription"/> characters, and only open issue/PR numbers. Also stores the ideas as JSON and reads them back.
 /// </summary>
 public static class SolutionIdeaRules
 {
-    public const int MaxIdeas = 3, MaxTitle = 80, MaxDescription = 240, MaxFiles = 3;
+    public const int MaxIdeas = 3, MaxTitle = 80, MaxDescription = 240;
 
     public static (IReadOnlyList<SolutionIdea> Ideas, int Shortened) Clean(
-        IReadOnlyList<SolutionIdea> ideas, IReadOnlySet<string> knownPaths, IReadOnlySet<int> openNumbers)
+        IReadOnlyList<SolutionIdea> ideas, IReadOnlySet<int> openNumbers)
     {
         var shortened = 0;
         var kept = ideas.Take(MaxIdeas).Select(i =>
@@ -128,9 +127,7 @@ public static class SolutionIdeaRules
             var title = Fit(i.Title, MaxTitle, out var cutTitle);
             var description = Fit(i.Description, MaxDescription, out var cutDescription);
             if (cutTitle || cutDescription) shortened++;
-            return new SolutionIdea(title, description, i.Effort,
-                i.Files.Where(knownPaths.Contains).Distinct(StringComparer.Ordinal).Take(MaxFiles).ToList(),
-                i.Issues.Where(openNumbers.Contains).Distinct().ToList());
+            return new SolutionIdea(title, description, i.Effort, i.Issues.Where(openNumbers.Contains).Distinct().ToList());
         }).ToList();
         return (kept, shortened);
     }
