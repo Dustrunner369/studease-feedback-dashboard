@@ -20,6 +20,7 @@ public abstract class ApiTest(FeedbackDatabase database) : IAsyncLifetime
     protected FeedbackApp App { get; private set; } = null!;
     protected HttpClient Client { get; private set; } = null!;
     protected FakeAiGateway Ai => App.Ai;
+    protected FakeGitHubGateway GitHub => App.GitHub;
 
     protected virtual IDictionary<string, string?>? Settings => null;
 

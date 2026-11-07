@@ -1,5 +1,6 @@
 using Feedback.Api.Ai;
 using Feedback.Api.Data;
+using Feedback.Api.GitHub;
 using Feedback.Api.Intake;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -13,7 +14,7 @@ namespace Feedback.Api.Tests.Infrastructure;
 /// <summary>
 /// The whole app booted in-process against the test container.
 /// Pass extra settings (e.g. a low rate limit) to override configuration.
-/// The AI gateway is always the in-memory <see cref="Ai"/> fake.
+/// The AI and GitHub gateways are always the in-memory <see cref="Ai"/> and <see cref="GitHub"/> fakes.
 /// </summary>
 public sealed class FeedbackApp(FeedbackDatabase database, IDictionary<string, string?>? settings = null)
     : WebApplicationFactory<Program>
@@ -22,6 +23,7 @@ public sealed class FeedbackApp(FeedbackDatabase database, IDictionary<string, s
     public const string AdminKey = "test-admin-key-0123456789";
 
     public FakeAiGateway Ai { get; } = new();
+    public FakeGitHubGateway GitHub { get; } = new();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -30,12 +32,15 @@ public sealed class FeedbackApp(FeedbackDatabase database, IDictionary<string, s
         // Generous by default so tests never trip it by accident.
         builder.UseSetting("Portal:RateLimit:PermitLimit", "10000");
         builder.UseSetting("Admin:Key", AdminKey);
+        builder.UseSetting("GitHub:Repo", FakeGitHubGateway.ConfiguredRepo);
         foreach (var (key, value) in settings ?? new Dictionary<string, string?>())
             builder.UseSetting(key, value);
         builder.ConfigureTestServices(services =>
         {
             services.RemoveAll<IAiGateway>();
             services.AddSingleton<IAiGateway>(Ai);
+            services.RemoveAll<IGitHubGateway>();
+            services.AddSingleton<IGitHubGateway>(GitHub);
         });
     }
 

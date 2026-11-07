@@ -1,4 +1,4 @@
-// Studease /admin. Hash routes: #problems[/<id>], #outbox, #metrics, #settings/ai-calls[?status=Failed&problem=<id>], #settings/criteria, #settings/archive.
+// Studease /admin. Hash routes: #problems[/<id>], #outbox, #metrics, #settings/ai-calls[?status=Failed&problem=<id>], #settings/criteria, #settings/archive, #settings/github.
 // All user and AI text goes into the DOM through textContent (via el), never innerHTML.
 import { el, CATEGORIES, toast, formatDate } from "/js/portal.js";
 
@@ -8,7 +8,7 @@ const CLOSED = ["Shipped", "Won't do"];
 const app = document.getElementById("app");
 const top = document.getElementById("top");
 
-const ui = { tab: "All", sort: null, dir: 1 };
+const ui = { tab: "All", sort: null, dir: 1, lastView: null };
 
 class SignedOut extends Error {}
 
@@ -48,11 +48,13 @@ async function render() {
     else a.removeAttribute("aria-current");
   }
   if (r.view !== "problems") document.querySelector(".drawer")?.remove();
+  if (r.view !== "problems") ui.lastView = r.view;
   try {
     if (r.view === "problems") await problemsView(r.sub ? Number(r.sub) : null);
     else if (r.view === "outbox") placeholder("Outbox", "AI-drafted updates for Requesters appear here when a Problem ships. Coming in a later slice.");
     else if (r.view === "metrics") placeholder("Metrics", "Duplicate catch rate, grouping accuracy and priority consistency appear here. Coming in a later slice.");
-    else if (r.view === "settings") await (r.sub === "criteria" ? criteriaView() : r.sub === "archive" ? archiveView() : settingsView(r.params));
+    else if (r.view === "settings") await (r.sub === "criteria" ? criteriaView() : r.sub === "archive" ? archiveView()
+      : r.sub === "github" ? githubView() : settingsView(r.params));
     else location.hash = "#problems";
     top.hidden = false;
   } catch (e) {
@@ -105,6 +107,12 @@ document.getElementById("logout").addEventListener("click", async () => {
 
 // ---------- Problems ----------
 async function problemsView(openId) {
+  // Opening the Problems page re-reads linked GitHub issues first, so the drawer can say "Issue closed. Mark Shipped?".
+  // Redraws within the page (after a save, opening a drawer) don't refresh again.
+  if (ui.lastView !== "problems") {
+    await api("/github/refresh", { method: "POST" }).catch((e) => { if (e instanceof SignedOut) throw e; });
+    ui.lastView = "problems";
+  }
   const query = ui.tab === "All" ? "" : `?category=${encodeURIComponent(ui.tab)}`;
   const page = await api(`/problems${query}`);
   const rows = sorted(page.problems);
@@ -186,6 +194,7 @@ async function drawer(id) {
     titleBlock(p),
     headerControls(p),
     priorityBlock(p),
+    githubBlock(p),
     el("details", { open: true },
       el("summary", {}, `Feature Requests (${p.featureRequests.length})`),
       el("div", { class: "frs" }, p.featureRequests.map(requestRow))),
@@ -288,6 +297,52 @@ function headerControls(p) {
       el("label", { class: "row", style: "gap:6px" }, el("span", { class: "label" }, "Status"), status),
       el("label", { class: "row", style: "gap:6px" }, el("span", { class: "label" }, "Category"), category)),
     wontDo, closed);
+}
+
+// GitHub: Create GitHub issue (by hand), then the linked issue's state as of the last refresh.
+function githubBlock(p) {
+  const issue = p.gitHubIssue;
+  const error = el("p", { class: "notice err", role: "alert", hidden: true });
+  if (!issue) {
+    const create = el("button", { class: "btn sm", type: "button" }, "Create GitHub issue");
+    create.addEventListener("click", async () => {
+      create.disabled = true;
+      error.hidden = true;
+      try {
+        const res = await fetch(`/api/admin/problems/${p.id}/github-issue`, { method: "POST", credentials: "same-origin" });
+        if (res.status === 401) return signIn();
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          error.textContent = body.detail ?? `Couldn't create the issue (HTTP ${res.status}).`;
+          error.hidden = false;
+          create.disabled = false;
+          return;
+        }
+        const fresh = await res.json();
+        toast(`Created GitHub issue #${fresh.gitHubIssue.number}.`);
+        await render();
+      } catch {
+        error.textContent = "Couldn't reach the server. Try again.";
+        error.hidden = false;
+        create.disabled = false;
+      }
+    });
+    return el("div", { class: "stack", style: "gap:6px" }, el("span", { class: "label" }, "GitHub"),
+      el("div", { class: "row" }, create, el("span", { class: "caption" }, "Sends this Problem to engineering as an issue.")), error);
+  }
+  const prompt = issue.markShipped
+    ? el("p", { class: "notice" }, "Issue closed. Mark Shipped? ",
+        el("button", { class: "btn sm", type: "button", onclick: (e) => {
+          e.target.disabled = true;
+          save(p, { status: "Shipped", reason: `GitHub issue #${issue.number} closed.` });
+        } }, "Mark Shipped"))
+    : null;
+  return el("div", { class: "stack", style: "gap:6px" }, el("span", { class: "label" }, "GitHub"),
+    el("div", { class: "row" },
+      el("a", { class: "link", href: issue.url, target: "_blank", rel: "noopener" }, `Issue #${issue.number}`),
+      el("span", { class: `pill ${issue.state === "closed" ? "Low" : ""}` }, issue.state),
+      issue.checkedAt ? el("span", { class: "caption" }, `checked ${formatDate(issue.checkedAt)}`) : null),
+    prompt);
 }
 
 const DECISION_LABEL = { status: "Status", priority: "Priority", merge: "Merge", move: "Move", rename: "Rename", category: "Category" };
@@ -444,7 +499,38 @@ async function settingsView(params) {
       : el("div", { class: "empty" }, el("span", { class: "sketch sk-cup", "aria-hidden": "true" }), "No AI calls match.")));
 }
 
-const SETTINGS_TABS = [["ai-calls", "AI call log"], ["criteria", "Priority criteria"], ["archive", "Archive"]];
+const SETTINGS_TABS = [["ai-calls", "AI call log"], ["criteria", "Priority criteria"], ["github", "GitHub"], ["archive", "Archive"]];
+
+// ---------- Settings → GitHub ----------
+async function githubView() {
+  const box = el("div", { class: "box stack", style: "gap:8px" });
+  const show = (g) => {
+    const check = el("button", { class: "btn sm", type: "button" }, "Check again");
+    check.addEventListener("click", async () => {
+      check.disabled = true;
+      try { show(await api("/github/check", { method: "POST" })); }
+      catch (e) { if (e instanceof SignedOut) return signIn(); toast("Couldn't check. Try again."); check.disabled = false; }
+    });
+    const when = new Date(g.checkedAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+    box.replaceChildren(
+      el("div", {}, el("span", { class: "label" }, "Repo"), " ",
+        g.repo ? el("a", { class: "link", href: `https://github.com/${g.repo}`, target: "_blank", rel: "noopener" }, g.repo)
+          : el("span", { class: "mono" }, g.configuredRepo || "Not set"),
+        g.repo && g.repo !== g.configuredRepo ? el("div", { class: "caption" }, `Configured as ${g.configuredRepo}; GitHub now calls it ${g.repo}.`) : null,
+        g.defaultBranch ? el("div", { class: "caption" }, `Default branch: ${g.defaultBranch}`) : null),
+      el("div", {}, el("span", { class: "label" }, "Token"), " ",
+        g.ok ? el("span", { class: "pill Low" }, "OK") : el("span", { class: "pill warn" }, "Failing"),
+        g.error ? el("div", { class: "err-msg" }, g.error) : null,
+        el("div", { class: "caption" }, `Checked ${when}`)),
+      el("div", {}, check));
+  };
+  show(await api("/github"));
+  app.replaceChildren(el("div", { class: "stack reveal" },
+    settingsTabs("github"),
+    el("div", {}, el("h2", {}, "GitHub"),
+      el("p", { class: "muted" }, "The repo engineering works in, set in the config file. The token is a server secret.")),
+    box));
+}
 
 // ---------- Settings → Archive ----------
 async function archiveView() {

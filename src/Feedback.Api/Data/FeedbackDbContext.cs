@@ -35,6 +35,11 @@ public sealed class FeedbackDbContext(DbContextOptions<FeedbackDbContext> option
             e.HasOne<PriorityScoring>().WithMany().HasForeignKey(p => p.FirstScoringId).OnDelete(DeleteBehavior.SetNull);
             e.HasOne(p => p.CurrentScoring).WithMany().HasForeignKey(p => p.CurrentScoringId).OnDelete(DeleteBehavior.SetNull);
             e.HasIndex(p => p.RecommendedScore);
+            // Spelled out: the snake_case convention would make these git_hub_*.
+            e.Property(p => p.GitHubIssueNumber).HasColumnName("github_issue_number");
+            e.Property(p => p.GitHubIssueUrl).HasColumnName("github_issue_url").HasMaxLength(300);
+            e.Property(p => p.GitHubIssueState).HasColumnName("github_issue_state").HasMaxLength(6);
+            e.Property(p => p.GitHubCheckedAt).HasColumnName("github_checked_at");
         });
 
         model.Entity<PriorityScoring>(e =>

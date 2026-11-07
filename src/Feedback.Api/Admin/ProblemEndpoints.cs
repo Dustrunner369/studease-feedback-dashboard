@@ -80,7 +80,7 @@ public static class ProblemEndpoints
         return new ProblemDrawer(
             problem.Id, problem.Title, problem.Description, problem.Category, problem.Status, problem.Priority,
             problem.PriorityOverrideReason, Recommended(problem, criteria), problem.ScoringFailed, requests, decisions,
-            problem.ClosedAt);
+            problem.ClosedAt, GitHubIssueView.Of(problem));
     }
 
     // The stored score and level, explained criterion by criterion (null until a scoring has succeeded).
@@ -121,7 +121,20 @@ public sealed record ProblemRow(
 public sealed record ProblemDrawer(
     long Id, string Title, string Description, string Category, string Status, string? Priority,
     string? PriorityOverrideReason, RecommendedView? Recommended, bool ScoringFailed,
-    IReadOnlyList<DrawerRequest> FeatureRequests, IReadOnlyList<DecisionView> Decisions, DateTimeOffset? ClosedAt);
+    IReadOnlyList<DrawerRequest> FeatureRequests, IReadOnlyList<DecisionView> Decisions, DateTimeOffset? ClosedAt,
+    GitHubIssueView? GitHubIssue);
+
+/// <summary>
+/// The Problem's GitHub issue (null until Create GitHub issue). State is as of CheckedAt (the last refresh);
+/// MarkShipped is "Issue closed. Mark Shipped?": the issue is closed but the Problem isn't.
+/// </summary>
+public sealed record GitHubIssueView(int Number, string Url, string State, DateTimeOffset? CheckedAt, bool MarkShipped)
+{
+    public static GitHubIssueView? Of(Problem p) => p is { GitHubIssueNumber: { } number, GitHubIssueUrl: { } url }
+        ? new(number, url, p.GitHubIssueState ?? GitHub.IssueStates.Open, p.GitHubCheckedAt,
+            p.GitHubIssueState == GitHub.IssueStates.Closed && !ProblemStatuses.IsClosed(p.Status))
+        : null;
+}
 
 /// <summary>A decision_log row, newest first in the drawer. Details is the stored JSON object.</summary>
 public sealed record DecisionView(string Kind, string? Reason, JsonElement Details, DateTimeOffset CreatedAt);

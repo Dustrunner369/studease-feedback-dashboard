@@ -326,6 +326,24 @@ namespace Feedback.Api.Data.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("first_scoring_id");
 
+                    b.Property<DateTimeOffset?>("GitHubCheckedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("github_checked_at");
+
+                    b.Property<int?>("GitHubIssueNumber")
+                        .HasColumnType("integer")
+                        .HasColumnName("github_issue_number");
+
+                    b.Property<string>("GitHubIssueState")
+                        .HasMaxLength(6)
+                        .HasColumnType("character varying(6)")
+                        .HasColumnName("github_issue_state");
+
+                    b.Property<string>("GitHubIssueUrl")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("github_issue_url");
+
                     b.Property<string>("Priority")
                         .HasMaxLength(6)
                         .HasColumnType("character varying(6)")
