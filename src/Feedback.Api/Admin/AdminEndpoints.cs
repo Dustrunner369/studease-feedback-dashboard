@@ -37,6 +37,7 @@ public static class AdminEndpoints
         signedIn.MapArchive();
         signedIn.MapGitHub();
         signedIn.MapOutbox();
+        signedIn.MapMetrics();
     }
 }
 

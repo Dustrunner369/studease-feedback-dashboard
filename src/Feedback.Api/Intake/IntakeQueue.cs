@@ -22,7 +22,7 @@ public sealed class IntakeQueue
         _channel.Writer.TryWrite(featureRequestId);
     }
 
-    /// <summary>Test-only hook: completes once every enqueued request has been fully processed.</summary>
+    /// <summary>Completes once every enqueued request has been fully processed (tests, and <c>seed load</c> between submits).</summary>
     public Task WhenIdleAsync()
     {
         lock (_lock) return _idle.Task;

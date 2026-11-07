@@ -6,11 +6,14 @@ using Feedback.Api.Intake;
 using Feedback.Api.Outbox;
 using Feedback.Api.Portal;
 using Feedback.Api.Scoring;
+using Feedback.Api.Seed;
 using Feedback.Api.Triage;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
+// The seed CLI prints its own progress; EF's per-command logging would drown it.
+if (args is ["seed", ..]) builder.Logging.AddFilter("Microsoft.EntityFrameworkCore", LogLevel.Warning);
 
 builder.Services.AddDbContext<FeedbackDbContext>(options => options
     .UseNpgsql(
@@ -48,6 +51,17 @@ builder.Services.AddHostedService<GitHubStartupCheck>();
 
 var app = builder.Build();
 
+// `dotnet run --project src/Feedback.Api -- seed load|remove`: no web server and no hosted services
+// except the intake worker, which load needs to run the real pipeline.
+if (args is ["seed", .. var seedArgs])
+{
+    var worker = app.Services.GetServices<IHostedService>().OfType<IntakeWorker>().Single();
+    await worker.StartAsync(CancellationToken.None);
+    var exit = await SeedCli.RunAsync(app.Services, seedArgs, Console.Out, CancellationToken.None);
+    await worker.StopAsync(CancellationToken.None);
+    return exit;
+}
+
 app.UseDefaultFiles();
 app.UseStaticFiles();
 app.UseRateLimiter();
@@ -57,6 +71,7 @@ app.MapAdminApi();
 app.MapFallbackToFile("/requests/{id:long}", "request.html");
 
 app.Run();
+return 0;
 
 /// <summary>Exposed so the test host (WebApplicationFactory&lt;Program&gt;) can boot the app.</summary>
 public partial class Program;

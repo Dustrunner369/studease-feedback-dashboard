@@ -472,6 +472,47 @@ namespace Feedback.Api.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Feedback.Api.Data.SeedMetrics", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<int>("AiProblemCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("ai_problem_count");
+
+                    b.Property<DateTimeOffset>("ComputedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("computed_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<double?>("DuplicateCatchRate")
+                        .HasColumnType("double precision")
+                        .HasColumnName("duplicate_catch_rate");
+
+                    b.Property<int>("FailedMatches")
+                        .HasColumnType("integer")
+                        .HasColumnName("failed_matches");
+
+                    b.Property<double?>("GroupingAccuracy")
+                        .HasColumnType("double precision")
+                        .HasColumnName("grouping_accuracy");
+
+                    b.Property<int>("IntendedProblemCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("intended_problem_count");
+
+                    b.HasKey("Id")
+                        .HasName("pk_seed_metrics");
+
+                    b.ToTable("seed_metrics", "feedback");
+                });
+
             modelBuilder.Entity("Feedback.Api.Data.Upvote", b =>
                 {
                     b.Property<long>("FeatureRequestId")

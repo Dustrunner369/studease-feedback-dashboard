@@ -50,6 +50,8 @@ public sealed class MatchingStep(FeedbackDbContext db, IAiGateway ai, AiCallLog 
                 Description = draft.Description.Trim(),
                 Category = draft.Category,
                 Status = ProblemStatuses.New,
+                // The Problem is as old as the request that started it (only differs for backdated seed requests).
+                CreatedAt = request.CreatedAt,
             };
         }
         request.MatchReason = decision.Reason.Trim();

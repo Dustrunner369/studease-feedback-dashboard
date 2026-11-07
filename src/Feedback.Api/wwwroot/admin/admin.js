@@ -68,7 +68,7 @@ async function render() {
   try {
     if (r.view === "problems") await problemsView(r.sub ? Number(r.sub) : null);
     else if (r.view === "outbox") await outboxView(r.sub === "sent" ? "sent" : "drafts");
-    else if (r.view === "metrics") placeholder("Metrics", "Duplicate catch rate, grouping accuracy and priority consistency appear here. Coming in a later slice.");
+    else if (r.view === "metrics") await metricsView();
     else if (r.view === "settings") await (r.sub === "criteria" ? criteriaView() : r.sub === "archive" ? archiveView()
       : r.sub === "github" ? githubView() : settingsView(r.params));
     else location.hash = "#problems";
@@ -991,9 +991,41 @@ function messagePane(m, editing = false) {
   return pane;
 }
 
-function placeholder(title, text) {
-  app.replaceChildren(el("div", { class: "stack reveal" }, el("h2", {}, title),
-    el("div", { class: "empty" }, el("span", { class: "sketch sk-cup", "aria-hidden": "true" }), text)));
+// ---------- metrics ----------
+// Seed metrics are saved by `seed load`; the priority consistency check (#31) fills the last slot.
+async function metricsView() {
+  const m = await api("/metrics");
+  const s = m.seed;
+  const pct = (x) => (x == null ? "n/a" : `${Math.round(x * 100)}%`);
+  const tile = (name, value, target, what) => el("div", { class: "box metric" },
+    el("span", { class: "label" }, name),
+    el("div", { class: "metric-value" }, pct(value)),
+    el("div", { class: "row" },
+      el("span", { class: `pill ${value != null && value >= target ? "met" : "missed"}` },
+        value != null && value >= target ? "On target" : "Below target"),
+      el("span", { class: "caption" }, `Target ≥${pct(target)}`)),
+    el("p", { class: "caption" }, what));
+
+  app.replaceChildren(el("div", { class: "stack reveal" },
+    el("div", {}, el("h2", {}, "Metrics"),
+      el("p", { class: "muted" }, s
+        ? `How well the AI grouped the synthetic seed backlog: its first answers, measured at seed load, ${formatDate(s.computedAt)}. Merges and moves since then don't change these numbers.`
+        : "Nothing measured yet. Run `seed load` to send the synthetic backlog through the AI and measure it.")),
+    s ? el("div", { class: "metrics" },
+      tile("Duplicate catch rate", s.duplicateCatchRate, m.targets.duplicateCatchRate,
+        "Of the requests written for a need that already had a Problem, the share the AI linked to an existing Problem instead of making a new one."),
+      tile("Grouping accuracy", s.groupingAccuracy, m.targets.groupingAccuracy,
+        "Share of all requests linked to the right Problem. Each AI Problem stands for the need most of its requests were written for."),
+      el("div", { class: "box metric" },
+        el("span", { class: "label" }, "Grouping"),
+        el("div", { class: "metric-value" }, String(s.aiProblemCount)),
+        el("p", {}, `AI made ${s.aiProblemCount} Problems where the data has ${s.intendedProblemCount}.`),
+        el("p", { class: "caption" }, s.failedMatches === 0 ? "No failed matches."
+          : `${s.failedMatches} failed ${s.failedMatches === 1 ? "match" : "matches"} (counted as wrong).`)))
+      : el("div", { class: "empty" }, el("span", { class: "sketch sk-cup", "aria-hidden": "true" }), "No seed metrics yet."),
+    el("div", { class: "box metric", id: "consistency" },
+      el("span", { class: "label" }, "Priority consistency"),
+      el("p", { class: "caption" }, "Re-scores every open Problem 3 times against the Priority Criteria. Coming in a later slice."))));
 }
 
 document.addEventListener("keydown", (e) => {

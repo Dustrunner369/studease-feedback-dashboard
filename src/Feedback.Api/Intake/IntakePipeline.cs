@@ -8,7 +8,8 @@ namespace Feedback.Api.Intake;
 /// </summary>
 public sealed class IntakePipeline(FeedbackDbContext db, IntakeQueue queue)
 {
-    public async Task<FeatureRequest> SubmitAsync(ValidSubmission submission, CancellationToken ct)
+    /// <param name="submittedAt">Only <c>seed load</c> passes this, to backdate its synthetic requests; the portal uses now.</param>
+    public async Task<FeatureRequest> SubmitAsync(ValidSubmission submission, CancellationToken ct, DateTimeOffset? submittedAt = null)
     {
         var request = new FeatureRequest
         {
@@ -17,6 +18,7 @@ public sealed class IntakePipeline(FeedbackDbContext db, IntakeQueue queue)
             Category = submission.Category,
             Email = submission.Email,
         };
+        if (submittedAt is { } at) request.CreatedAt = at;
         db.FeatureRequests.Add(request);
         await db.SaveChangesAsync(ct);
         queue.Enqueue(request.Id);
