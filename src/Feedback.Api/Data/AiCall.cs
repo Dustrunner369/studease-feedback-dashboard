@@ -35,7 +35,7 @@ public sealed class AiCall
         {
             t.HasCheckConstraint("ck_ai_calls_status", $"status IN ('{AiCallStatus.Ok}', '{AiCallStatus.Failed}')");
             t.HasCheckConstraint("ck_ai_calls_failure_kind",
-                $"failure_kind IS NULL OR failure_kind IN ({string.Join(", ", AiFailureKind.All.Select(k => $"'{k}'"))})");
+                $"failure_kind IS NULL OR failure_kind IN ({Domain.Sql.List(AiFailureKind.All)})");
         });
         e.Property(c => c.CostUsd).HasPrecision(12, 8);
         e.Property(c => c.CreatedAt).HasDefaultValueSql("now()");

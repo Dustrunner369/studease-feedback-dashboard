@@ -13,7 +13,7 @@ public static class OutboxStatus
 
     public static readonly IReadOnlyList<string> All = [Drafting, DraftFailed, Ready, Sent];
 
-    public static string SqlList => string.Join(", ", All.Select(s => $"'{s}'"));
+    public static string SqlList => Domain.Sql.List(All);
 }
 
 /// <summary>

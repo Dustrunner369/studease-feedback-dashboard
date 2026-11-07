@@ -16,5 +16,5 @@ public static class ProblemStatuses
     /// <summary>Shipped and Won't do close a Problem: it goes to the Archive and its Recommended Priority freezes.</summary>
     public static bool IsClosed(string status) => status is Shipped or WontDo;
 
-    public static string SqlList => string.Join(", ", All.Select(s => $"'{s.Replace("'", "''")}'"));
+    public static string SqlList => Sql.List(All);
 }

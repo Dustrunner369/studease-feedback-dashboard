@@ -27,8 +27,8 @@ public static class GitHubEndpoints
         admin.MapPost("/github/refresh", async (
             FeedbackDbContext db, GitHubConnection connection, IGitHubGateway github, CancellationToken ct) =>
         {
-            var linked = await db.Problems
-                .Where(p => p.GitHubIssueNumber != null && p.Status != ProblemStatuses.Shipped && p.Status != ProblemStatuses.WontDo)
+            var linked = await db.Problems.Open()
+                .Where(p => p.GitHubIssueNumber != null)
                 .OrderBy(p => p.Id).ToListAsync(ct);
             if (linked.Count == 0) return Results.Ok(new RefreshResult(0, 0, null));
 
@@ -62,7 +62,7 @@ public static class GitHubEndpoints
         // Create GitHub issue (by hand): one issue per Problem; returns the refreshed drawer.
         admin.MapPost("/problems/{id:long}/github-issue", async (
             long id, FeedbackDbContext db, GitHubConnection connection, IGitHubGateway github,
-            IOptions<PriorityCriteria> criteria, CancellationToken ct) =>
+            DrawerBuilder drawers, CancellationToken ct) =>
         {
             var problem = await db.Problems.SingleOrDefaultAsync(p => p.Id == id, ct);
             if (problem is null) return Results.NotFound();
@@ -91,7 +91,7 @@ public static class GitHubEndpoints
             problem.GitHubIssueState = issue.State;
             problem.GitHubCheckedAt = DateTimeOffset.UtcNow;
             await db.SaveChangesAsync(ct);
-            return Results.Ok(await ProblemEndpoints.DrawerAsync(id, db, criteria.Value, ct));
+            return await drawers.OkAsync(id, ct);
         });
     }
 

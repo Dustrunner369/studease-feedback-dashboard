@@ -31,6 +31,7 @@ builder.Services.AddScoped<IntakePipeline>();
 builder.Services.AddSingleton<IntakeQueue>();
 builder.Services.AddScoped<MatchingStep>();
 builder.Services.AddScoped<PriorityScorer>();
+builder.Services.AddScoped<DrawerBuilder>();
 builder.Services.AddScoped<ConsistencyCheck>();
 builder.Services.AddScoped<ProblemDecisions>();
 builder.Services.AddScoped<Regrouping>();

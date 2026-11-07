@@ -1,3 +1,5 @@
+using Feedback.Api.Domain;
+
 namespace Feedback.Api.Scoring;
 
 /// <summary>
@@ -7,10 +9,6 @@ namespace Feedback.Api.Scoring;
 public sealed class PriorityCriteria
 {
     public const string Section = "PriorityCriteria";
-
-    public const string High = "High";
-    public const string Medium = "Medium";
-    public const string Low = "Low";
 
     /// <summary>Studease's product goals; Strategic fit names the one a Problem serves best.</summary>
     public List<string> Goals { get; set; } = [];
@@ -38,7 +36,7 @@ public sealed class PriorityCriteria
         + Points(Weights.Pain, pain) + Points(Weights.RetentionRisk, retentionRisk),
         MidpointRounding.AwayFromZero);
 
-    public string Level(int score) => score >= CutOffs.High ? High : score >= CutOffs.Medium ? Medium : Low;
+    public string Level(int score) => score >= CutOffs.High ? PriorityLevels.High : score >= CutOffs.Medium ? PriorityLevels.Medium : PriorityLevels.Low;
 }
 
 /// <summary>The four criterion names as shown in /admin.</summary>

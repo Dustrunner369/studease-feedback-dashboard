@@ -60,9 +60,8 @@ public sealed class PriorityScorer(FeedbackDbContext db, IAiGateway ai, AiCallLo
     /// </summary>
     public async Task<ScoreTrial?> TryScoreAsync(long problemId, string note, CancellationToken ct)
     {
-        var problem = await db.Problems.AsNoTracking()
-            .SingleOrDefaultAsync(p => p.Id == problemId
-                && p.Status != ProblemStatuses.Shipped && p.Status != ProblemStatuses.WontDo, ct);
+        var problem = await db.Problems.AsNoTracking().Open()
+            .SingleOrDefaultAsync(p => p.Id == problemId, ct);
         if (problem is null) return null;
         if ((await AskAsync(problem, ct, note)).Value is not { } r) return null;
         var (requests, upvotes) = await CountsAsync(problemId, ct);
@@ -98,9 +97,8 @@ public sealed class PriorityScorer(FeedbackDbContext db, IAiGateway ai, AiCallLo
     }
 
     private Task<Problem?> OpenProblemAsync(long problemId, CancellationToken ct) =>
-        db.Problems.Include(p => p.CurrentScoring)
-            .SingleOrDefaultAsync(p => p.Id == problemId
-                && p.Status != ProblemStatuses.Shipped && p.Status != ProblemStatuses.WontDo, ct);
+        db.Problems.Open().Include(p => p.CurrentScoring)
+            .SingleOrDefaultAsync(p => p.Id == problemId, ct);
 
     private async Task ApplyAsync(Problem problem, CancellationToken ct)
     {

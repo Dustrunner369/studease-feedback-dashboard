@@ -11,8 +11,7 @@ public static class ArchiveEndpoints
     {
         admin.MapGet("/archive", async (FeedbackDbContext db, CancellationToken ct) =>
         {
-            var rows = await db.Problems.AsNoTracking()
-                .Where(p => p.Status == ProblemStatuses.Shipped || p.Status == ProblemStatuses.WontDo)
+            var rows = await db.Problems.AsNoTracking().Closed()
                 .OrderByDescending(p => p.ClosedAt).ThenByDescending(p => p.Id)
                 .Select(p => new
                 {

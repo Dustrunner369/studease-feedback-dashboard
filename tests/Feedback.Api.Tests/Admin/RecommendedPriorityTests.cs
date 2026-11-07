@@ -164,6 +164,18 @@ public sealed class RecommendedPriorityTests(FeedbackDatabase database) : AdminT
     }
 
     [Fact]
+    public async Task Retry_is_only_for_a_failed_scoring()
+    {
+        Ai.Score = _ => Ratings(fit: 4, pain: 3, retention: 2);
+        var (problemId, _) = await NewProblemAsync("Filter by opening hours");
+
+        var retry = await Client.PostAsync($"/api/admin/problems/{problemId}/retry-scoring", null);
+
+        Assert.Equal(System.Net.HttpStatusCode.Conflict, retry.StatusCode);
+        Assert.Single(Ai.ScoreCalls);
+    }
+
+    [Fact]
     public async Task A_closed_problem_keeps_its_recommended_priority()
     {
         var (problemId, requestId) = await NewProblemAsync("Filter by opening hours");

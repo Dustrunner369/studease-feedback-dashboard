@@ -43,8 +43,7 @@ public sealed class ConsistencyCheck(FeedbackDbContext db, IServiceScopeFactory 
         await db.SaveChangesAsync(ct);
     }
 
-    private IQueryable<Problem> OpenProblems() => db.Problems.AsNoTracking()
-        .Where(p => p.Status != ProblemStatuses.Shipped && p.Status != ProblemStatuses.WontDo);
+    private IQueryable<Problem> OpenProblems() => db.Problems.AsNoTracking().Open();
 
     private async Task<ConsistencyResult> CheckAsync(long problemId, CancellationToken ct)
     {

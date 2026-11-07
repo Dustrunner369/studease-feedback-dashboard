@@ -13,18 +13,22 @@ public static class PriorityEndpoints
     {
         admin.MapGet("/criteria", (IOptions<PriorityCriteria> options) => Results.Ok(CriteriaView.From(options.Value)));
 
-        // Runs the scoring call again now (the drawer waits for it) and returns the refreshed drawer.
-        // Closed Problems are frozen: 409.
+        // Retry for a failed scoring: runs the scoring call again now (the drawer waits for it) and returns the
+        // refreshed drawer. Only when the last scoring failed (there is no manual re-score); closed Problems are
+        // frozen. Otherwise 409.
         admin.MapPost("/problems/{id:long}/retry-scoring", async (
-            long id, FeedbackDbContext db, PriorityScorer scorer, IOptions<PriorityCriteria> options, CancellationToken ct) =>
+            long id, FeedbackDbContext db, PriorityScorer scorer, DrawerBuilder drawers, CancellationToken ct) =>
         {
-            var status = await db.Problems.Where(p => p.Id == id).Select(p => p.Status).SingleOrDefaultAsync(ct);
-            if (status is null) return Results.NotFound();
-            if (status is ProblemStatuses.Shipped or ProblemStatuses.WontDo)
+            var problem = await db.Problems.Where(p => p.Id == id)
+                .Select(p => new { p.Status, p.ScoringFailed }).SingleOrDefaultAsync(ct);
+            if (problem is null) return Results.NotFound();
+            if (ProblemStatuses.IsClosed(problem.Status))
                 return Results.Problem("A closed Problem's Recommended Priority is frozen.", statusCode: StatusCodes.Status409Conflict);
+            if (!problem.ScoringFailed)
+                return Results.Problem("Retry is only for a failed scoring.", statusCode: StatusCodes.Status409Conflict);
 
             await scorer.RescoreAsync(id, ct);
-            return Results.Ok(await ProblemEndpoints.DrawerAsync(id, db, options.Value, ct));
+            return await drawers.OkAsync(id, ct);
         });
     }
 }
