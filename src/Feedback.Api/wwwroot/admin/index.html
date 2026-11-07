@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Studease Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Pacifico&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/admin/admin.css">
+</head>
+<body data-page="admin">
+<header id="top" hidden>
+  <span class="wordmark">Studease</span>
+  <nav aria-label="Admin" id="nav">
+    <a href="#problems" data-view="problems">Problems</a>
+    <a href="#outbox" data-view="outbox">Outbox</a>
+    <a href="#metrics" data-view="metrics">Metrics</a>
+    <a href="#settings/ai-calls" data-view="settings">Settings</a>
+  </nav>
+  <button class="btn sm quiet" type="button" id="logout">Sign out</button>
+</header>
+<main id="app" aria-live="polite"></main>
+<script type="module" src="/admin/admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,1633 @@
+{
+  "about": "Synthetic Studease backlog for `seed load` (see #11, #12). Requests are in submission order; daysAgo is relative to the load. `problem` (intended Problem key, null for spam) and `kind` (hard case) are the answer key: never stored and never shown to the AI. Actions point at a Problem by one of its requests' titles.",
+  "problems": [
+    {
+      "key": "open-now",
+      "title": "Filter spots by opening hours",
+      "category": "Finding spots",
+      "requests": 28
+    },
+    {
+      "key": "wifi-outlets",
+      "title": "Filter spots by Wi-Fi and power outlets",
+      "category": "Finding spots",
+      "requests": 24
+    },
+    {
+      "key": "noise-level",
+      "title": "Show how quiet or busy a spot is",
+      "category": "Spot details",
+      "requests": 26
+    },
+    {
+      "key": "map-view",
+      "title": "Browse spots on a map",
+      "category": "Finding spots",
+      "requests": 13
+    },
+    {
+      "key": "photos",
+      "title": "Add photos to a spot",
+      "category": "Adding & editing spots",
+      "requests": 11
+    },
+    {
+      "key": "fix-spot-info",
+      "title": "Suggest corrections to a spot's details",
+      "category": "Adding & editing spots",
+      "requests": 9
+    },
+    {
+      "key": "streaks",
+      "title": "Visit history and study streaks",
+      "category": "Visits",
+      "requests": 9
+    },
+    {
+      "key": "session-timer",
+      "title": "Study timer during a visit",
+      "category": "Visits",
+      "requests": 5
+    },
+    {
+      "key": "dark-mode",
+      "title": "Dark mode",
+      "category": "Other",
+      "requests": 6
+    },
+    {
+      "key": "delete-account",
+      "title": "Delete my account and data",
+      "category": "Profile & account",
+      "requests": 4
+    },
+    {
+      "key": "change-email",
+      "title": "Change the email on my account",
+      "category": "Profile & account",
+      "requests": 3
+    },
+    {
+      "key": "study-buddies",
+      "title": "See which friends are studying where",
+      "category": "Social",
+      "requests": 5
+    },
+    {
+      "key": "group-session",
+      "title": "Plan a group study session at a spot",
+      "category": "Social",
+      "requests": 1
+    },
+    {
+      "key": "recent-reviews",
+      "title": "Sort a spot's reviews by newest",
+      "category": "Spot details",
+      "requests": 1
+    },
+    {
+      "key": "offline",
+      "title": "Use the app offline",
+      "category": "Other",
+      "requests": 1
+    }
+  ],
+  "requests": [
+    {
+      "title": "Filter by opening hours",
+      "description": "Let me filter the list to spots that are open right now. I keep walking to places that turn out to be closed.",
+      "category": "Finding spots",
+      "email": "grace.patel@example.com",
+      "daysAgo": 90.42,
+      "upvotes": 31,
+      "problem": "open-now",
+      "kind": null
+    },
+    {
+      "title": "Filter by wifi",
+      "description": "I need reliable wifi to study. Let me filter spots that have good wifi.",
+      "category": "Finding spots",
+      "email": "sam.obi@example.com",
+      "daysAgo": 88.49,
+      "upvotes": 25,
+      "problem": "wifi-outlets",
+      "kind": null
+    },
+    {
+      "title": "Show only spots open now",
+      "description": "An 'open now' toggle on the search screen would save me so much time during exam week.",
+      "category": "Finding spots",
+      "email": "gabe.novak@example.com",
+      "daysAgo": 86.46,
+      "upvotes": 18,
+      "problem": "open-now",
+      "kind": null
+    },
+    {
+      "title": "Power outlets filter",
+      "description": "My laptop dies after 2 hours. Filter for spots with power outlets at the tables.",
+      "category": "Finding spots",
+      "email": "carlos.kim@example.com",
+      "daysAgo": 86.04,
+      "upvotes": 19,
+      "problem": "wifi-outlets",
+      "kind": null
+    },
+    {
+      "title": "Show noise level",
+      "description": "Tell me how quiet a spot is before I go. Silent, quiet chat, or loud.",
+      "category": "Spot details",
+      "email": "sam.obi@example.com",
+      "daysAgo": 85.71,
+      "upvotes": 27,
+      "problem": "noise-level",
+      "kind": null
+    },
+    {
+      "title": "How busy is it right now?",
+      "description": "Show how crowded a spot is right now, like Google's popular times.",
+      "category": "Spot details",
+      "email": "milo.garcia@example.com",
+      "daysAgo": 85.24,
+      "upvotes": 21,
+      "problem": "noise-level",
+      "kind": null
+    },
+    {
+      "title": "Opening times on the list",
+      "description": "Please show today's opening hours right on each spot in the results, so I can skip the closed ones.",
+      "category": "Finding spots",
+      "email": "emma.rossi@example.com",
+      "daysAgo": 84.49,
+      "upvotes": 0,
+      "problem": "open-now",
+      "kind": null
+    },
+    {
+      "title": "Where can I charge my laptop?",
+      "description": "Show which spots have plugs near the seats.",
+      "category": "Finding spots",
+      "email": "dina.moreno@example.com",
+      "daysAgo": 84.15,
+      "upvotes": 11,
+      "problem": "wifi-outlets",
+      "kind": "near-duplicate"
+    },
+    {
+      "title": "Quiet spots filter",
+      "description": "I need silent places. Let me find quiet spots.",
+      "category": "Finding spots",
+      "email": "dina.moreno@example.com",
+      "daysAgo": 84.14,
+      "upvotes": 14,
+      "problem": "noise-level",
+      "kind": "wrong-category"
+    },
+    {
+      "title": "Noise rating on spot page",
+      "description": "Add a noise rating on each spot's page so people can say how loud it is.",
+      "category": "Spot details",
+      "email": "zoe.obi@example.com",
+      "daysAgo": 82.62,
+      "upvotes": 2,
+      "problem": "noise-level",
+      "kind": null
+    },
+    {
+      "title": "Wifi speed on spots",
+      "description": "Let people report wifi speed and filter by it.",
+      "category": "Finding spots",
+      "email": "grace.laurent@example.com",
+      "daysAgo": 82.42,
+      "upvotes": 7,
+      "problem": "wifi-outlets",
+      "kind": null
+    },
+    {
+      "title": "Busy times",
+      "description": "Show the busiest times of day for each spot.",
+      "category": "Spot details",
+      "email": "quinn.patel@example.com",
+      "daysAgo": 82.12,
+      "upvotes": 9,
+      "problem": "noise-level",
+      "kind": null
+    },
+    {
+      "title": "quiet",
+      "description": "quiet",
+      "category": "Spot details",
+      "email": "lena.moreno@example.com",
+      "daysAgo": 81.45,
+      "upvotes": 1,
+      "problem": "noise-level",
+      "kind": "vague"
+    },
+    {
+      "title": "Pin spots on a map",
+      "description": "Put every spot as a pin on a map I can zoom around.",
+      "category": "Finding spots",
+      "email": "jade.obi@example.com",
+      "daysAgo": 79.47,
+      "upvotes": 9,
+      "problem": "map-view",
+      "kind": "near-duplicate"
+    },
+    {
+      "title": "Map view",
+      "description": "Show spots on a map, not just a list, so I can see what's near me.",
+      "category": "Finding spots",
+      "email": "gabe.silva@example.com",
+      "daysAgo": 79.29,
+      "upvotes": 16,
+      "problem": "map-view",
+      "kind": null
+    },
+    {
+      "title": "Hide closed spots",
+      "description": "When I search at 10pm half the results are closed. Can closed places be hidden or greyed out?",
+      "category": "Finding spots",
+      "email": "jade.moreno@example.com",
+      "daysAgo": 79.18,
+      "upvotes": 12,
+      "problem": "open-now",
+      "kind": "near-duplicate"
+    },
+    {
+      "title": "Crowd level",
+      "description": "Let people report how full a spot is when they check in, and show it.",
+      "category": "Spot details",
+      "email": "isla.smith@example.com",
+      "daysAgo": 78.08,
+      "upvotes": 1,
+      "problem": "noise-level",
+      "kind": null
+    },
+    {
+      "title": "Is it loud?",
+      "description": "I want to know if a cafe is going to be blasting music before I get there.",
+      "category": "Spot details",
+      "email": "nia.patel@example.com",
+      "daysAgo": 77.51,
+      "upvotes": 8,
+      "problem": "noise-level",
+      "kind": "near-duplicate"
+    },
+    {
+      "title": "More filters",
+      "description": "more filters please",
+      "category": "Finding spots",
+      "email": "gabe.novak@example.com",
+      "daysAgo": 77.42,
+      "upvotes": 1,
+      "problem": "wifi-outlets",
+      "kind": "vague"
+    },
+    {
+      "title": "Late night study spots",
+      "description": "I study late. I need a way to find places open after 11pm, like 24h libraries or cafes.",
+      "category": "Finding spots",
+      "email": "priya.obi@example.com",
+      "daysAgo": 75.27,
+      "upvotes": 9,
+      "problem": "open-now",
+      "kind": null
+    },
+    {
+      "title": "What's the wifi password at the main library?",
+      "description": "I'm at the main library and can't connect. Does anyone know the guest wifi password?",
+      "category": "Spot details",
+      "email": "lucia.garcia@example.com",
+      "daysAgo": 75.08,
+      "upvotes": 0,
+      "problem": null,
+      "kind": "spam"
+    },
+    {
+      "title": "Add photos to spots",
+      "description": "When I add a spot let me upload a few photos so people know what it looks like.",
+      "category": "Adding & editing spots",
+      "email": "grace.tanaka@example.com",
+      "daysAgo": 74.27,
+      "upvotes": 14,
+      "problem": "photos",
+      "kind": null
+    },
+    {
+      "title": "Upload pictures",
+      "description": "Let users upload pictures of a spot's seating.",
+      "category": "Adding & editing spots",
+      "email": "kai.smith@example.com",
+      "daysAgo": 73.94,
+      "upvotes": 1,
+      "problem": "photos",
+      "kind": null
+    },
+    {
+      "title": "Spots near me on a map",
+      "description": "I want to see the spots around my current location on a map.",
+      "category": "Finding spots",
+      "email": "nia.laurent@example.com",
+      "daysAgo": 72.03,
+      "upvotes": 1,
+      "problem": "map-view",
+      "kind": null
+    },
+    {
+      "title": "Open on Sundays filter",
+      "description": "Most libraries near me close on Sunday. A filter for spots open on a chosen day would help.",
+      "category": "Finding spots",
+      "email": "dina.rossi@example.com",
+      "daysAgo": 71.73,
+      "upvotes": 1,
+      "problem": "open-now",
+      "kind": null
+    },
+    {
+      "title": "Make spots easier to find",
+      "description": "finding spots is hard",
+      "category": "Finding spots",
+      "email": "dina.laurent@example.com",
+      "daysAgo": 70.61,
+      "upvotes": 3,
+      "problem": "map-view",
+      "kind": "vague"
+    },
+    {
+      "title": "Cafe was way too loud",
+      "description": "I went to the cafe the app rated 4.8 for studying and it was the loudest place I've ever been. Music blasting, a blender every two minutes, a birthday party in the corner. The rating was clearly from people who like the coffee, not people who need to concentrate. I wasted my whole afternoon. Ratings are useless for studying unless they tell me how loud it is. Please add a noise level that people can report, and show it on the spot page, ideally for different times of day because it's quiet in the morning and a zoo at lunch. Until then I can't trust the recommendations.",
+      "category": "Spot details",
+      "email": "nia.kim@example.com",
+      "daysAgo": 69.86,
+      "upvotes": 17,
+      "problem": "noise-level",
+      "kind": "rant"
+    },
+    {
+      "title": "Suggest an edit to a spot",
+      "description": "The details of some spots are wrong. Let me suggest a correction.",
+      "category": "Adding & editing spots",
+      "email": "lucia.smith@example.com",
+      "daysAgo": 69.42,
+      "upvotes": 10,
+      "problem": "fix-spot-info",
+      "kind": null
+    },
+    {
+      "title": "Filter: outlets and wifi",
+      "description": "Two checkboxes in search: has wifi, has outlets. That's all I need.",
+      "category": "Finding spots",
+      "email": "rosa.moreno@example.com",
+      "daysAgo": 68.51,
+      "upvotes": 8,
+      "problem": "wifi-outlets",
+      "kind": null
+    },
+    {
+      "title": "Is it open?",
+      "description": "Show if a spot is open before I tap on it.",
+      "category": "Finding spots",
+      "email": "zoe.rossi@example.com",
+      "daysAgo": 68.38,
+      "upvotes": 1,
+      "problem": "open-now",
+      "kind": null
+    },
+    {
+      "title": "Map and friends",
+      "description": "A map of spots, and on it, show where my friends are studying.",
+      "category": "Finding spots",
+      "email": "kofi.rossi@example.com",
+      "daysAgo": 68.08,
+      "upvotes": 0,
+      "problem": "map-view",
+      "kind": "bundled"
+    },
+    {
+      "title": "Walking distance",
+      "description": "Show the walking distance to each spot on a map.",
+      "category": "Finding spots",
+      "email": "jade.novak@example.com",
+      "daysAgo": 67.94,
+      "upvotes": 1,
+      "problem": "map-view",
+      "kind": null
+    },
+    {
+      "title": "Filter: open until midnight",
+      "description": "Let me pick a time and see which spots are still open then.",
+      "category": "Finding spots",
+      "email": "hana.ali@example.com",
+      "daysAgo": 65.96,
+      "upvotes": 6,
+      "problem": "open-now",
+      "kind": null
+    },
+    {
+      "title": "Opening hours in search",
+      "description": "Search should know about opening hours. Right now I have to open every spot to check.",
+      "category": "Finding spots",
+      "email": "eli.ali@example.com",
+      "daysAgo": 64.27,
+      "upvotes": 4,
+      "problem": "open-now",
+      "kind": null
+    },
+    {
+      "title": "Silent study zones",
+      "description": "Mark which spots have a silent zone.",
+      "category": "Spot details",
+      "email": "nia.kim@example.com",
+      "daysAgo": 64.25,
+      "upvotes": 1,
+      "problem": "noise-level",
+      "kind": null
+    },
+    {
+      "title": "Study streaks",
+      "description": "Count how many days in a row I've checked in somewhere. It would keep me going.",
+      "category": "Visits",
+      "email": "omar.murphy@example.com",
+      "daysAgo": 63.88,
+      "upvotes": 15,
+      "problem": "streaks",
+      "kind": null
+    },
+    {
+      "title": "Seats available",
+      "description": "Show how many seats are free right now.",
+      "category": "Spot details",
+      "email": "jade.novak@example.com",
+      "daysAgo": 63.71,
+      "upvotes": 6,
+      "problem": "noise-level",
+      "kind": null
+    },
+    {
+      "title": "Spots with sockets",
+      "description": "UK student here, 'sockets' not outlets :) Filter for spots with sockets please.",
+      "category": "Finding spots",
+      "email": "hana.ali@example.com",
+      "daysAgo": 62.93,
+      "upvotes": 0,
+      "problem": "wifi-outlets",
+      "kind": null
+    },
+    {
+      "title": "24 hour spots",
+      "description": "A quick filter for places that are open 24 hours, especially around finals.",
+      "category": "Finding spots",
+      "email": "chloe.chen@example.com",
+      "daysAgo": 62.57,
+      "upvotes": 7,
+      "problem": "open-now",
+      "kind": null
+    },
+    {
+      "title": "Photos on the spot page",
+      "description": "I want to see what the place looks like before I go. Photos please.",
+      "category": "Spot details",
+      "email": "carlos.smith@example.com",
+      "daysAgo": 62.25,
+      "upvotes": 8,
+      "problem": "photos",
+      "kind": "wrong-category"
+    },
+    {
+      "title": "Visit history",
+      "description": "Show a list of the spots I've visited and when.",
+      "category": "Visits",
+      "email": "dina.rossi@example.com",
+      "daysAgo": 62.2,
+      "upvotes": 7,
+      "problem": "streaks",
+      "kind": null
+    },
+    {
+      "title": "Good wifi spots",
+      "description": "Some cafes have terrible wifi. Let me find the ones where it actually works.",
+      "category": "Finding spots",
+      "email": "lena.khan@example.com",
+      "daysAgo": 60.87,
+      "upvotes": 2,
+      "problem": "wifi-outlets",
+      "kind": null
+    },
+    {
+      "title": "Noise level by time of day",
+      "description": "Some places are quiet in the morning and loud at lunch. Show noise by time.",
+      "category": "Spot details",
+      "email": "grace.hughes@example.com",
+      "daysAgo": 60.3,
+      "upvotes": 0,
+      "problem": "noise-level",
+      "kind": null
+    },
+    {
+      "title": "Closed spots shouldn't show up first",
+      "description": "The top result is often closed for the day. Sort open spots first.",
+      "category": "Finding spots",
+      "email": "hana.ali@example.com",
+      "daysAgo": 59.87,
+      "upvotes": 4,
+      "problem": "open-now",
+      "kind": null
+    },
+    {
+      "title": "Selling calculus textbook",
+      "description": "Anyone want a used calculus textbook, 8th edition, good condition? DM me.",
+      "category": "Social",
+      "email": "priya.obi@example.com",
+      "daysAgo": 59.84,
+      "upvotes": 0,
+      "problem": null,
+      "kind": "spam"
+    },
+    {
+      "title": "Report wrong info",
+      "description": "There's no way to report that a spot's address is wrong.",
+      "category": "Adding & editing spots",
+      "email": "ben.khan@example.com",
+      "daysAgo": 59.68,
+      "upvotes": 6,
+      "problem": "fix-spot-info",
+      "kind": null
+    },
+    {
+      "title": "How many hours did I study",
+      "description": "Total up the time from my check-ins each week.",
+      "category": "Visits",
+      "email": "chloe.kim@example.com",
+      "daysAgo": 59.6,
+      "upvotes": 2,
+      "problem": "streaks",
+      "kind": null
+    },
+    {
+      "title": "Outlet availability",
+      "description": "Show how many outlets a spot has, and let me only see spots with some.",
+      "category": "Spot details",
+      "email": "lena.moreno@example.com",
+      "daysAgo": 59.56,
+      "upvotes": 0,
+      "problem": "wifi-outlets",
+      "kind": "wrong-category"
+    },
+    {
+      "title": "Peak hours on spot details",
+      "description": "Put the peak hours on the spot details page.",
+      "category": "Spot details",
+      "email": "sam.garcia@example.com",
+      "daysAgo": 59.47,
+      "upvotes": 1,
+      "problem": "noise-level",
+      "kind": null
+    },
+    {
+      "title": "Dark mode",
+      "description": "Please add a dark mode. I study at night and the white screen is blinding.",
+      "category": "Other",
+      "email": "sam.garcia@example.com",
+      "daysAgo": 59.41,
+      "upvotes": 20,
+      "problem": "dark-mode",
+      "kind": null
+    },
+    {
+      "title": "Walked 20 minutes to a closed library AGAIN",
+      "description": "This is the third time this month. The app said the Engineering library was a great spot, I walked 20 minutes in the rain with my laptop, and it was closed because it's a holiday week. Nothing in the app told me. I don't understand how an app for finding study spots doesn't know when the spots are open. Every other maps app shows hours. I had a problem set due at 9am and ended up working on the floor of a hallway. Please, please add opening hours and let me filter by them, or at least show a big warning when a place is closed. I love the idea of this app but I'm about to delete it.",
+      "category": "Finding spots",
+      "email": "zoe.silva@example.com",
+      "daysAgo": 59.05,
+      "upvotes": 22,
+      "problem": "open-now",
+      "kind": "rant"
+    },
+    {
+      "title": "Night theme",
+      "description": "A darker theme for late-night use.",
+      "category": "Other",
+      "email": "sam.garcia@example.com",
+      "daysAgo": 58.3,
+      "upvotes": 6,
+      "problem": "dark-mode",
+      "kind": "near-duplicate"
+    },
+    {
+      "title": "Wifi filter and photos",
+      "description": "Could you add a wifi filter to search? Also I'd love to upload photos of spots I add.",
+      "category": "Finding spots",
+      "email": "kai.smith@example.com",
+      "daysAgo": 58.24,
+      "upvotes": 8,
+      "problem": "wifi-outlets",
+      "kind": "bundled"
+    },
+    {
+      "title": "Holiday hours",
+      "description": "Libraries change hours in breaks. Show the real hours for today, not the usual ones.",
+      "category": "Finding spots",
+      "email": "yusuf.berg@example.com",
+      "daysAgo": 57.93,
+      "upvotes": 0,
+      "problem": "open-now",
+      "kind": null
+    },
+    {
+      "title": "Spot photo gallery",
+      "description": "A small gallery of user photos for each spot.",
+      "category": "Adding & editing spots",
+      "email": "bea.rossi@example.com",
+      "daysAgo": 56.79,
+      "upvotes": 1,
+      "problem": "photos",
+      "kind": null
+    },
+    {
+      "title": "Open now + dark mode",
+      "description": "Two things: an open-now filter on the search page, and a dark mode for late-night studying.",
+      "category": "Finding spots",
+      "email": "hiro.ali@example.com",
+      "daysAgo": 56.17,
+      "upvotes": 1,
+      "problem": "open-now",
+      "kind": "bundled"
+    },
+    {
+      "title": "Spot closed permanently",
+      "description": "The cafe on Main St closed down. Let me mark a spot as permanently closed.",
+      "category": "Adding & editing spots",
+      "email": "dina.laurent@example.com",
+      "daysAgo": 55.38,
+      "upvotes": 0,
+      "problem": "fix-spot-info",
+      "kind": null
+    },
+    {
+      "title": "Filter for charging",
+      "description": "Charging spots filter.",
+      "category": "Finding spots",
+      "email": "lena.moreno@example.com",
+      "daysAgo": 54.31,
+      "upvotes": 4,
+      "problem": "wifi-outlets",
+      "kind": null
+    },
+    {
+      "title": "When does it close?",
+      "description": "On the results list show 'closes at 6pm' so I know how long I can stay.",
+      "category": "Finding spots",
+      "email": "lena.ali@example.com",
+      "daysAgo": 53.17,
+      "upvotes": 3,
+      "problem": "open-now",
+      "kind": null
+    },
+    {
+      "title": "Tell me how crowded",
+      "description": "Before I walk across campus I want to know if there's space.",
+      "category": "Spot details",
+      "email": "sam.obi@example.com",
+      "daysAgo": 53.1,
+      "upvotes": 8,
+      "problem": "noise-level",
+      "kind": null
+    },
+    {
+      "title": "Take a photo when adding a spot",
+      "description": "Open the camera right from the add-a-spot form.",
+      "category": "Adding & editing spots",
+      "email": "zoe.obi@example.com",
+      "daysAgo": 52.44,
+      "upvotes": 0,
+      "problem": "photos",
+      "kind": null
+    },
+    {
+      "title": "Pomodoro timer",
+      "description": "A pomodoro timer that runs while I'm checked in at a spot.",
+      "category": "Visits",
+      "email": "kai.smith@example.com",
+      "daysAgo": 51.52,
+      "upvotes": 6,
+      "problem": "session-timer",
+      "kind": null
+    },
+    {
+      "title": "Map in search results",
+      "description": "Split screen: map on top, list below.",
+      "category": "Finding spots",
+      "email": "omar.silva@example.com",
+      "daysAgo": 50.75,
+      "upvotes": 5,
+      "problem": "map-view",
+      "kind": null
+    },
+    {
+      "title": "Opening hours filter for cafes",
+      "description": "Cafes close early near campus. I want to filter for cafes still open in the evening.",
+      "category": "Finding spots",
+      "email": "rosa.moreno@example.com",
+      "daysAgo": 50.52,
+      "upvotes": 0,
+      "problem": "open-now",
+      "kind": null
+    },
+    {
+      "title": "Library is always full",
+      "description": "The main library is full every afternoon. Show me how full places are so I go elsewhere.",
+      "category": "Spot details",
+      "email": "ximena.chen@example.com",
+      "daysAgo": 50.3,
+      "upvotes": 4,
+      "problem": "noise-level",
+      "kind": null
+    },
+    {
+      "title": "Weekly study stats",
+      "description": "A weekly summary: hours, spots, streak.",
+      "category": "Visits",
+      "email": "omar.okafor@example.com",
+      "daysAgo": 50.13,
+      "upvotes": 0,
+      "problem": "streaks",
+      "kind": null
+    },
+    {
+      "title": "Directions to a spot",
+      "description": "Open the spot on a map with directions from where I am.",
+      "category": "Finding spots",
+      "email": "priya.tanaka@example.com",
+      "daysAgo": 48.89,
+      "upvotes": 4,
+      "problem": "map-view",
+      "kind": null
+    },
+    {
+      "title": "Streaks and a timer",
+      "description": "Two ideas: streaks for consecutive study days, and a pomodoro timer while checked in.",
+      "category": "Visits",
+      "email": "gabe.silva@example.com",
+      "daysAgo": 48.1,
+      "upvotes": 1,
+      "problem": "streaks",
+      "kind": "bundled"
+    },
+    {
+      "title": "Delete my account",
+      "description": "I can't find a way to delete my account and my data.",
+      "category": "Profile & account",
+      "email": "felix.novak@example.com",
+      "daysAgo": 47.61,
+      "upvotes": 4,
+      "problem": "delete-account",
+      "kind": null
+    },
+    {
+      "title": "Eduroam spots",
+      "description": "Mark spots that have eduroam and let me filter by it.",
+      "category": "Finding spots",
+      "email": "eli.novak@example.com",
+      "daysAgo": 45.5,
+      "upvotes": 6,
+      "problem": "wifi-outlets",
+      "kind": null
+    },
+    {
+      "title": "See where friends are studying",
+      "description": "Show which of my friends are checked in and where, so I can join them.",
+      "category": "Social",
+      "email": "umar.rossi@example.com",
+      "daysAgo": 44.46,
+      "upvotes": 12,
+      "problem": "study-buddies",
+      "kind": null
+    },
+    {
+      "title": "Background music info",
+      "description": "Does the spot play music? Show it on the details page.",
+      "category": "Spot details",
+      "email": "felix.laurent@example.com",
+      "daysAgo": 43.59,
+      "upvotes": 0,
+      "problem": "noise-level",
+      "kind": null
+    },
+    {
+      "title": "Campus map of spots",
+      "description": "Show a campus map with all the study spots marked.",
+      "category": "Finding spots",
+      "email": "hiro.patel@example.com",
+      "daysAgo": 43.58,
+      "upvotes": 4,
+      "problem": "map-view",
+      "kind": null
+    },
+    {
+      "title": "Find somewhere open early",
+      "description": "I like to start at 7am. Let me find spots that are already open in the morning.",
+      "category": "Finding spots",
+      "email": "kofi.rossi@example.com",
+      "daysAgo": 43.5,
+      "upvotes": 0,
+      "problem": "open-now",
+      "kind": null
+    },
+    {
+      "title": "Edit spots I didn't add",
+      "description": "I can only edit spots I added. Let others suggest fixes that the owner approves.",
+      "category": "Adding & editing spots",
+      "email": "vera.okafor@example.com",
+      "daysAgo": 42.7,
+      "upvotes": 1,
+      "problem": "fix-spot-info",
+      "kind": null
+    },
+    {
+      "title": "Follow system dark setting",
+      "description": "Use my phone's dark mode setting.",
+      "category": "Other",
+      "email": "quinn.tanaka@example.com",
+      "daysAgo": 42.04,
+      "upvotes": 0,
+      "problem": "dark-mode",
+      "kind": null
+    },
+    {
+      "title": "Laptop friendly filter",
+      "description": "A 'laptop friendly' filter: wifi, outlets, big tables.",
+      "category": "Finding spots",
+      "email": "emma.rossi@example.com",
+      "daysAgo": 41.5,
+      "upvotes": 1,
+      "problem": "wifi-outlets",
+      "kind": null
+    },
+    {
+      "title": "Study session timer",
+      "description": "Start a timer when I check in, stop when I leave.",
+      "category": "Visits",
+      "email": "hana.ali@example.com",
+      "daysAgo": 41.47,
+      "upvotes": 2,
+      "problem": "session-timer",
+      "kind": null
+    },
+    {
+      "title": "Photos of the tables",
+      "description": "Photos of the tables and outlets would help people judge it.",
+      "category": "Adding & editing spots",
+      "email": "hana.ali@example.com",
+      "daysAgo": 40.0,
+      "upvotes": 1,
+      "problem": "photos",
+      "kind": null
+    },
+    {
+      "title": "Change my email",
+      "description": "I signed up with my school email and I'm graduating. Let me change it.",
+      "category": "Profile & account",
+      "email": "vera.obi@example.com",
+      "daysAgo": 39.37,
+      "upvotes": 5,
+      "problem": "change-email",
+      "kind": null
+    },
+    {
+      "title": "Busy indicator",
+      "description": "A little busy/not busy badge on each spot.",
+      "category": "Spot details",
+      "email": "maya.obi@example.com",
+      "daysAgo": 38.95,
+      "upvotes": 2,
+      "problem": "noise-level",
+      "kind": null
+    },
+    {
+      "title": "Noise filter",
+      "description": "Filter spots by noise: silent / quiet / lively.",
+      "category": "Spot details",
+      "email": "priya.tanaka@example.com",
+      "daysAgo": 38.91,
+      "upvotes": 0,
+      "problem": "noise-level",
+      "kind": null
+    },
+    {
+      "title": "Cover photo for spots",
+      "description": "Let the person who added the spot choose a cover photo.",
+      "category": "Adding & editing spots",
+      "email": "carlos.tanaka@example.com",
+      "daysAgo": 37.93,
+      "upvotes": 4,
+      "problem": "photos",
+      "kind": null
+    },
+    {
+      "title": "Badges for visiting new spots",
+      "description": "Give me a badge when I study somewhere new.",
+      "category": "Visits",
+      "email": "lucia.smith@example.com",
+      "daysAgo": 37.84,
+      "upvotes": 0,
+      "problem": "streaks",
+      "kind": null
+    },
+    {
+      "title": "The info on this app is so wrong",
+      "description": "I've been using Studease all semester and I'm honestly tired of it. Half the spots have the wrong building, the 'has wifi' on the Law library is false, and the cafe by the station closed in September but it's still the top result. I tried to fix it but there's no edit button unless you added the spot yourself, and the person who added it obviously isn't coming back. There's no report button, no feedback link, nothing. It feels like nobody maintains it. Give us a way to fix wrong details, or at least flag them, and let the community keep it up to date. Otherwise the whole thing falls apart.",
+      "category": "Adding & editing spots",
+      "email": "wes.murphy@example.com",
+      "daysAgo": 37.37,
+      "upvotes": 13,
+      "problem": "fix-spot-info",
+      "kind": "rant"
+    },
+    {
+      "title": "Study with friends",
+      "description": "Let me invite a friend to the spot I'm at.",
+      "category": "Social",
+      "email": "emma.novak@example.com",
+      "daysAgo": 36.26,
+      "upvotes": 1,
+      "problem": "study-buddies",
+      "kind": null
+    },
+    {
+      "title": "Report noise when I check in",
+      "description": "When I check in, let me rate the noise so others know.",
+      "category": "Spot details",
+      "email": "rosa.moreno@example.com",
+      "daysAgo": 34.89,
+      "upvotes": 2,
+      "problem": "noise-level",
+      "kind": null
+    },
+    {
+      "title": "My visits page",
+      "description": "A page listing my past visits.",
+      "category": "Visits",
+      "email": "bea.tanaka@example.com",
+      "daysAgo": 34.3,
+      "upvotes": 4,
+      "problem": "streaks",
+      "kind": null
+    },
+    {
+      "title": "Flag outdated details",
+      "description": "A flag button for outdated details on a spot.",
+      "category": "Adding & editing spots",
+      "email": "dina.moreno@example.com",
+      "daysAgo": 34.29,
+      "upvotes": 1,
+      "problem": "fix-spot-info",
+      "kind": null
+    },
+    {
+      "title": "Opening hours on the map",
+      "description": "Show open/closed status on each pin and in the list.",
+      "category": "Finding spots",
+      "email": "hiro.patel@example.com",
+      "daysAgo": 34.2,
+      "upvotes": 1,
+      "problem": "open-now",
+      "kind": null
+    },
+    {
+      "title": "Calendar of visits",
+      "description": "A calendar view of the days I studied and where.",
+      "category": "Visits",
+      "email": "yusuf.okafor@example.com",
+      "daysAgo": 33.5,
+      "upvotes": 0,
+      "problem": "streaks",
+      "kind": null
+    },
+    {
+      "title": "Need wifi to study",
+      "description": "I can't study without wifi for my online classes. Wifi filter please.",
+      "category": "Finding spots",
+      "email": "wes.chen@example.com",
+      "daysAgo": 31.11,
+      "upvotes": 2,
+      "problem": "wifi-outlets",
+      "kind": null
+    },
+    {
+      "title": "Filter spots open during exam season",
+      "description": "During exams some libraries extend hours. A filter that uses those extended hours would be amazing.",
+      "category": "Finding spots",
+      "email": "grace.tanaka@example.com",
+      "daysAgo": 31.08,
+      "upvotes": 1,
+      "problem": "open-now",
+      "kind": null
+    },
+    {
+      "title": "Weekend opening hours",
+      "description": "Show weekend hours too, and filter by them.",
+      "category": "Finding spots",
+      "email": "bea.smith@example.com",
+      "daysAgo": 30.92,
+      "upvotes": 3,
+      "problem": "open-now",
+      "kind": null
+    },
+    {
+      "title": "Need open now",
+      "description": "need open now filter pls",
+      "category": "Finding spots",
+      "email": "milo.berg@example.com",
+      "daysAgo": 30.84,
+      "upvotes": 1,
+      "problem": "open-now",
+      "kind": null
+    },
+    {
+      "title": "Break reminders",
+      "description": "Remind me to take a break every 50 minutes when I'm checked in.",
+      "category": "Visits",
+      "email": "dina.moreno@example.com",
+      "daysAgo": 30.49,
+      "upvotes": 0,
+      "problem": "session-timer",
+      "kind": null
+    },
+    {
+      "title": "Quiet hours",
+      "description": "Show which hours a spot is quiet.",
+      "category": "Spot details",
+      "email": "fatima.obi@example.com",
+      "daysAgo": 30.15,
+      "upvotes": 5,
+      "problem": "noise-level",
+      "kind": null
+    },
+    {
+      "title": "Friends nearby",
+      "description": "A list of friends studying near me right now.",
+      "category": "Social",
+      "email": "gabe.silva@example.com",
+      "daysAgo": 29.87,
+      "upvotes": 0,
+      "problem": "study-buddies",
+      "kind": null
+    },
+    {
+      "title": "Filter out spots without wifi",
+      "description": "Exclude spots with no wifi from results.",
+      "category": "Finding spots",
+      "email": "dina.novak@example.com",
+      "daysAgo": 29.28,
+      "upvotes": 2,
+      "problem": "wifi-outlets",
+      "kind": null
+    },
+    {
+      "title": "Dark theme in settings",
+      "description": "Put a dark theme switch in my profile settings.",
+      "category": "Profile & account",
+      "email": "ben.smith@example.com",
+      "daysAgo": 27.0,
+      "upvotes": 0,
+      "problem": "dark-mode",
+      "kind": "wrong-category"
+    },
+    {
+      "title": "Power outlets in search",
+      "description": "Show outlets in the search results.",
+      "category": "Finding spots",
+      "email": "rosa.kim@example.com",
+      "daysAgo": 26.12,
+      "upvotes": 2,
+      "problem": "wifi-outlets",
+      "kind": null
+    },
+    {
+      "title": "Add images",
+      "description": "images for spots",
+      "category": "Adding & editing spots",
+      "email": "ben.smith@example.com",
+      "daysAgo": 23.46,
+      "upvotes": 1,
+      "problem": "photos",
+      "kind": null
+    },
+    {
+      "title": "Outlet filter in search",
+      "description": "Let me tick 'outlets' in search.",
+      "category": "Finding spots",
+      "email": "dina.smith@example.com",
+      "daysAgo": 23.35,
+      "upvotes": 2,
+      "problem": "wifi-outlets",
+      "kind": null
+    },
+    {
+      "title": "asdfghjkl",
+      "description": "asdfghjkl test test",
+      "category": "Other",
+      "email": "maya.obi@example.com",
+      "daysAgo": 23.32,
+      "upvotes": 0,
+      "problem": null,
+      "kind": "spam"
+    },
+    {
+      "title": "friends?",
+      "description": "friends",
+      "category": "Social",
+      "email": "ivan.obi@example.com",
+      "daysAgo": 22.84,
+      "upvotes": 0,
+      "problem": "study-buddies",
+      "kind": "vague"
+    },
+    {
+      "title": "Fix the address",
+      "description": "Let me fix a spot's address and pin location.",
+      "category": "Adding & editing spots",
+      "email": "jade.ali@example.com",
+      "daysAgo": 22.25,
+      "upvotes": 2,
+      "problem": "fix-spot-info",
+      "kind": null
+    },
+    {
+      "title": "Crowdedness",
+      "description": "crowdedness indicator would be great",
+      "category": "Spot details",
+      "email": "gabe.novak@example.com",
+      "daysAgo": 21.63,
+      "upvotes": 3,
+      "problem": "noise-level",
+      "kind": null
+    },
+    {
+      "title": "Spot hours are hard to find",
+      "description": "The hours are buried at the bottom of the spot page. Put them up top and let me filter by them.",
+      "category": "Spot details",
+      "email": "quinn.patel@example.com",
+      "daysAgo": 21.3,
+      "upvotes": 5,
+      "problem": "open-now",
+      "kind": "wrong-category"
+    },
+    {
+      "title": "Update email address",
+      "description": "There's no option to update the email address on my account.",
+      "category": "Profile & account",
+      "email": "nia.patel@example.com",
+      "daysAgo": 20.92,
+      "upvotes": 0,
+      "problem": "change-email",
+      "kind": null
+    },
+    {
+      "title": "Focus mode",
+      "description": "Focus mode during a visit: timer and do-not-disturb.",
+      "category": "Visits",
+      "email": "lena.khan@example.com",
+      "daysAgo": 20.19,
+      "upvotes": 1,
+      "problem": "session-timer",
+      "kind": null
+    },
+    {
+      "title": "Remove my data",
+      "description": "I'd like all my check-ins and reviews deleted.",
+      "category": "Profile & account",
+      "email": "dev.laurent@example.com",
+      "daysAgo": 20.08,
+      "upvotes": 1,
+      "problem": "delete-account",
+      "kind": null
+    },
+    {
+      "title": "Replace a bad photo",
+      "description": "If I add photos, let me remove or replace my own.",
+      "category": "Adding & editing spots",
+      "email": "quinn.smith@example.com",
+      "daysAgo": 19.88,
+      "upvotes": 0,
+      "problem": "photos",
+      "kind": null
+    },
+    {
+      "title": "Wifi password field",
+      "description": "Show whether a spot has free wifi and if a password is needed, and filter by free wifi.",
+      "category": "Finding spots",
+      "email": "gabe.silva@example.com",
+      "daysAgo": 19.33,
+      "upvotes": 0,
+      "problem": "wifi-outlets",
+      "kind": null
+    },
+    {
+      "title": "Notify me before a spot closes",
+      "description": "If I'm checked in, tell me 30 minutes before it closes. Also filter by hours when searching.",
+      "category": "Finding spots",
+      "email": "ben.khan@example.com",
+      "daysAgo": 19.31,
+      "upvotes": 7,
+      "problem": "open-now",
+      "kind": null
+    },
+    {
+      "title": "Plan a group study session",
+      "description": "Let me pick a spot and a time and invite my study group, and see who's coming.",
+      "category": "Social",
+      "email": "yusuf.berg@example.com",
+      "daysAgo": 19.12,
+      "upvotes": 3,
+      "problem": "group-session",
+      "kind": null
+    },
+    {
+      "title": "Spots where I can work all day",
+      "description": "I want places with outlets and wifi where I can stay all day. Filter for that.",
+      "category": "Finding spots",
+      "email": "bea.tanaka@example.com",
+      "daysAgo": 18.28,
+      "upvotes": 1,
+      "problem": "wifi-outlets",
+      "kind": null
+    },
+    {
+      "title": "Wrong category on a spot",
+      "description": "Some cafes are listed as libraries. Let me suggest a change.",
+      "category": "Adding & editing spots",
+      "email": "lena.khan@example.com",
+      "daysAgo": 16.7,
+      "upvotes": 4,
+      "problem": "fix-spot-info",
+      "kind": null
+    },
+    {
+      "title": "No way to delete account?",
+      "description": "I graduated and want to leave. I've looked everywhere in settings for a delete button and there's nothing. I emailed support and nobody replied. This is my data, my check-ins show where I was every day for two years, and I want it gone. Other apps have had a delete button for years and I think it's even a legal requirement in some places. Please add a clear 'delete my account' option that removes everything, and tell me when it's done.",
+      "category": "Profile & account",
+      "email": "dina.novak@example.com",
+      "daysAgo": 16.64,
+      "upvotes": 8,
+      "problem": "delete-account",
+      "kind": "rant"
+    },
+    {
+      "title": "Photos when I check in",
+      "description": "When I check in let me add a photo of the spot today.",
+      "category": "Adding & editing spots",
+      "email": "quinn.garcia@example.com",
+      "daysAgo": 15.94,
+      "upvotes": 0,
+      "problem": "photos",
+      "kind": null
+    },
+    {
+      "title": "Open late filter",
+      "description": "Something like 'open late' as a quick chip next to the other filters.",
+      "category": "Finding spots",
+      "email": "felix.laurent@example.com",
+      "daysAgo": 15.63,
+      "upvotes": 1,
+      "problem": "open-now",
+      "kind": null
+    },
+    {
+      "title": "Explore on map",
+      "description": "Let me pan the map and see spots appear in that area.",
+      "category": "Finding spots",
+      "email": "carlos.tanaka@example.com",
+      "daysAgo": 15.42,
+      "upvotes": 1,
+      "problem": "map-view",
+      "kind": null
+    },
+    {
+      "title": "Multiple photos per spot",
+      "description": "One photo isn't enough to judge a big library. Let us add several.",
+      "category": "Adding & editing spots",
+      "email": "milo.nguyen@example.com",
+      "daysAgo": 14.84,
+      "upvotes": 1,
+      "problem": "photos",
+      "kind": null
+    },
+    {
+      "title": "Sort reviews by newest",
+      "description": "Old reviews from two years ago aren't useful. Let me sort a spot's reviews by newest first.",
+      "category": "Spot details",
+      "email": "grace.tanaka@example.com",
+      "daysAgo": 14.35,
+      "upvotes": 2,
+      "problem": "recent-reviews",
+      "kind": null
+    },
+    {
+      "title": "Show me what's open right now",
+      "description": "First thing I want to know when I open the app is what's open near me right now.",
+      "category": "Finding spots",
+      "email": "dina.rossi@example.com",
+      "daysAgo": 14.13,
+      "upvotes": 0,
+      "problem": "open-now",
+      "kind": null
+    },
+    {
+      "title": "Share my check-in",
+      "description": "Let me share my check-in with friends so they can come.",
+      "category": "Social",
+      "email": "carlos.tanaka@example.com",
+      "daysAgo": 13.27,
+      "upvotes": 2,
+      "problem": "study-buddies",
+      "kind": null
+    },
+    {
+      "title": "How noisy is it",
+      "description": "Please show how noisy a spot usually is.",
+      "category": "Spot details",
+      "email": "isla.hughes@example.com",
+      "daysAgo": 12.98,
+      "upvotes": 4,
+      "problem": "noise-level",
+      "kind": null
+    },
+    {
+      "title": "Plug filter",
+      "description": "Please add a filter for spots with plugs.",
+      "category": "Finding spots",
+      "email": "bea.smith@example.com",
+      "daysAgo": 12.58,
+      "upvotes": 6,
+      "problem": "wifi-outlets",
+      "kind": null
+    },
+    {
+      "title": "Switch to personal email",
+      "description": "Let me move my account from my student email to a personal one.",
+      "category": "Profile & account",
+      "email": "kai.murphy@example.com",
+      "daysAgo": 12.24,
+      "upvotes": 0,
+      "problem": "change-email",
+      "kind": null
+    },
+    {
+      "title": "List is hard to use",
+      "description": "A list sorted by rating doesn't help when I don't know where things are. A map would.",
+      "category": "Finding spots",
+      "email": "ivan.obi@example.com",
+      "daysAgo": 12.01,
+      "upvotes": 0,
+      "problem": "map-view",
+      "kind": null
+    },
+    {
+      "title": "Cheap essay writing service",
+      "description": "Get your essays written fast and cheap, 100% plagiarism free, message us today for a discount code!!!",
+      "category": "Other",
+      "email": "fatima.obi@example.com",
+      "daysAgo": 11.84,
+      "upvotes": 0,
+      "problem": null,
+      "kind": "spam"
+    },
+    {
+      "title": "Offline mode",
+      "description": "The library basement has no signal. Let me save spots and their details to see offline.",
+      "category": "Other",
+      "email": "sam.laurent@example.com",
+      "daysAgo": 11.43,
+      "upvotes": 4,
+      "problem": "offline",
+      "kind": null
+    },
+    {
+      "title": "Show spots near my next class",
+      "description": "Let me drop a pin on the map (my next lecture) and see spots around it.",
+      "category": "Finding spots",
+      "email": "priya.obi@example.com",
+      "daysAgo": 9.84,
+      "upvotes": 1,
+      "problem": "map-view",
+      "kind": null
+    },
+    {
+      "title": "Wifi quality rating",
+      "description": "Let users rate wifi 1-5 and filter by it.",
+      "category": "Finding spots",
+      "email": "carlos.tanaka@example.com",
+      "daysAgo": 9.63,
+      "upvotes": 0,
+      "problem": "wifi-outlets",
+      "kind": null
+    },
+    {
+      "title": "Too bright at night",
+      "description": "The app is too bright when I'm in a dim library.",
+      "category": "Other",
+      "email": "dina.smith@example.com",
+      "daysAgo": 9.16,
+      "upvotes": 1,
+      "problem": "dark-mode",
+      "kind": null
+    },
+    {
+      "title": "OLED black mode",
+      "description": "True black for OLED screens would save battery.",
+      "category": "Other",
+      "email": "wes.murphy@example.com",
+      "daysAgo": 9.14,
+      "upvotes": 0,
+      "problem": "dark-mode",
+      "kind": null
+    },
+    {
+      "title": "Download my data",
+      "description": "Before I delete, let me export my visits and reviews.",
+      "category": "Profile & account",
+      "email": "yusuf.berg@example.com",
+      "daysAgo": 8.58,
+      "upvotes": 0,
+      "problem": "delete-account",
+      "kind": null
+    },
+    {
+      "title": "Duplicate spots",
+      "description": "The same library is listed twice. Let me report duplicates so they get merged.",
+      "category": "Adding & editing spots",
+      "email": "hiro.garcia@example.com",
+      "daysAgo": 8.43,
+      "upvotes": 4,
+      "problem": "fix-spot-info",
+      "kind": null
+    },
+    {
+      "title": "Map view of saved spots",
+      "description": "Show my saved spots on a map.",
+      "category": "Finding spots",
+      "email": "ivan.obi@example.com",
+      "daysAgo": 7.53,
+      "upvotes": 0,
+      "problem": "map-view",
+      "kind": null
+    },
+    {
+      "title": "Open now toggle",
+      "description": "Toggle at the top of search: open now on/off.",
+      "category": "Finding spots",
+      "email": "sam.obi@example.com",
+      "daysAgo": 6.69,
+      "upvotes": 1,
+      "problem": "open-now",
+      "kind": null
+    },
+    {
+      "title": "Filter by amenities",
+      "description": "Filter by amenities like wifi, outlets, printers.",
+      "category": "Finding spots",
+      "email": "nia.kim@example.com",
+      "daysAgo": 5.1,
+      "upvotes": 7,
+      "problem": "wifi-outlets",
+      "kind": null
+    },
+    {
+      "title": "Live occupancy",
+      "description": "Live occupancy would be amazing, even if it's just from check-ins.",
+      "category": "Spot details",
+      "email": "umar.rossi@example.com",
+      "daysAgo": 4.82,
+      "upvotes": 1,
+      "problem": "noise-level",
+      "kind": null
+    },
+    {
+      "title": "Group-friendly vs silent",
+      "description": "Mark whether a spot is OK for group chatting or needs silence.",
+      "category": "Spot details",
+      "email": "emma.garcia@example.com",
+      "daysAgo": 4.25,
+      "upvotes": 1,
+      "problem": "noise-level",
+      "kind": null
+    },
+    {
+      "title": "Can't tell which spots have wifi",
+      "description": "There's no way to see wifi before going. Add it to search.",
+      "category": "Finding spots",
+      "email": "lena.ali@example.com",
+      "daysAgo": 4.2,
+      "upvotes": 1,
+      "problem": "wifi-outlets",
+      "kind": null
+    },
+    {
+      "title": "Timer",
+      "description": "timer",
+      "category": "Visits",
+      "email": "rosa.moreno@example.com",
+      "daysAgo": 3.83,
+      "upvotes": 2,
+      "problem": "session-timer",
+      "kind": null
+    },
+    {
+      "title": "Spot vibe",
+      "description": "Show the vibe: quiet, social, music. Helps me choose.",
+      "category": "Spot details",
+      "email": "ava.kim@example.com",
+      "daysAgo": 3.68,
+      "upvotes": 6,
+      "problem": "noise-level",
+      "kind": null
+    },
+    {
+      "title": "Library hours are wrong in breaks",
+      "description": "Over the break the app still showed normal hours. If you add an open-now filter it needs the real hours.",
+      "category": "Finding spots",
+      "email": "dina.hughes@example.com",
+      "daysAgo": 3.44,
+      "upvotes": 0,
+      "problem": "open-now",
+      "kind": null
+    },
+    {
+      "title": "Don't break the streak reminder",
+      "description": "Remind me in the evening if I haven't checked in today so I keep my streak.",
+      "category": "Visits",
+      "email": "dina.novak@example.com",
+      "daysAgo": 3.31,
+      "upvotes": 0,
+      "problem": "streaks",
+      "kind": null
+    },
+    {
+      "title": "Outlets near seats filter",
+      "description": "Not just 'has outlets' but outlets near the seats. Filter on that.",
+      "category": "Finding spots",
+      "email": "grace.patel@example.com",
+      "daysAgo": 2.13,
+      "upvotes": 0,
+      "problem": "wifi-outlets",
+      "kind": null
+    },
+    {
+      "title": "Lunchtime rush warning",
+      "description": "Warn me that a spot gets packed at lunchtime.",
+      "category": "Spot details",
+      "email": "emma.rossi@example.com",
+      "daysAgo": 1.84,
+      "upvotes": 0,
+      "problem": "noise-level",
+      "kind": null
+    },
+    {
+      "title": "Search by time of day",
+      "description": "I want to plan tomorrow: show spots that will be open at 3pm tomorrow.",
+      "category": "Finding spots",
+      "email": "priya.silva@example.com",
+      "daysAgo": 0.48,
+      "upvotes": 4,
+      "problem": "open-now",
+      "kind": null
+    }
+  ],
+  "actions": [
+    {
+      "request": "Filter by opening hours",
+      "priority": "recommended"
+    },
+    {
+      "request": "Filter by wifi",
+      "priority": "recommended"
+    },
+    {
+      "request": "Show noise level",
+      "priority": "recommended"
+    },
+    {
+      "request": "Map view",
+      "priority": "recommended"
+    },
+    {
+      "request": "Plan a group study session",
+      "priority": "override",
+      "reason": "Only one request so far, but group study is the heart of the social side we want to grow this term."
+    },
+    {
+      "request": "Dark mode",
+      "status": "Shipped"
+    },
+    {
+      "request": "Change my email",
+      "status": "Shipped"
+    },
+    {
+      "request": "Offline mode",
+      "status": "Won't do",
+      "reason": "Keeping every spot's details on the phone is a big build for one request; most spots have signal."
+    }
+  ]
+}
