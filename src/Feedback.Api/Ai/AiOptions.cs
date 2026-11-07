@@ -31,7 +31,7 @@ public sealed class AiOptions
 public sealed class AiStepOptions
 {
     public string Model { get; set; } = "";
-    /// <summary>Reasoning effort (e.g. none, minimal, low, medium); empty for embeddings.</summary>
+    /// <summary>Reasoning effort (e.g. none, low, medium, high); empty for embeddings.</summary>
     public string? Effort { get; set; }
     /// <summary>Sent only when Effort is none (OpenAI rejects it otherwise).</summary>
     public float? Temperature { get; set; }
