@@ -10,6 +10,7 @@ public sealed class FeedbackDbContext(DbContextOptions<FeedbackDbContext> option
 
     public DbSet<Problem> Problems => Set<Problem>();
     public DbSet<FeatureRequest> FeatureRequests => Set<FeatureRequest>();
+    public DbSet<AiCall> AiCalls => Set<AiCall>();
 
     protected override void OnModelCreating(ModelBuilder model)
     {
@@ -37,5 +38,7 @@ public sealed class FeedbackDbContext(DbContextOptions<FeedbackDbContext> option
                 .HasForeignKey(r => r.ProblemId).OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(r => r.CreatedAt);
         });
+
+        model.Entity<AiCall>(AiCall.Configure);
     }
 }

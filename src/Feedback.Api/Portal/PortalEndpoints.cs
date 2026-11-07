@@ -40,7 +40,15 @@ public static class PortalEndpoints
         api.MapGet("/requests/{id:long}", async (long id, FeedbackDbContext db, CancellationToken ct) =>
         {
             var request = await ToViews(db.FeatureRequests.AsNoTracking().Where(r => r.Id == id)).SingleOrDefaultAsync(ct);
-            return request is null ? Results.NotFound() : Results.Ok(request);
+            if (request is null) return Results.NotFound();
+
+            // Related requests: the other Feature Requests of the same Problem (none while unmatched).
+            var problemId = await db.FeatureRequests.Where(r => r.Id == id).Select(r => r.ProblemId).SingleAsync(ct);
+            var related = problemId is null ? [] : await ToViews(db.FeatureRequests.AsNoTracking()
+                    .Where(r => r.ProblemId == problemId && r.Id != id)
+                    .OrderByDescending(r => r.CreatedAt).ThenByDescending(r => r.Id))
+                .ToListAsync(ct);
+            return Results.Ok(FeatureRequestPageView.From(request, related));
         });
     }
 
@@ -49,6 +57,14 @@ public static class PortalEndpoints
     private static IQueryable<FeatureRequestView> ToViews(IQueryable<FeatureRequest> requests) =>
         requests.Select(r => new FeatureRequestView(
             r.Id, r.Title, r.Description, r.Problem != null ? r.Problem.Category : r.Category, r.CreatedAt));
+}
+
+/// <summary>A Feature Request's own page: the request and its Related requests. Never includes emails.</summary>
+public sealed record FeatureRequestPageView(
+    long Id, string Title, string Description, string Category, DateTimeOffset CreatedAt, IReadOnlyList<FeatureRequestView> Related)
+{
+    public static FeatureRequestPageView From(FeatureRequestView r, IReadOnlyList<FeatureRequestView> related) =>
+        new(r.Id, r.Title, r.Description, r.Category, r.CreatedAt, related);
 }
 
 public sealed record SubmitRequestBody(string? Title, string? Description, string? Category, string? Email);

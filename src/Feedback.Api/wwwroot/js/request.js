@@ -19,7 +19,27 @@ async function load() {
     el("span", { class: "cat" }, r.category), " ",
     el("span", { class: "caption" }, `· ${formatDate(r.createdAt)}`),
     el("h1", {}, r.title),
-    el("p", {}, r.description)));
+    el("p", {}, r.description)),
+    related(r.related ?? []));
+}
+
+// The other Feature Requests of the same Problem. Empty until the request has been matched.
+function related(rows) {
+  if (rows.length === 0) return "";
+  return el("section", { class: "related" },
+    el("h2", {}, "Related requests"),
+    el("table", { class: "board" }, el("tbody", {}, rows.map(relatedRow))));
+}
+
+function relatedRow(r) {
+  const href = `/requests/${r.id}`;
+  return el("tr", { onclick: (e) => { if (!e.target.closest("a, button")) location.href = href; } },
+    el("td", { class: "t" },
+      el("a", { class: "rowlink", href }, r.title),
+      el("span", { class: "caption" }, r.description)),
+    el("td", { class: "c" },
+      el("span", { class: "cat" }, r.category),
+      el("span", { class: "caption", style: "display:block" }, formatDate(r.createdAt))));
 }
 
 function missing(message) {

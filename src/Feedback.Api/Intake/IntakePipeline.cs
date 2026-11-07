@@ -3,10 +3,10 @@ using Feedback.Api.Data;
 namespace Feedback.Api.Intake;
 
 /// <summary>
-/// Where a Feature Request enters the system. Today it only saves the submit;
-/// later slices enqueue it here for the background embed → shortlist → match → score steps.
+/// Where a Feature Request enters the system: saves the submit, then enqueues it for the
+/// background embed → shortlist → match steps (<see cref="MatchingStep"/>), so the Requester never waits for the AI.
 /// </summary>
-public sealed class IntakePipeline(FeedbackDbContext db)
+public sealed class IntakePipeline(FeedbackDbContext db, IntakeQueue queue)
 {
     public async Task<FeatureRequest> SubmitAsync(ValidSubmission submission, CancellationToken ct)
     {
@@ -19,6 +19,7 @@ public sealed class IntakePipeline(FeedbackDbContext db)
         };
         db.FeatureRequests.Add(request);
         await db.SaveChangesAsync(ct);
+        queue.Enqueue(request.Id);
         return request;
     }
 }

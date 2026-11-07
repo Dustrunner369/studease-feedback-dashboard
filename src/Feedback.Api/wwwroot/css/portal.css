@@ -72,6 +72,8 @@ button,input,select,textarea{font:inherit;color:inherit}
 .back:hover{color:var(--ink)}
 .fr-detail{padding-bottom:var(--xl);border-bottom:1px solid var(--line)}
 .fr-detail h1{font-size:30px;line-height:1.15;margin:6px 0 var(--sm)}
+.related{margin-top:var(--xl)}
+.related h2{font-size:20px;margin-bottom:var(--sm)}
 .fr-detail p{margin:0;font-size:16px;max-width:60ch;white-space:pre-line}
 
 /* request-a-feature pop-up */

@@ -1,7 +1,9 @@
+using Feedback.Api.Ai;
 using Feedback.Api.Data;
 using Feedback.Api.Intake;
 using Feedback.Api.Portal;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,11 +11,20 @@ builder.Services.AddDbContext<FeedbackDbContext>(options => options
     .UseNpgsql(
         builder.Configuration.GetConnectionString("Feedback"),
         npgsql => npgsql
+            // Both are needed: EF's type mapping, and the ADO data source plugin that writes vector parameters.
+            .ConfigureDataSource(dataSource => dataSource.UseVector())
             .UseVector()
             .MigrationsHistoryTable("__EFMigrationsHistory", FeedbackDbContext.Schema))
     .UseSnakeCaseNamingConvention());
 
 builder.Services.AddScoped<IntakePipeline>();
+builder.Services.AddSingleton<IntakeQueue>();
+builder.Services.AddScoped<MatchingStep>();
+builder.Services.AddHostedService<IntakeWorker>();
+
+builder.Services.Configure<AiOptions>(builder.Configuration.GetSection(AiOptions.Section));
+builder.Services.AddSingleton<IAiGateway, OpenAiGateway>();
+builder.Services.AddScoped<AiCallLog>();
 builder.Services.AddPortalRateLimit(builder.Configuration);
 
 var app = builder.Build();

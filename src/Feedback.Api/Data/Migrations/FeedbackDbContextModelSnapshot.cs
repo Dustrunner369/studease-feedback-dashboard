@@ -24,6 +24,89 @@ namespace Feedback.Api.Data.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Feedback.Api.Data.AiCall", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<decimal?>("CostUsd")
+                        .HasPrecision(12, 8)
+                        .HasColumnType("numeric(12,8)")
+                        .HasColumnName("cost_usd");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasColumnType("text")
+                        .HasColumnName("error_message");
+
+                    b.Property<string>("FailureKind")
+                        .HasColumnType("text")
+                        .HasColumnName("failure_kind");
+
+                    b.Property<long?>("FeatureRequestId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("feature_request_id");
+
+                    b.Property<int?>("InputTokens")
+                        .HasColumnType("integer")
+                        .HasColumnName("input_tokens");
+
+                    b.Property<int>("LatencyMs")
+                        .HasColumnType("integer")
+                        .HasColumnName("latency_ms");
+
+                    b.Property<string>("Model")
+                        .HasColumnType("text")
+                        .HasColumnName("model");
+
+                    b.Property<string>("Note")
+                        .HasColumnType("text")
+                        .HasColumnName("note");
+
+                    b.Property<int?>("OutputTokens")
+                        .HasColumnType("integer")
+                        .HasColumnName("output_tokens");
+
+                    b.Property<long?>("ProblemId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("problem_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("status");
+
+                    b.Property<string>("Step")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("step");
+
+                    b.HasKey("Id")
+                        .HasName("pk_ai_calls");
+
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("ix_ai_calls_created_at");
+
+                    b.HasIndex("ProblemId")
+                        .HasDatabaseName("ix_ai_calls_problem_id");
+
+                    b.ToTable("ai_calls", "feedback", t =>
+                        {
+                            t.HasCheckConstraint("ck_ai_calls_failure_kind", "failure_kind IS NULL OR failure_kind IN ('Timeout', 'API error', 'Invalid output')");
+
+                            t.HasCheckConstraint("ck_ai_calls_status", "status IN ('OK', 'Failed')");
+                        });
+                });
+
             modelBuilder.Entity("Feedback.Api.Data.FeatureRequest", b =>
                 {
                     b.Property<long>("Id")
