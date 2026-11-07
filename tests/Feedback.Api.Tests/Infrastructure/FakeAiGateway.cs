@@ -6,7 +6,8 @@ namespace Feedback.Api.Tests.Infrastructure;
 /// <summary>
 /// In-memory stand-in for the OpenAI gateway. By default it embeds text as a bag of words
 /// (so similar wording is close) and matches every request to a new Problem titled after it,
-/// in the Requester's Category. Tests replace <see cref="Embed"/> / <see cref="Match"/> to script
+/// in the Requester's Category, and scores every Problem with the same ratings.
+/// Tests replace <see cref="Embed"/> / <see cref="Match"/> / <see cref="Score"/> to script
 /// answers; throw <see cref="AiCallException"/> from them to simulate failures.
 /// </summary>
 public sealed class FakeAiGateway : IAiGateway
@@ -27,6 +28,20 @@ public sealed class FakeAiGateway : IAiGateway
     {
         MatchCalls.Enqueue(input);
         return Task.FromResult(new AiReply<MatchDecision>(Match(input), ChatModel, 900, 80));
+    }
+
+    /// <summary>Default: Strategic fit 3 (first goal), Pain 3, Retention risk 2.</summary>
+    public Func<ScoreInput, ScoreRatings> Score { get; set; } = _ => new(
+        3, "Supports finding spots in a small way.", "Help students find new study spots",
+        3, "Noticeable friction.", 2, "Mild frustration.");
+
+    /// <summary>Every ScoreAsync input, in call order.</summary>
+    public ConcurrentQueue<ScoreInput> ScoreCalls { get; } = new();
+
+    public Task<AiReply<ScoreRatings>> ScoreAsync(ScoreInput input, CancellationToken ct)
+    {
+        ScoreCalls.Enqueue(input);
+        return Task.FromResult(new AiReply<ScoreRatings>(Score(input), ChatModel, 1200, 150));
     }
 
     public static MatchDecision NewProblemFromRequest(MatchInput input) => new(

@@ -173,6 +173,76 @@ namespace Feedback.Api.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Feedback.Api.Data.PriorityScoring", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("AiCallId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("ai_call_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<int>("Pain")
+                        .HasColumnType("integer")
+                        .HasColumnName("pain");
+
+                    b.Property<string>("PainReason")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("pain_reason");
+
+                    b.Property<long>("ProblemId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("problem_id");
+
+                    b.Property<int>("RetentionRisk")
+                        .HasColumnType("integer")
+                        .HasColumnName("retention_risk");
+
+                    b.Property<string>("RetentionRiskReason")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("retention_risk_reason");
+
+                    b.Property<int>("StrategicFit")
+                        .HasColumnType("integer")
+                        .HasColumnName("strategic_fit");
+
+                    b.Property<string>("StrategicFitGoal")
+                        .HasColumnType("text")
+                        .HasColumnName("strategic_fit_goal");
+
+                    b.Property<string>("StrategicFitReason")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("strategic_fit_reason");
+
+                    b.HasKey("Id")
+                        .HasName("pk_priority_scorings");
+
+                    b.HasIndex("ProblemId")
+                        .HasDatabaseName("ix_priority_scorings_problem_id");
+
+                    b.ToTable("priority_scorings", "feedback", t =>
+                        {
+                            t.HasCheckConstraint("ck_priority_scorings_pain", "pain BETWEEN 1 AND 5");
+
+                            t.HasCheckConstraint("ck_priority_scorings_retention_risk", "retention_risk BETWEEN 1 AND 5");
+
+                            t.HasCheckConstraint("ck_priority_scorings_strategic_fit", "strategic_fit BETWEEN 1 AND 5");
+                        });
+                });
+
             modelBuilder.Entity("Feedback.Api.Data.Problem", b =>
                 {
                     b.Property<long>("Id")
@@ -197,10 +267,39 @@ namespace Feedback.Api.Data.Migrations
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("now()");
 
+                    b.Property<long?>("CurrentScoringId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("current_scoring_id");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("description");
+
+                    b.Property<long?>("FirstScoringId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("first_scoring_id");
+
+                    b.Property<int?>("ReachPoints")
+                        .HasColumnType("integer")
+                        .HasColumnName("reach_points");
+
+                    b.Property<int?>("ReachRating")
+                        .HasColumnType("integer")
+                        .HasColumnName("reach_rating");
+
+                    b.Property<string>("RecommendedLevel")
+                        .HasMaxLength(6)
+                        .HasColumnType("character varying(6)")
+                        .HasColumnName("recommended_level");
+
+                    b.Property<int?>("RecommendedScore")
+                        .HasColumnType("integer")
+                        .HasColumnName("recommended_score");
+
+                    b.Property<bool>("ScoringFailed")
+                        .HasColumnType("boolean")
+                        .HasColumnName("scoring_failed");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -214,6 +313,15 @@ namespace Feedback.Api.Data.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_problems");
+
+                    b.HasIndex("CurrentScoringId")
+                        .HasDatabaseName("ix_problems_current_scoring_id");
+
+                    b.HasIndex("FirstScoringId")
+                        .HasDatabaseName("ix_problems_first_scoring_id");
+
+                    b.HasIndex("RecommendedScore")
+                        .HasDatabaseName("ix_problems_recommended_score");
 
                     b.ToTable("problems", "feedback", t =>
                         {
@@ -255,6 +363,33 @@ namespace Feedback.Api.Data.Migrations
                         .HasConstraintName("fk_feature_requests_problems_problem_id");
 
                     b.Navigation("Problem");
+                });
+
+            modelBuilder.Entity("Feedback.Api.Data.PriorityScoring", b =>
+                {
+                    b.HasOne("Feedback.Api.Data.Problem", null)
+                        .WithMany()
+                        .HasForeignKey("ProblemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_priority_scorings_problems_problem_id");
+                });
+
+            modelBuilder.Entity("Feedback.Api.Data.Problem", b =>
+                {
+                    b.HasOne("Feedback.Api.Data.PriorityScoring", "CurrentScoring")
+                        .WithMany()
+                        .HasForeignKey("CurrentScoringId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_problems_priority_scorings_current_scoring_id");
+
+                    b.HasOne("Feedback.Api.Data.PriorityScoring", null)
+                        .WithMany()
+                        .HasForeignKey("FirstScoringId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_problems_priority_scorings_first_scoring_id");
+
+                    b.Navigation("CurrentScoring");
                 });
 
             modelBuilder.Entity("Feedback.Api.Data.Upvote", b =>

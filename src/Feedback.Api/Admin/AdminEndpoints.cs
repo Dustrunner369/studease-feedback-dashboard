@@ -30,6 +30,7 @@ public static class AdminEndpoints
 
         signedIn.MapProblems();
         signedIn.MapAiCalls();
+        signedIn.MapPriority();
     }
 }
 

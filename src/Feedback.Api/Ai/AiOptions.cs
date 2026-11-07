@@ -5,7 +5,8 @@ public static class AiSteps
 {
     public const string Embed = "Embed";
     public const string Match = "Match";
-    // Later tickets: Score, Brief, PickFiles, WriteSolutions, DraftUpdate.
+    public const string Score = "Score";
+    // Later tickets: Brief, PickFiles, WriteSolutions, DraftUpdate.
 }
 
 /// <summary>Binds the <c>Ai</c> section: model and effort per step, prices per model, timeout.</summary>
@@ -29,6 +30,8 @@ public sealed class AiStepOptions
     public string Model { get; set; } = "";
     /// <summary>Reasoning effort (e.g. none, minimal, low, medium); empty for embeddings.</summary>
     public string? Effort { get; set; }
+    /// <summary>Sent only when Effort is none (OpenAI rejects it otherwise).</summary>
+    public float? Temperature { get; set; }
 }
 
 public sealed class AiPrice

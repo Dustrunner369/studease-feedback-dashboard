@@ -1,6 +1,7 @@
 using Feedback.Api.Ai;
 using Feedback.Api.Data;
 using Feedback.Api.Domain;
+using Feedback.Api.Scoring;
 using Microsoft.EntityFrameworkCore;
 using Pgvector;
 
@@ -9,9 +10,9 @@ namespace Feedback.Api.Intake;
 /// <summary>
 /// Background part of intake for one Feature Request: embed → shortlist → match.
 /// Any failure is logged in ai_calls and leaves the request unmatched (needs review);
-/// the Requester never sees it. Scoring hooks in after a successful link (later ticket).
+/// the Requester never sees it. A successful link re-scores the Problem (one more AI call).
 /// </summary>
-public sealed class MatchingStep(FeedbackDbContext db, IAiGateway ai, AiCallLog log)
+public sealed class MatchingStep(FeedbackDbContext db, IAiGateway ai, AiCallLog log, PriorityScorer scorer)
 {
     public const int ShortlistSize = 5;
 
@@ -54,6 +55,8 @@ public sealed class MatchingStep(FeedbackDbContext db, IAiGateway ai, AiCallLog 
         request.MatchReason = decision.Reason.Trim();
         request.IsBundled = decision.IsBundled;
         await db.SaveChangesAsync(ct);
+
+        await scorer.RescoreAsync(request.ProblemId!.Value, ct);
     }
 
     /// <summary>The text embedded for a Feature Request (suggest-as-you-type embeds the typed text the same way).</summary>

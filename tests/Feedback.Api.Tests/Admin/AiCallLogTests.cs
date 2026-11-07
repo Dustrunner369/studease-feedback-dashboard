@@ -15,8 +15,8 @@ public sealed class AiCallLogTests(FeedbackDatabase database) : AdminTest(databa
 
         var calls = await CallsAsync();
 
-        Assert.Equal(["Match", "Embed"], calls.Select(c => c.Step));
-        var match = calls[0];
+        Assert.Equal(["Score", "Match", "Embed"], calls.Select(c => c.Step));
+        var match = calls[1];
         Assert.Equal("OK", match.Status);
         Assert.Null(match.FailureKind);
         Assert.Equal(FakeAiGateway.ChatModel, match.Model);
@@ -45,7 +45,7 @@ public sealed class AiCallLogTests(FeedbackDatabase database) : AdminTest(databa
         Assert.Equal("Timeout", call.FailureKind);
         Assert.Equal("Timed out after 60 s", call.ErrorMessage);
         Assert.Equal(failed.Id, call.FeatureRequestId);
-        Assert.Equal(3, (await CallsAsync("?status=OK")).Length);
+        Assert.Equal(4, (await CallsAsync("?status=OK")).Length); // Embed, Match, Score; Embed
     }
 
     [Fact]
@@ -57,8 +57,11 @@ public sealed class AiCallLogTests(FeedbackDatabase database) : AdminTest(databa
 
         var calls = await CallsAsync($"?problemId={problemId}");
 
-        Assert.Equal(4, calls.Length);
-        Assert.Equal([second, second, first, first], calls.Select(c => c.FeatureRequestId!.Value));
+        // Each request: Embed and Match for the request, then Score for the Problem.
+        Assert.Equal(
+            [("Score", (long?)null), ("Match", second), ("Embed", second), ("Score", null), ("Match", first), ("Embed", first)],
+            calls.Select(c => (c.Step, c.FeatureRequestId)));
+        Assert.All(calls.Where(c => c.Step == "Score"), c => Assert.Equal(problemId, c.ProblemId));
     }
 
     [Fact]

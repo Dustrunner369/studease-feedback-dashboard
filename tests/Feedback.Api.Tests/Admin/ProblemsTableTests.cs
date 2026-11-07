@@ -39,16 +39,33 @@ public sealed class ProblemsTableTests(FeedbackDatabase database) : AdminTest(da
     }
 
     [Fact]
-    public async Task Until_scoring_exists_the_most_requested_problems_come_first()
+    public async Task Problems_are_ordered_by_recommended_score_not_by_popularity()
     {
-        var (quiet, _) = await NewProblemAsync("Quiet need");
-        var (busy, _) = await NewProblemAsync("Busy need");
-        await AddToProblemAsync(busy, "Me too");
-        var (upvoted, upvotedRequest) = await NewProblemAsync("Upvoted need");
-        await UpvoteAsync(upvotedRequest, 4);
+        Ai.Score = input => input.Problem.Title switch
+        {
+            "Strategic need" => new(5, "Advances a goal.", "Grow the social side", 4, "Hard.", 3, "Uses it less."),
+            "Popular need" => new(1, "No goal.", null, 2, "Minor.", 1, "No sign."),
+            _ => new(3, "Small way.", "Make students come back", 3, "Friction.", 2, "Mild."),
+        };
+        var (popular, popularRequest) = await NewProblemAsync("Popular need");
+        await UpvoteAsync(popularRequest, 40); // Reach 5 → 30 + 0 + 6.25 + 0 = 36
+        var (middle, _) = await NewProblemAsync("Middle need");       // 15 + 7.5 + 12.5 + 3.75 = 39
+        var (strategic, _) = await NewProblemAsync("Strategic need"); // 30 + 7.5 + 18.75 + 7.5 = 64
 
-        // Reach points: Feature Requests × 3 + Upvotes → Upvoted 7, Busy 6, Quiet 3.
-        Assert.Equal([upvoted, busy, quiet], (await ProblemsAsync()).Problems.Select(p => p.Id));
+        var rows = (await ProblemsAsync()).Problems;
+
+        Assert.Equal([strategic, middle, popular], rows.Select(p => p.Id));
+    }
+
+    [Fact]
+    public async Task Problems_not_yet_scored_come_after_scored_ones()
+    {
+        var (scored, _) = await NewProblemAsync("Scored need");
+        Ai.Score = _ => throw new AiCallException(AiFailureKind.Timeout, "Timed out");
+        var (unscored, request) = await NewProblemAsync("Unscored need");
+        await UpvoteAsync(request, 50);
+
+        Assert.Equal([scored, unscored], (await ProblemsAsync()).Problems.Select(p => p.Id));
     }
 
     [Fact]

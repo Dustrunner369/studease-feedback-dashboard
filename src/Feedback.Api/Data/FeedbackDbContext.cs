@@ -12,6 +12,7 @@ public sealed class FeedbackDbContext(DbContextOptions<FeedbackDbContext> option
     public DbSet<FeatureRequest> FeatureRequests => Set<FeatureRequest>();
     public DbSet<Upvote> Upvotes => Set<Upvote>();
     public DbSet<AiCall> AiCalls => Set<AiCall>();
+    public DbSet<PriorityScoring> PriorityScorings => Set<PriorityScoring>();
 
     protected override void OnModelCreating(ModelBuilder model)
     {
@@ -27,6 +28,24 @@ public sealed class FeedbackDbContext(DbContextOptions<FeedbackDbContext> option
                 t.HasCheckConstraint("ck_problems_status", $"status IN ({ProblemStatuses.SqlList})");
             });
             e.Property(p => p.CreatedAt).HasDefaultValueSql("now()");
+            e.Property(p => p.RecommendedLevel).HasMaxLength(6);
+            e.HasOne<PriorityScoring>().WithMany().HasForeignKey(p => p.FirstScoringId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(p => p.CurrentScoring).WithMany().HasForeignKey(p => p.CurrentScoringId).OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(p => p.RecommendedScore);
+        });
+
+        model.Entity<PriorityScoring>(e =>
+        {
+            e.ToTable("priority_scorings", t =>
+            {
+                t.HasCheckConstraint("ck_priority_scorings_strategic_fit", "strategic_fit BETWEEN 1 AND 5");
+                t.HasCheckConstraint("ck_priority_scorings_pain", "pain BETWEEN 1 AND 5");
+                t.HasCheckConstraint("ck_priority_scorings_retention_risk", "retention_risk BETWEEN 1 AND 5");
+            });
+            e.Property(s => s.CreatedAt).HasDefaultValueSql("now()");
+            // Scorings go with their Problem when it is merged away or emptied.
+            e.HasOne<Problem>().WithMany().HasForeignKey(s => s.ProblemId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(s => s.ProblemId);
         });
 
         model.Entity<FeatureRequest>(e =>

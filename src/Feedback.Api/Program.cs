@@ -3,6 +3,7 @@ using Feedback.Api.Ai;
 using Feedback.Api.Data;
 using Feedback.Api.Intake;
 using Feedback.Api.Portal;
+using Feedback.Api.Scoring;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
@@ -21,6 +22,7 @@ builder.Services.AddDbContext<FeedbackDbContext>(options => options
 builder.Services.AddScoped<IntakePipeline>();
 builder.Services.AddSingleton<IntakeQueue>();
 builder.Services.AddScoped<MatchingStep>();
+builder.Services.AddScoped<PriorityScorer>();
 builder.Services.AddHostedService<IntakeWorker>();
 
 builder.Services.Configure<AiOptions>(builder.Configuration.GetSection(AiOptions.Section));
@@ -30,6 +32,7 @@ builder.Services.AddPortalRateLimit(builder.Configuration);
 builder.Services.Configure<SuggestOptions>(builder.Configuration.GetSection(SuggestOptions.Section));
 builder.Services.Configure<AdminOptions>(builder.Configuration.GetSection(AdminOptions.Section));
 builder.Services.AddSingleton<AdminAuth>();
+builder.Services.Configure<PriorityCriteria>(builder.Configuration.GetSection(PriorityCriteria.Section));
 
 var app = builder.Build();
 

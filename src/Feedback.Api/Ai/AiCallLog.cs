@@ -21,6 +21,12 @@ public sealed class AiCallLog(FeedbackDbContext db, IOptions<AiOptions> options,
     /// <returns>The answer, or null if the call failed (the failure is logged, never thrown).</returns>
     public async Task<T?> RunAsync<T>(
         string step, AiCallFor @for, Func<CancellationToken, Task<AiReply<T>>> call,
+        CancellationToken ct, Func<T, string?>? check = null, string? note = null) where T : class =>
+        (await RunLoggedAsync(step, @for, call, ct, check, note)).Value;
+
+    /// <summary>As <see cref="RunAsync{T}"/>, also returning the ai_calls row id (for rows that point at their call).</summary>
+    public async Task<AiCallResult<T>> RunLoggedAsync<T>(
+        string step, AiCallFor @for, Func<CancellationToken, Task<AiReply<T>>> call,
         CancellationToken ct, Func<T, string?>? check = null, string? note = null) where T : class
     {
         var row = new AiCall
@@ -63,7 +69,7 @@ public sealed class AiCallLog(FeedbackDbContext db, IOptions<AiOptions> options,
             logger.LogWarning("AI step {Step} failed ({Kind}): {Message}", step, row.FailureKind, row.ErrorMessage);
         db.AiCalls.Add(row);
         await db.SaveChangesAsync(ct);
-        return result;
+        return new AiCallResult<T>(result, row.Id);
     }
 
     private static void Fail(AiCall row, string kind, string message)
@@ -80,3 +86,6 @@ public sealed class AiCallLog(FeedbackDbContext db, IOptions<AiOptions> options,
         return (input * price.InputPerMillion + output * price.OutputPerMillion) / 1_000_000m;
     }
 }
+
+/// <summary>The answer (null if the call failed) and the id of the ai_calls row written for it.</summary>
+public sealed record AiCallResult<T>(T? Value, long CallId) where T : class;

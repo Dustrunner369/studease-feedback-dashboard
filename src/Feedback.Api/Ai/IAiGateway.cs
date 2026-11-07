@@ -12,7 +12,7 @@ namespace Feedback.Api.Ai;
 /// Requester text goes in as data, never as instructions.
 /// </para>
 /// Callers wrap each call in AiCallLog.RunAsync, which logs the ai_calls row.
-/// Later tickets add: score a Problem, write a brief, pick files, write solutions, draft an update.
+/// Later tickets add: write a brief, pick files, write solutions, draft an update.
 /// </summary>
 public interface IAiGateway
 {
@@ -21,6 +21,9 @@ public interface IAiGateway
 
     /// <summary>Decides whether a Feature Request belongs to one of the shortlisted Problems or needs a new one.</summary>
     Task<AiReply<MatchDecision>> MatchAsync(MatchInput input, CancellationToken ct);
+
+    /// <summary>Rates a Problem's Strategic fit, Pain and Retention risk (1–5, with reasons) against the Priority Criteria.</summary>
+    Task<AiReply<ScoreRatings>> ScoreAsync(ScoreInput input, CancellationToken ct);
 }
 
 /// <summary>A successful AI answer and what it cost.</summary>
@@ -61,3 +64,25 @@ public sealed record MatchCandidate(
 public sealed record MatchDecision(long? ExistingProblemId, NewProblemDraft? NewProblem, bool IsBundled, string Reason);
 
 public sealed record NewProblemDraft(string Title, string Description, string Category);
+
+/// <summary>
+/// What the scoring step rates: the Problem, its Feature Requests' text (never emails), and the
+/// criteria it rates against. Reach is not rated by the AI; code works it out.
+/// </summary>
+public sealed record ScoreInput(
+    ScoreProblem Problem, IReadOnlyList<ScoreRequest> FeatureRequests,
+    IReadOnlyList<string> Goals, string CoreTasks,
+    IReadOnlyList<string> StrategicFitLevels, IReadOnlyList<string> PainLevels, IReadOnlyList<string> RetentionRiskLevels);
+
+public sealed record ScoreProblem(string Title, string Description, string Category);
+
+public sealed record ScoreRequest(string Title, string Description);
+
+/// <summary>
+/// The strict scoring form: three 1–5 ratings, each with a reason, and the goal Strategic fit serves best
+/// (one of <see cref="ScoreInput.Goals"/>; null only when the rating is 1, "serves none of the goals").
+/// </summary>
+public sealed record ScoreRatings(
+    int StrategicFit, string StrategicFitReason, string? Goal,
+    int Pain, string PainReason,
+    int RetentionRisk, string RetentionRiskReason);
