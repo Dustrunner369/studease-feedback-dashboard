@@ -3,8 +3,8 @@
 ## Results on the seed backlog
 
 - **150 Feature Requests become 30 Problems to triage: 5× less for the product team to read.**
-- **92% duplicate catch rate ** 
-- **99% grouping accuracy **
+- **92% duplicate catch rate** 
+- **99% grouping accuracy**
 - **92% priority consistency (How consistent the Agent is in its prioritization of feature requests)**
 - **$0.042 in AI costs to process all 150 requests (under 3¢ per 100 requests)**
 
