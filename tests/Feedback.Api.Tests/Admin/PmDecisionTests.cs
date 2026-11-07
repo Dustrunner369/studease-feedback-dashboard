@@ -80,16 +80,32 @@ public sealed class PmDecisionTests(FeedbackDatabase database) : AdminTest(datab
         var (problemId, _) = await NewProblemAsync("Filter by opening hours"); // Low
 
         var missing = await PatchAsync(problemId, new { priority = "High" });
-        var multiLine = await PatchAsync(problemId, new { priority = "High", reason = "Exam season.\nAlso the CEO." });
-        var drawer = await PatchOkAsync(problemId, new { priority = "High", reason = " Exam season is coming. " });
+        var multiLine = await PatchAsync(problemId, new { priority = "High", priorityReason = "Exam season.\nAlso the CEO." });
+        var drawer = await PatchOkAsync(problemId, new { priority = "High", priorityReason = " Exam season is coming. " });
 
         Assert.Equal(HttpStatusCode.BadRequest, missing.StatusCode);
-        Assert.Contains("reason", (await missing.Content.ReadFromJsonAsync<ValidationJson>())!.Errors.Keys);
+        Assert.Contains("priorityReason", (await missing.Content.ReadFromJsonAsync<ValidationJson>())!.Errors.Keys);
         Assert.Equal(HttpStatusCode.BadRequest, multiLine.StatusCode);
         Assert.Equal(("High", "Exam season is coming."), (drawer.Priority, drawer.PriorityOverrideReason));
         var set = Assert.Single(drawer.Decisions);
         Assert.Equal(("priority", "Exam season is coming."), (set.Kind, set.Reason));
         Assert.Equal("Low", set.Details.GetProperty("recommended").GetString());
+    }
+
+    [Fact]
+    public async Task One_patch_closing_as_wont_do_and_overriding_the_priority_keeps_the_two_reasons_apart()
+    {
+        var (problemId, _) = await NewProblemAsync("Filter by opening hours"); // Low
+
+        var missing = await PatchAsync(problemId, new { status = "Won't do", reason = "Out of scope for v1.", priority = "High" });
+        var drawer = await PatchOkAsync(problemId,
+            new { status = "Won't do", reason = "Out of scope for v1.", priority = "High", priorityReason = "Exam season." });
+
+        Assert.Equal(HttpStatusCode.BadRequest, missing.StatusCode);
+        Assert.Equal(["priorityReason"], (await missing.Content.ReadFromJsonAsync<ValidationJson>())!.Errors.Keys);
+        Assert.Equal(("Won't do", "High", "Exam season."), (drawer.Status, drawer.Priority, drawer.PriorityOverrideReason));
+        Assert.Equal("Out of scope for v1.", drawer.Decisions.Single(d => d.Kind == "status").Reason);
+        Assert.Equal("Exam season.", drawer.Decisions.Single(d => d.Kind == "priority").Reason);
     }
 
     [Fact]
@@ -151,7 +167,7 @@ public sealed class PmDecisionTests(FeedbackDatabase database) : AdminTest(datab
         var (problemId, requestId) = await NewProblemAsync("Filter by opening hours");
         var other = await SubmitAsync("Dark mode please", "Other");
         await App.WhenIntakeIdleAsync();
-        await PatchOkAsync(problemId, new { priority = "High", reason = "Exam season." });
+        await PatchOkAsync(problemId, new { priority = "High", priorityReason = "Exam season." });
 
         var drawer = await PatchOkAsync(problemId, new { status = "Shipped" });
 
@@ -177,13 +193,27 @@ public sealed class PmDecisionTests(FeedbackDatabase database) : AdminTest(datab
 
         await UpvoteAsync(requestId, 40); // 43 points would be Reach 5
         var frozen = Assert.Single(await ArchiveAsync()).Recommended!;
-        var reopened = await PatchOkAsync(problemId, new { status = "Under review" });
 
         Assert.Equal(39, frozen.Score);
+        Assert.Single(Ai.ScoreCalls); // closing and Upvotes on a closed Problem call no AI
+    }
+
+    [Theory]
+    [InlineData("Won't do")]
+    [InlineData("Shipped")]
+    public async Task Reopening_a_closed_problem_scores_it_again_with_the_ai(string closedAs)
+    {
+        var (problemId, requestId) = await NewProblemAsync("Filter by opening hours"); // 39: Reach 2 (3 points)
+        await PatchOkAsync(problemId, new { status = closedAs, reason = "Not now." });
+        await UpvoteAsync(requestId, 40); // 43 points: Reach 5
+        Ai.Score = _ => new ScoreRatings(5, "fit", "Help students find new study spots", 5, "pain", 5, "retention");
+
+        var reopened = await PatchOkAsync(problemId, new { status = "Under review" });
+
         Assert.Null(reopened.ClosedAt);
-        Assert.Equal(61, reopened.Recommended!.Score); // 15 + 30 + 12.5 + 3.75 = 61.25
+        Assert.Equal((100, "High"), (reopened.Recommended!.Score, reopened.Recommended.Level)); // every rating 5
+        Assert.Equal(2, Ai.ScoreCalls.Count);
         Assert.Empty(await ArchiveAsync());
-        Assert.Single(Ai.ScoreCalls); // neither closing nor reopening calls the AI
     }
 
     [Fact]

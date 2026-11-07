@@ -1613,7 +1613,7 @@
     },
     {
       "request": "Plan a group study session",
-      "priority": "High",
+      "priority": "override",
       "reason": "Only one request so far, but group study is the heart of the social side we want to grow this term."
     },
     {

@@ -121,11 +121,13 @@ public sealed class SeedLoader(IServiceScopeFactory scopes, IntakeQueue queue)
             result = await decisions.SetStatusAsync(problem.Id, status, action.Reason, ct);
         else
         {
-            var level = action.Priority == SeedAction.Recommended ? problem.RecommendedLevel : action.Priority;
-            if (level is null) return $"skipped {what} on \"{problem.Title}\": it has no Recommended Priority.";
-            what = $"Priority {level}";
+            if (problem.RecommendedLevel is not { } recommended)
+                return $"skipped {what} on \"{problem.Title}\": it has no Recommended Priority.";
+            var level = action.Priority == SeedAction.Override ? SeedAction.OverrideOf(recommended) : recommended;
+            what = action.Priority == SeedAction.Override
+                ? $"Priority {level} (override of Recommended {recommended})" : $"Priority {level}";
             result = await decisions.ApplyAsync(problem.Id,
-                new ProblemChanges { SetsPriority = true, Priority = level, Reason = action.Reason }, ct);
+                new ProblemChanges { SetsPriority = true, Priority = level, PriorityReason = action.Reason }, ct);
         }
         return result.Errors is { } errors
             ? $"couldn't set {what} on \"{problem.Title}\": {string.Join(" ", errors.Values.SelectMany(e => e))}"

@@ -89,7 +89,7 @@ public sealed class SeedTests(FeedbackDatabase database) : AdminTest(database)
              Req("B1", "b"), Req("C1", "c"), Req("D1", "d")],
             new { request = "A1", status = "Shipped" },
             new { request = "B1", priority = "recommended" },
-            new { request = "C1", priority = "High", reason = "Small now, but it is the social side we are betting on." },
+            new { request = "C1", priority = "override", reason = "Small now, but it is the social side we are betting on." },
             new { request = "D1", status = "Won't do", reason = "Out of scope for a study-spot app." });
         Ai.Match = input => input.Request.Title == "A2" ? FakeAiGateway.Existing(input.Candidates.Single(c => c.Title == "Need: A1").ProblemId)
             : FakeAiGateway.NewProblemFromRequest(input);
@@ -109,9 +109,38 @@ public sealed class SeedTests(FeedbackDatabase database) : AdminTest(database)
         Assert.Equal(b.Recommended!.Level, b.Priority);
         Assert.Null(b.PriorityOverrideReason);
         var c = await DrawerAsync(problems.Single(p => p.Title == "Need: C1").Id);
-        Assert.Equal(("High", "Small now, but it is the social side we are betting on."), (c.Priority, c.PriorityOverrideReason));
-        Assert.NotEqual("High", c.Recommended!.Level);
+        // The fake's ratings make every Problem Low, so the override is High.
+        Assert.Equal(("Low", "High", "Small now, but it is the social side we are betting on."),
+            (c.Recommended!.Level, c.Priority, c.PriorityOverrideReason));
         Assert.Contains("Shipped", output);
+    }
+
+    [Fact]
+    public async Task An_override_on_a_high_problem_sets_medium_so_it_is_always_an_override()
+    {
+        Ai.Score = _ => new ScoreRatings(5, "fit", "Help students find new study spots", 5, "pain", 5, "retention");
+        var file = SeedFile([Req("A1", "a")], new { request = "A1", priority = "override", reason = "Not this term." });
+
+        var (exit, output) = await SeedAsync("load", "--file", file);
+
+        Assert.Equal(0, exit);
+        var a = await DrawerAsync((await ProblemsAsync()).Problems.Single().Id);
+        Assert.Equal(("High", "Medium", "Not this term."), (a.Recommended!.Level, a.Priority, a.PriorityOverrideReason));
+        Assert.Contains("override", output);
+    }
+
+    [Theory]
+    [InlineData("override", null)] // an override needs its reason
+    [InlineData("High", "A fixed level could silently match the Recommended one.")]
+    public async Task Load_rejects_a_priority_action_that_is_not_recommended_or_a_reasoned_override(string priority, string? reason)
+    {
+        var file = SeedFile([Req("A1", "a")], new { request = "A1", priority, reason });
+
+        var (exit, output) = await SeedAsync("load", "--file", file);
+
+        Assert.NotEqual(0, exit);
+        Assert.Contains("A1", output);
+        Assert.Empty((await ProblemsAsync()).Problems);
     }
 
     [Fact]
@@ -172,6 +201,11 @@ public sealed class SeedTests(FeedbackDatabase database) : AdminTest(database)
         Assert.NotEmpty((await Client.GetFromJsonAsync<OutboxMessageJson[]>("/api/admin/outbox?tab=drafts"))!);
         var problems = (await ProblemsAsync()).Problems;
         Assert.Equal(5, problems.Count(p => p.Priority is not null));
+        var overrides = new List<DecisionDrawerJson>();
+        foreach (var p in problems.Where(p => p.Priority is not null))
+            if (await DrawerAsync(p.Id) is { PriorityOverrideReason: not null } d) overrides.Add(d);
+        var only = Assert.Single(overrides);
+        Assert.NotEqual(only.Recommended!.Level, only.Priority);
         Assert.Equal(7, problems.Select(p => p.Category).Distinct().Count());
         Assert.DoesNotContain(GitHub.Calls, c => !c.StartsWith("GetRepo"));
     }

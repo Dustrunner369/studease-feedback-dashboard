@@ -66,8 +66,10 @@ public sealed record SeedFile(IReadOnlyList<SeedProblem>? Problems, IReadOnlyLis
         {
             if (!Requests.Any(r => r.Title == a.Request)) errors.Add($"action on \"{a.Request}\": no request has that title.");
             if ((a.Priority is null) == (a.Status is null)) errors.Add($"action on \"{a.Request}\": give a priority or a status.");
-            if (a.Priority is not null && a.Priority != SeedAction.Recommended && !PriorityLevels.IsValid(a.Priority))
-                errors.Add($"action on \"{a.Request}\": unknown priority \"{a.Priority}\".");
+            if (a.Priority is not null && a.Priority is not (SeedAction.Recommended or SeedAction.Override))
+                errors.Add($"action on \"{a.Request}\": priority is \"{SeedAction.Recommended}\" or \"{SeedAction.Override}\", not \"{a.Priority}\".");
+            if (a.Priority == SeedAction.Override && string.IsNullOrWhiteSpace(a.Reason))
+                errors.Add($"action on \"{a.Request}\": an override needs a reason.");
             if (a.Status is not null && !ProblemStatuses.IsValid(a.Status)) errors.Add($"action on \"{a.Request}\": unknown status \"{a.Status}\".");
         }
         return errors;
@@ -85,12 +87,19 @@ public sealed record SeedRequest(
     string Title, string Description, string Category, string Email, double DaysAgo, int Upvotes, string? Problem, string? Kind);
 
 /// <summary>
-/// A product-team action on the Problem a request ended up in: a Priority (<c>"recommended"</c> = agree with the
-/// Recommended level) or a status. Reason as the /admin drawer asks for one.
+/// A product-team action on the Problem a request ended up in: a Priority or a status. Priority is
+/// <c>"recommended"</c> (agree with the Recommended level) or <c>"override"</c> (a level other than the Recommended
+/// one, picked at load time since the level isn't known until scoring; needs a reason). Reason as the /admin drawer
+/// asks for one.
 /// </summary>
 public sealed record SeedAction(string Request, string? Priority, string? Status, string? Reason)
 {
     public const string Recommended = "recommended";
+    public const string Override = "override";
+
+    /// <summary>The override's level: High, or Medium when the Recommended level is already High.</summary>
+    public static string OverrideOf(string recommended) =>
+        recommended == PriorityLevels.High ? PriorityLevels.Medium : PriorityLevels.High;
 }
 
 public sealed class SeedFileException(string message) : Exception(message);
