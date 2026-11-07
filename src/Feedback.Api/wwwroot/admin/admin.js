@@ -486,7 +486,8 @@ function briefBlock(p) {
       generate("Regenerate")));
   }
   const unverified = b.sections.flatMap((s) => s.claims).filter((c) => !c.verified).length;
-  body.append(
+  // Native append() turns null into the text "null", so empty pieces are left out first.
+  body.append(...[
     el("div", { class: "spread" },
       el("span", { class: "caption" }, `Written ${formatDate(b.writtenAt)} · ${b.whoIsAsking.featureRequests} Feature Requests · recommends no decision`),
       b.outOfDate ? null : generate("Regenerate", "btn sm quiet")),
@@ -498,7 +499,8 @@ function briefBlock(p) {
         : el("p", { class: "caption" }, "Nothing here."))),
     unverified ? el("p", { class: "notice err" },
       `${unverified} claim${unverified === 1 ? "" : "s"} failed the citation check. Shown, but marked.`) : null,
-    el("p", { class: "caption" }, "Code checks that cited requests and quotes exist; open a chip to judge whether it supports the claim."));
+    el("p", { class: "caption" }, "Code checks that cited requests and quotes exist; open a chip to judge whether it supports the claim."),
+  ].filter((x) => x != null));
   return body;
 }
 
@@ -1121,7 +1123,8 @@ function messagePane(m, editing = false) {
 
   const sent = m.status === "Sent";
   const failed = m.status === "Draft failed" || m.status === "Drafting";
-  pane.append(head,
+  // Native append() turns null into the text "null", so empty pieces are left out first.
+  pane.append(...[head,
     failed
       ? el("p", { class: "failed" }, m.status === "Drafting" ? "✦ Still drafting. If it's stuck, retry. " : "Draft failed · ",
         el("button", { class: "link", type: "button", onclick: () => act("/retry", "POST", null) }, "Retry"),
@@ -1133,7 +1136,8 @@ function messagePane(m, editing = false) {
       : el("div", { class: "row" },
         el("button", { class: "btn sm", type: "button", disabled: m.status !== "Ready", onclick: () => act("/send", "POST", "Approved: moved to Sent.") }, "Approve"),
         el("button", { class: "btn sm quiet", type: "button", onclick: () => pane.replaceWith(messagePane(m, true)) }, "Edit"),
-        el("button", { class: "btn sm quiet", type: "button", onclick: () => act("", "DELETE", "Draft discarded.") }, "Discard")));
+        el("button", { class: "btn sm quiet", type: "button", onclick: () => act("", "DELETE", "Draft discarded.") }, "Discard")),
+  ].filter((x) => x != null));
   return pane;
 }
 
