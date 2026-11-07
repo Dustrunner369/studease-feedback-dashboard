@@ -30,7 +30,9 @@ public static class PortalEndpoints
             if (!string.IsNullOrEmpty(sort) && sort is not ("new" or "top"))
                 return Results.ValidationProblem(new Dictionary<string, string[]> { ["sort"] = ["Unknown sort."] });
 
-            var rows = db.FeatureRequests.AsNoTracking();
+            // Shipped requests leave the board; Won't do ones stay (and stay upvotable).
+            var rows = db.FeatureRequests.AsNoTracking()
+                .Where(r => r.Problem == null || r.Problem.Status != ProblemStatuses.Shipped);
             if (!string.IsNullOrEmpty(category))
                 rows = rows.Where(r => (r.Problem != null ? r.Problem.Category : r.Category) == category);
 

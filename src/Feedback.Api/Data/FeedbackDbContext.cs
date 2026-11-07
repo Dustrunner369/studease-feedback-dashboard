@@ -13,6 +13,7 @@ public sealed class FeedbackDbContext(DbContextOptions<FeedbackDbContext> option
     public DbSet<Upvote> Upvotes => Set<Upvote>();
     public DbSet<AiCall> AiCalls => Set<AiCall>();
     public DbSet<PriorityScoring> PriorityScorings => Set<PriorityScoring>();
+    public DbSet<DecisionLogEntry> DecisionLog => Set<DecisionLogEntry>();
 
     protected override void OnModelCreating(ModelBuilder model)
     {
@@ -26,7 +27,9 @@ public sealed class FeedbackDbContext(DbContextOptions<FeedbackDbContext> option
             {
                 t.HasCheckConstraint("ck_problems_category", $"category IN ({Categories.SqlList})");
                 t.HasCheckConstraint("ck_problems_status", $"status IN ({ProblemStatuses.SqlList})");
+                t.HasCheckConstraint("ck_problems_priority", $"priority IS NULL OR priority IN ({PriorityLevels.SqlList})");
             });
+            e.Property(p => p.Priority).HasMaxLength(6);
             e.Property(p => p.CreatedAt).HasDefaultValueSql("now()");
             e.Property(p => p.RecommendedLevel).HasMaxLength(6);
             e.HasOne<PriorityScoring>().WithMany().HasForeignKey(p => p.FirstScoringId).OnDelete(DeleteBehavior.SetNull);
@@ -67,6 +70,17 @@ public sealed class FeedbackDbContext(DbContextOptions<FeedbackDbContext> option
             e.Property(u => u.CreatedAt).HasDefaultValueSql("now()");
             e.HasOne<FeatureRequest>().WithMany()
                 .HasForeignKey(u => u.FeatureRequestId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        model.Entity<DecisionLogEntry>(e =>
+        {
+            e.ToTable("decision_log", t =>
+                t.HasCheckConstraint("ck_decision_log_kind", $"kind IN ({DecisionKinds.SqlList})"));
+            e.Property(d => d.Kind).HasMaxLength(16);
+            e.Property(d => d.Details).HasColumnType("jsonb");
+            e.Property(d => d.CreatedAt).HasDefaultValueSql("now()");
+            e.HasOne<Problem>().WithMany().HasForeignKey(d => d.ProblemId).OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(d => d.ProblemId);
         });
 
         model.Entity<AiCall>(AiCall.Configure);

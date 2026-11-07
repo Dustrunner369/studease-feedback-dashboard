@@ -11,5 +11,10 @@ public static class ProblemStatuses
 
     public static readonly IReadOnlyList<string> All = [New, UnderReview, Planned, InProgress, Shipped, WontDo];
 
+    public static bool IsValid(string? status) => status is not null && All.Contains(status);
+
+    /// <summary>Shipped and Won't do close a Problem: it goes to the Archive and its Recommended Priority freezes.</summary>
+    public static bool IsClosed(string status) => status is Shipped or WontDo;
+
     public static string SqlList => string.Join(", ", All.Select(s => $"'{s.Replace("'", "''")}'"));
 }

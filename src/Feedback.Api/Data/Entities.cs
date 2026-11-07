@@ -13,6 +13,11 @@ public sealed class Problem
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? ClosedAt { get; set; }
 
+    /// <summary>The product team's Priority (High/Medium/Low); null = Not set.</summary>
+    public string? Priority { get; set; }
+    /// <summary>Why the Priority differs from the Recommended level (null when it doesn't).</summary>
+    public string? PriorityOverrideReason { get; set; }
+
     // Recommended Priority (kept current by PriorityScoring; frozen once the Problem is closed).
     /// <summary>Feature Requests × 3 + Upvotes when Reach was last worked out (explains reach_rating).</summary>
     public int? ReachPoints { get; set; }
@@ -66,5 +71,18 @@ public sealed class Upvote
 {
     public long FeatureRequestId { get; set; }
     public required string BrowserToken { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+}
+
+/// <summary>One product-team decision about a Problem. Append-only; written by <c>DecisionLog.Add</c>.</summary>
+public sealed class DecisionLogEntry
+{
+    public long Id { get; set; }
+    /// <summary>Null once the Problem has been merged away or emptied.</summary>
+    public long? ProblemId { get; set; }
+    public required string Kind { get; set; }
+    public string? Reason { get; set; }
+    /// <summary>JSON object; what changed (e.g. from/to, a merge's removed titles).</summary>
+    public required string Details { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
 }

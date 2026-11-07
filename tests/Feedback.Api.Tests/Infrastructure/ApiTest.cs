@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace Feedback.Api.Tests.Infrastructure;
 
@@ -35,6 +36,28 @@ public abstract class ApiTest(FeedbackDatabase database) : IAsyncLifetime
     {
         var response = await Client.PostAsJsonAsync("/api/admin/login", new { key = FeedbackApp.AdminKey });
         response.EnsureSuccessStatusCode();
+    }
+
+    /// <summary>
+    /// Signs in and sets the status of a Feature Request's Problem through PATCH /api/admin/problems/{id}
+    /// (Won't do gets a reason).
+    /// </summary>
+    protected async Task SetProblemStatusAsync(long featureRequestId, string status)
+    {
+        await SignInAsync();
+        var problems = (await Client.GetFromJsonAsync<JsonElement>("/api/admin/problems")).GetProperty("problems");
+        foreach (var problem in problems.EnumerateArray())
+        {
+            var id = problem.GetProperty("id").GetInt64();
+            var drawer = await Client.GetFromJsonAsync<JsonElement>($"/api/admin/problems/{id}");
+            if (!drawer.GetProperty("featureRequests").EnumerateArray().Any(r => r.GetProperty("id").GetInt64() == featureRequestId))
+                continue;
+            var response = await Client.PatchAsJsonAsync($"/api/admin/problems/{id}",
+                new { status, reason = status == "Won't do" ? "Not for now." : null });
+            response.EnsureSuccessStatusCode();
+            return;
+        }
+        throw new InvalidOperationException($"Feature Request {featureRequestId} has no open Problem.");
     }
 
     public async Task DisposeAsync()

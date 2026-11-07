@@ -4,6 +4,7 @@ using Feedback.Api.Data;
 using Feedback.Api.Intake;
 using Feedback.Api.Portal;
 using Feedback.Api.Scoring;
+using Feedback.Api.Triage;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
@@ -23,6 +24,7 @@ builder.Services.AddScoped<IntakePipeline>();
 builder.Services.AddSingleton<IntakeQueue>();
 builder.Services.AddScoped<MatchingStep>();
 builder.Services.AddScoped<PriorityScorer>();
+builder.Services.AddScoped<ProblemDecisions>();
 builder.Services.AddHostedService<IntakeWorker>();
 
 builder.Services.Configure<AiOptions>(builder.Configuration.GetSection(AiOptions.Section));

@@ -101,8 +101,8 @@ public sealed class SuggestTests(FeedbackDatabase database) : ApiTest(database)
         var shipped = await SubmitAsync("Shipped one", FakeAiGateway.Axis(11, 0, 4f));
         var wontDo = await SubmitAsync("Won't do one", FakeAiGateway.Axis(12, 0, 2f));
         await App.WhenIntakeIdleAsync();
-        await Database.SetProblemStatusAsync(shipped.Id, "Shipped");
-        await Database.SetProblemStatusAsync(wontDo.Id, "Won't do");
+        await SetProblemStatusAsync(shipped.Id, "Shipped");
+        await SetProblemStatusAsync(wontDo.Id, "Won't do");
 
         var matches = await SuggestAsync();
 

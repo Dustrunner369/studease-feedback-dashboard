@@ -168,7 +168,7 @@ public sealed class RecommendedPriorityTests(FeedbackDatabase database) : AdminT
     {
         var (problemId, requestId) = await NewProblemAsync("Filter by opening hours");
         var before = (await DrawerAsync(problemId)).Recommended!;
-        await Database.SetProblemStatusAsync(requestId, "Won't do");
+        await SetProblemStatusAsync(requestId, "Won't do");
 
         await UpvoteAsync(requestId, 40);
         var retry = await Client.PostAsync($"/api/admin/problems/{problemId}/retry-scoring", null);

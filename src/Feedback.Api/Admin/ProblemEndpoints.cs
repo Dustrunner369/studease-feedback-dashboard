@@ -1,6 +1,9 @@
 using Feedback.Api.Data;
 using Feedback.Api.Domain;
 using Feedback.Api.Scoring;
+using Feedback.Api.Triage;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -24,7 +27,7 @@ public static class ProblemEndpoints
             var rows = await problems
                 .Select(p => new
                 {
-                    p.Id, p.Title, p.Category, p.Status, p.CreatedAt, p.RecommendedScore,
+                    p.Id, p.Title, p.Category, p.Status, p.CreatedAt, p.RecommendedScore, p.Priority,
                     FeatureRequests = p.FeatureRequests.Count,
                     Upvotes = db.Upvotes.Count(u => p.FeatureRequests.Select(r => r.Id).Contains(u.FeatureRequestId)),
                 })
@@ -35,7 +38,7 @@ public static class ProblemEndpoints
             var table = rows
                 .OrderByDescending(p => p.RecommendedScore.HasValue).ThenByDescending(p => p.RecommendedScore)
                 .ThenByDescending(p => p.FeatureRequests * 3 + p.Upvotes).ThenByDescending(p => p.CreatedAt).ThenByDescending(p => p.Id)
-                .Select(p => new ProblemRow(p.Id, p.Title, p.Category, p.Status, p.FeatureRequests, p.Upvotes, null))
+                .Select(p => new ProblemRow(p.Id, p.Title, p.Category, p.Status, p.FeatureRequests, p.Upvotes, p.Priority))
                 .ToList();
             var needsReview = await db.FeatureRequests.CountAsync(r => r.ProblemId == null, ct);
             return Results.Ok(new ProblemsPage(needsReview, table));
@@ -43,6 +46,18 @@ public static class ProblemEndpoints
 
         admin.MapGet("/problems/{id:long}", async (long id, FeedbackDbContext db, IOptions<PriorityCriteria> criteria, CancellationToken ct) =>
             await DrawerAsync(id, db, criteria.Value, ct) is { } drawer ? Results.Ok(drawer) : Results.NotFound());
+
+        // Rename, description, Category, status and Priority; returns the refreshed drawer.
+        admin.MapPatch("/problems/{id:long}", async (
+            long id, JsonObject? body, ProblemDecisions decisions, FeedbackDbContext db, IOptions<PriorityCriteria> criteria, CancellationToken ct) =>
+        {
+            if (ProblemChanges.From(body) is not { } changes)
+                return Results.ValidationProblem(new Dictionary<string, string[]> { ["body"] = ["Send a JSON object of strings."] });
+            var result = await decisions.ApplyAsync(id, changes, ct);
+            if (!result.Found) return Results.NotFound();
+            if (result.Errors is { } errors) return Results.ValidationProblem(errors);
+            return Results.Ok(await DrawerAsync(id, db, criteria.Value, ct));
+        });
     }
 
     /// <summary>The Problem drawer, or null if there is no such Problem.</summary>
@@ -58,9 +73,14 @@ public static class ProblemEndpoints
                 r.Id, r.Title, r.Description, r.Email, r.Category, r.CreatedAt,
                 db.Upvotes.Count(u => u.FeatureRequestId == r.Id), r.MatchReason, r.IsBundled))
             .ToListAsync(ct);
+        var decisions = (await db.DecisionLog.AsNoTracking().Where(d => d.ProblemId == id)
+                .OrderByDescending(d => d.Id).ToListAsync(ct))
+            .Select(d => new DecisionView(d.Kind, d.Reason, JsonDocument.Parse(d.Details).RootElement, d.CreatedAt))
+            .ToList();
         return new ProblemDrawer(
-            problem.Id, problem.Title, problem.Description, problem.Category, problem.Status, null,
-            Recommended(problem, criteria), problem.ScoringFailed, requests);
+            problem.Id, problem.Title, problem.Description, problem.Category, problem.Status, problem.Priority,
+            problem.PriorityOverrideReason, Recommended(problem, criteria), problem.ScoringFailed, requests, decisions,
+            problem.ClosedAt);
     }
 
     // The stored score and level, explained criterion by criterion (null until a scoring has succeeded).
@@ -100,8 +120,11 @@ public sealed record ProblemRow(
 /// </summary>
 public sealed record ProblemDrawer(
     long Id, string Title, string Description, string Category, string Status, string? Priority,
-    RecommendedView? Recommended, bool ScoringFailed,
-    IReadOnlyList<DrawerRequest> FeatureRequests);
+    string? PriorityOverrideReason, RecommendedView? Recommended, bool ScoringFailed,
+    IReadOnlyList<DrawerRequest> FeatureRequests, IReadOnlyList<DecisionView> Decisions, DateTimeOffset? ClosedAt);
+
+/// <summary>A decision_log row, newest first in the drawer. Details is the stored JSON object.</summary>
+public sealed record DecisionView(string Kind, string? Reason, JsonElement Details, DateTimeOffset CreatedAt);
 
 /// <summary>A Feature Request in the drawer. Category is the Requester's own pick; MatchReason is "✦ Why it's here".</summary>
 public sealed record DrawerRequest(

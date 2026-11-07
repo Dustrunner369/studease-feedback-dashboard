@@ -1,9 +1,10 @@
-// Studease /admin. Hash routes: #problems[/<id>], #outbox, #metrics, #settings/ai-calls[?status=Failed&problem=<id>], #settings/criteria.
+// Studease /admin. Hash routes: #problems[/<id>], #outbox, #metrics, #settings/ai-calls[?status=Failed&problem=<id>], #settings/criteria, #settings/archive.
 // All user and AI text goes into the DOM through textContent (via el), never innerHTML.
 import { el, CATEGORIES, toast, formatDate } from "/js/portal.js";
 
 const STATUSES = ["New", "Under review", "Planned", "In progress", "Shipped", "Won't do"];
 const PRIORITY_RANK = { High: 0, Medium: 1, Low: 2 };
+const CLOSED = ["Shipped", "Won't do"];
 const app = document.getElementById("app");
 const top = document.getElementById("top");
 
@@ -23,6 +24,17 @@ async function api(path, options = {}) {
   return res.status === 204 ? null : res.json();
 }
 
+/** PATCH /problems/{id}: { drawer } on success, { errors } (keyed by field) on a 400. */
+async function patchProblem(id, body) {
+  const res = await fetch(`/api/admin/problems/${id}`, {
+    method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "same-origin", body: JSON.stringify(body),
+  });
+  if (res.status === 401) throw new SignedOut();
+  if (res.status === 400) return { errors: (await res.json()).errors ?? {} };
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return { drawer: await res.json() };
+}
+
 function route() {
   const [path, query = ""] = location.hash.replace(/^#/, "").split("?");
   const parts = path.split("/").filter(Boolean);
@@ -40,7 +52,7 @@ async function render() {
     if (r.view === "problems") await problemsView(r.sub ? Number(r.sub) : null);
     else if (r.view === "outbox") placeholder("Outbox", "AI-drafted updates for Requesters appear here when a Problem ships. Coming in a later slice.");
     else if (r.view === "metrics") placeholder("Metrics", "Duplicate catch rate, grouping accuracy and priority consistency appear here. Coming in a later slice.");
-    else if (r.view === "settings") await (r.sub === "criteria" ? criteriaView() : settingsView(r.params));
+    else if (r.view === "settings") await (r.sub === "criteria" ? criteriaView() : r.sub === "archive" ? archiveView() : settingsView(r.params));
     else location.hash = "#problems";
     top.hidden = false;
   } catch (e) {
@@ -171,20 +183,124 @@ async function drawer(id) {
   const aside = el("aside", { class: "drawer", "aria-label": `Problem: ${p.title}` },
     el("div", { class: "spread" }, el("span", { class: "label" }, "Problem"),
       el("button", { class: "btn sm quiet", type: "button", onclick: close }, "Close ✕")),
-    el("h2", {}, p.title),
-    el("p", { class: "muted" }, p.description),
-    el("div", { class: "meta" },
-      el("div", {}, el("span", { class: "label" }, "Status"), el("span", {}, p.status)),
-      el("div", {}, el("span", { class: "label" }, "Category"), el("span", {}, p.category))),
+    titleBlock(p),
+    headerControls(p),
     priorityBlock(p),
     el("details", { open: true },
       el("summary", {}, `Feature Requests (${p.featureRequests.length})`),
       el("div", { class: "frs" }, p.featureRequests.map(requestRow))),
+    el("details", {},
+      el("summary", {}, `Decision log (${p.decisions.length})`),
+      p.decisions.length ? el("ul", { class: "decisions" }, p.decisions.map(decisionRow))
+        : el("p", { class: "caption" }, "No decisions yet.")),
     el("details", { ontoggle: (e) => { if (e.target.open && !calls.dataset.loaded) loadCalls(calls, p.id); } },
       el("summary", {}, "AI calls"), calls));
   document.querySelector(".drawer")?.remove();
   document.body.append(aside);
   aside.querySelector("button").focus();
+}
+
+/** Saves a drawer change, then redraws the page. Closing a Problem sends it to the Archive and shuts the drawer. */
+async function save(p, body, { onErrors, done } = {}) {
+  try {
+    const result = await patchProblem(p.id, body);
+    if (result.errors) {
+      const message = Object.values(result.errors).flat()[0] ?? "That change wasn't saved.";
+      if (onErrors) onErrors(message); else toast(message);
+      return false;
+    }
+    const fresh = result.drawer;
+    if (CLOSED.includes(fresh.status) && !CLOSED.includes(p.status)) {
+      toast(`Closed as ${fresh.status}: moved to the Archive.`);
+      location.hash = "#problems";
+      return true;
+    }
+    if (done) toast(done);
+    await render();
+    return true;
+  } catch (e) {
+    if (e instanceof SignedOut) { signIn(); return false; }
+    toast("Couldn't save. Try again.");
+    return false;
+  }
+}
+
+function titleBlock(p) {
+  const view = el("div", { class: "stack", style: "gap:4px" },
+    el("h2", {}, p.title),
+    el("p", { class: "muted" }, p.description));
+  const title = el("input", { type: "text", value: p.title, maxlength: "120", "aria-label": "Title" });
+  const description = el("textarea", { rows: "3", maxlength: "2000", "aria-label": "Description" }, p.description);
+  const error = el("p", { class: "notice err", role: "alert", hidden: true });
+  const cancel = el("button", { class: "btn sm quiet", type: "button" }, "Cancel");
+  const form = el("form", { class: "stack", style: "gap:6px", hidden: true }, title, description, error,
+    el("div", { class: "row" }, el("button", { class: "btn sm" }, "Save"), cancel));
+  const rename = el("button", { class: "btn sm quiet", type: "button" }, "Rename");
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    error.hidden = true;
+    await save(p, { title: title.value, description: description.value }, {
+      done: "Saved.", onErrors: (message) => { error.textContent = message; error.hidden = false; },
+    });
+  });
+  cancel.addEventListener("click", () => { form.hidden = true; view.hidden = false; rename.hidden = false; });
+  rename.addEventListener("click", () => { view.hidden = true; rename.hidden = true; form.hidden = false; title.focus(); });
+  return el("div", { class: "stack", style: "gap:6px" }, view, form, el("div", {}, rename));
+}
+
+// Status and Category. Won't do asks for a one-line reason before it is saved.
+function headerControls(p) {
+  const status = el("select", { "aria-label": "Status" },
+    STATUSES.map((s) => el("option", { value: s, selected: s === p.status }, s)));
+  const category = el("select", { "aria-label": "Category" },
+    CATEGORIES.map((c) => el("option", { value: c, selected: c === p.category }, c)));
+  const reason = el("input", { type: "text", maxlength: "300", "aria-label": "Reason for Won't do",
+    placeholder: "Why won't we do it? One line, goes in the decision log." });
+  const reasonError = el("span", { class: "caption", style: "color:var(--error)", hidden: true });
+  const back = el("button", { class: "btn sm quiet", type: "button" }, "Cancel");
+  const wontDo = el("form", { class: "stack", style: "gap:6px", hidden: true },
+    reason, reasonError, el("div", { class: "row" }, el("button", { class: "btn sm" }, "Close as Won't do"), back));
+
+  status.addEventListener("change", async () => {
+    if (status.value === "Won't do") { wontDo.hidden = false; reason.focus(); return; }
+    wontDo.hidden = true;
+    status.disabled = true;
+    if (!await save(p, { status: status.value }, { done: `Status: ${status.value}.` })) { status.value = p.status; status.disabled = false; }
+  });
+  wontDo.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    reasonError.hidden = true;
+    await save(p, { status: "Won't do", reason: reason.value }, {
+      onErrors: (message) => { reasonError.textContent = message; reasonError.hidden = false; },
+    });
+  });
+  back.addEventListener("click", () => { wontDo.hidden = true; status.value = p.status; });
+  category.addEventListener("change", async () => {
+    category.disabled = true;
+    if (!await save(p, { category: category.value }, { done: `Category: ${category.value}.` })) { category.value = p.category; category.disabled = false; }
+  });
+
+  const closed = CLOSED.includes(p.status)
+    ? el("p", { class: "notice" }, `Closed as ${p.status}${p.closedAt ? ` on ${formatDate(p.closedAt)}` : ""}: it's in the Archive and its Recommended Priority is frozen. Pick another status to reopen it.`)
+    : null;
+  return el("div", { class: "stack", style: "gap:8px" },
+    el("div", { class: "row" },
+      el("label", { class: "row", style: "gap:6px" }, el("span", { class: "label" }, "Status"), status),
+      el("label", { class: "row", style: "gap:6px" }, el("span", { class: "label" }, "Category"), category)),
+    wontDo, closed);
+}
+
+const DECISION_LABEL = { status: "Status", priority: "Priority", merge: "Merge", move: "Move", rename: "Rename", category: "Category" };
+
+function decisionRow(d) {
+  const x = d.details ?? {};
+  const what = d.kind === "rename"
+    ? (x.field === "description" ? "Description changed" : `“${x.from}” → “${x.to}”`)
+    : ("from" in x || "to" in x) ? `${x.from ?? "Not set"} → ${x.to ?? "Not set"}` : "";
+  return el("li", {},
+    el("b", {}, DECISION_LABEL[d.kind] ?? d.kind), " ", what,
+    d.reason ? el("div", { class: "caption" }, `Reason: ${d.reason}`) : null,
+    el("div", { class: "caption" }, formatDate(d.createdAt)));
 }
 
 // ✦ Recommended Priority next to the team's Priority; the breakdown opens on demand.
@@ -229,10 +345,46 @@ function priorityBlock(p) {
       : null,
     p.scoringFailed && rec ? el("span", { class: "caption" }, "Showing the last score that worked.") : null);
 
+  // The team's Priority. A level that differs from the recommended one asks for a one-line reason first.
+  const reason = el("input", { type: "text", maxlength: "300", "aria-label": "Reason for the Priority" });
+  const reasonError = el("span", { class: "caption", style: "color:var(--error)", hidden: true });
+  const reasonForm = el("form", { class: "stack", style: "gap:4px", hidden: true },
+    el("span", { class: "caption" }, "Your Priority differs from the recommendation. One-line reason (goes in the decision log):"),
+    reason, reasonError,
+    el("div", { class: "row" }, el("button", { class: "btn sm" }, "Save Priority"),
+      el("button", { class: "btn sm quiet", type: "button", onclick: () => { reasonForm.hidden = true; } }, "Cancel")));
+  let pending = null;
+  reasonForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    reasonError.hidden = true;
+    await save(p, { priority: pending, reason: reason.value }, {
+      done: `Priority: ${pending}.`, onErrors: (message) => { reasonError.textContent = message; reasonError.hidden = false; },
+    });
+  });
+  const choose = async (level) => {
+    if (level === p.priority) return;
+    if (level && rec && level !== rec.level) {
+      pending = level;
+      reason.placeholder = `Why ${level} rather than ${rec.level}?`;
+      reasonForm.hidden = false;
+      reason.focus();
+      return;
+    }
+    reasonForm.hidden = true;
+    await save(p, { priority: level }, { done: level ? `Priority: ${level}.` : "Priority cleared." });
+  };
+  const buttons = el("div", { class: "row", style: "gap:6px;margin-top:4px", role: "group", "aria-label": "Priority" },
+    ["High", "Medium", "Low"].map((l) => el("button", {
+      class: `btn sm ${p.priority === l ? "" : "quiet"}`, type: "button", "aria-pressed": String(p.priority === l), onclick: () => choose(l),
+    }, l)),
+    p.priority ? el("button", { class: "link", type: "button", style: "font-size:12px", onclick: () => choose(null) }, "Clear") : null);
+  const override = p.priority && p.priorityOverrideReason ? el("span", { class: "caption" }, `✎ ${p.priorityOverrideReason}`) : null;
+
   return el("div", { class: "prio" },
     el("div", { class: "levels" },
       recommended,
-      el("div", { class: "lv" }, el("span", { class: "label" }, "Priority (yours)"), el("div", {}, priorityPill(p.priority)))),
+      el("div", { class: "lv" }, el("span", { class: "label" }, "Priority (yours)"), buttons, override)),
+    reasonForm,
     rec ? toggle : null,
     rec ? breakdown : null);
 }
@@ -292,7 +444,30 @@ async function settingsView(params) {
       : el("div", { class: "empty" }, el("span", { class: "sketch sk-cup", "aria-hidden": "true" }), "No AI calls match.")));
 }
 
-const SETTINGS_TABS = [["ai-calls", "AI call log"], ["criteria", "Priority criteria"]];
+const SETTINGS_TABS = [["ai-calls", "AI call log"], ["criteria", "Priority criteria"], ["archive", "Archive"]];
+
+// ---------- Settings → Archive ----------
+async function archiveView() {
+  const rows = await api("/archive");
+  const frozen = (r) => r
+    ? el("span", { class: `pill ${r.level}`, title: `Recommended Priority ${r.score}/100` }, `✦ ${r.level} · ${r.score}`)
+    : el("span", { class: "caption" }, "Never scored");
+  app.replaceChildren(el("div", { class: "stack reveal" },
+    settingsTabs("archive"),
+    el("div", {}, el("h2", {}, "Archive"),
+      el("p", { class: "muted" }, "Problems closed as Shipped or Won't do. Their Recommended Priority is frozen at closing.")),
+    rows.length ? el("div", { class: "table-wrap" }, el("table", { class: "tbl" },
+      el("thead", {}, el("tr", {}, ["Problem", "Closed as", "When", "Recommended (frozen)", "Priority", "Reason"].map((h) => el("th", {}, h)))),
+      el("tbody", {}, rows.map((r) => el("tr", {},
+        el("td", {}, el("a", { class: "link", href: `#problems/${r.id}` }, r.title),
+          el("div", { class: "caption" }, `${r.category} · ${r.featureRequests} Feature Requests · ${r.upvotes} Upvotes`)),
+        el("td", {}, r.status),
+        el("td", { class: "mono" }, formatDate(r.closedAt)),
+        el("td", {}, frozen(r.recommended)),
+        el("td", {}, priorityPill(r.priority)),
+        el("td", { class: "caption" }, r.reason ?? ""))))))
+      : el("div", { class: "empty" }, el("span", { class: "sketch sk-cup", "aria-hidden": "true" }), "Nothing closed yet.")));
+}
 
 function settingsTabs(current) {
   return el("div", { class: "tabs", role: "tablist", "aria-label": "Settings" },

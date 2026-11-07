@@ -107,6 +107,52 @@ namespace Feedback.Api.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Feedback.Api.Data.DecisionLogEntry", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("Details")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("details");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("kind");
+
+                    b.Property<long?>("ProblemId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("problem_id");
+
+                    b.Property<string>("Reason")
+                        .HasColumnType("text")
+                        .HasColumnName("reason");
+
+                    b.HasKey("Id")
+                        .HasName("pk_decision_log");
+
+                    b.HasIndex("ProblemId")
+                        .HasDatabaseName("ix_decision_log_problem_id");
+
+                    b.ToTable("decision_log", "feedback", t =>
+                        {
+                            t.HasCheckConstraint("ck_decision_log_kind", "kind IN ('status', 'priority', 'merge', 'move', 'rename', 'category')");
+                        });
+                });
+
             modelBuilder.Entity("Feedback.Api.Data.FeatureRequest", b =>
                 {
                     b.Property<long>("Id")
@@ -280,6 +326,15 @@ namespace Feedback.Api.Data.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("first_scoring_id");
 
+                    b.Property<string>("Priority")
+                        .HasMaxLength(6)
+                        .HasColumnType("character varying(6)")
+                        .HasColumnName("priority");
+
+                    b.Property<string>("PriorityOverrideReason")
+                        .HasColumnType("text")
+                        .HasColumnName("priority_override_reason");
+
                     b.Property<int?>("ReachPoints")
                         .HasColumnType("integer")
                         .HasColumnName("reach_points");
@@ -327,6 +382,8 @@ namespace Feedback.Api.Data.Migrations
                         {
                             t.HasCheckConstraint("ck_problems_category", "category IN ('Finding spots', 'Adding & editing spots', 'Spot details', 'Visits', 'Profile & account', 'Social', 'Other')");
 
+                            t.HasCheckConstraint("ck_problems_priority", "priority IS NULL OR priority IN ('High', 'Medium', 'Low')");
+
                             t.HasCheckConstraint("ck_problems_status", "status IN ('New', 'Under review', 'Planned', 'In progress', 'Shipped', 'Won''t do')");
                         });
                 });
@@ -352,6 +409,15 @@ namespace Feedback.Api.Data.Migrations
                         .HasName("pk_upvotes");
 
                     b.ToTable("upvotes", "feedback");
+                });
+
+            modelBuilder.Entity("Feedback.Api.Data.DecisionLogEntry", b =>
+                {
+                    b.HasOne("Feedback.Api.Data.Problem", null)
+                        .WithMany()
+                        .HasForeignKey("ProblemId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_decision_log_problems_problem_id");
                 });
 
             modelBuilder.Entity("Feedback.Api.Data.FeatureRequest", b =>
