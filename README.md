@@ -2,7 +2,7 @@
 
 ## Results on the seed backlog
 
-- **150 Feature Requests become 30 Problems to triage: 5× less for the product team to read.**
+- **150 Feature Requests converted into 30 underlying customer problems -> 80% less for the product team to review**
 - **92% duplicate catch rate** 
 - **99% grouping accuracy**
 - **92% priority consistency (How consistent the Agent is in its prioritization of feature requests)**
