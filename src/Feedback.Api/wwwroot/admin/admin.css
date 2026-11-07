@@ -145,3 +145,22 @@ input[type=checkbox],input[type=radio]{accent-color:var(--terracotta);width:16px
 .review-list .fr.review{grid-template-columns:1fr}
 .review-list input[type=text]{min-width:0;flex:1 1 160px}
 @media (max-width:600px){.modal{padding:var(--md)}}
+
+/* Outbox (#27): Drafts / Sent list on the left, the chosen update on the right */
+.outbox{display:grid;grid-template-columns:minmax(240px,320px) 1fr;gap:var(--md);align-items:start}
+.ob-list{display:grid;gap:6px;align-content:start}
+.ob-list .tabs{margin-bottom:4px}
+.ob-list .tab{text-decoration:none}
+.ob-item{all:unset;box-sizing:border-box;display:grid;gap:3px;padding:10px 12px;border-radius:12px;cursor:pointer;background:transparent;transition:background var(--micro)}
+.ob-item:hover{background:var(--field)}
+.ob-item[aria-current=true]{background:var(--card)}
+.ob-item:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.ob-item .caption{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ob-pane{display:grid;gap:var(--md);align-content:start;min-width:0}
+.ob-mail{background:var(--paper);border-radius:12px;padding:var(--md);display:grid;gap:var(--s1)}
+.ob-mail p{white-space:pre-wrap;overflow-wrap:anywhere}
+.ob-pane .failed{color:var(--error);font-weight:700;font-size:13.5px}
+.ob-pane input[type=text]{width:100%}
+.ob-pane textarea{background:var(--field);border:1.5px solid transparent;border-radius:10px;padding:8px 12px;outline:none;resize:vertical;width:100%}
+.ob-pane textarea:focus{border-color:var(--ink)}
+@media (max-width:720px){.outbox{grid-template-columns:1fr}}

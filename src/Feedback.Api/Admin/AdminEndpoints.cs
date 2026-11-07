@@ -1,3 +1,5 @@
+using Feedback.Api.GitHub;
+using Feedback.Api.Outbox;
 using Feedback.Api.Portal;
 
 namespace Feedback.Api.Admin;
@@ -33,6 +35,8 @@ public static class AdminEndpoints
         signedIn.MapAiCalls();
         signedIn.MapPriority();
         signedIn.MapArchive();
+        signedIn.MapGitHub();
+        signedIn.MapOutbox();
     }
 }
 

@@ -30,6 +30,13 @@ public sealed class Problem
     /// <summary>The last scoring call failed; the drawer offers Retry.</summary>
     public bool ScoringFailed { get; set; }
 
+    // The GitHub issue created from this Problem by hand (null until then). State is what the last refresh saw.
+    public int? GitHubIssueNumber { get; set; }
+    public string? GitHubIssueUrl { get; set; }
+    /// <summary>open / closed (IssueStates).</summary>
+    public string? GitHubIssueState { get; set; }
+    public DateTimeOffset? GitHubCheckedAt { get; set; }
+
     public List<FeatureRequest> FeatureRequests { get; } = [];
 }
 

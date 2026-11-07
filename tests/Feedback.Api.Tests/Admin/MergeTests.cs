@@ -65,6 +65,31 @@ public sealed class MergeTests(FeedbackDatabase database) : AdminTest(database)
     }
 
     [Fact]
+    public async Task The_kept_problem_takes_over_a_github_issue_when_it_has_none_and_the_merge_records_the_others()
+    {
+        var (kept, _) = await NewProblemAsync("Filter by opening hours");
+        var (withIssue, _) = await NewProblemAsync("Open now filter");
+        var (alsoWithIssue, _) = await NewProblemAsync("Hide closed spots");
+        var first = await CreateIssueAsync(withIssue);
+        var second = await CreateIssueAsync(alsoWithIssue);
+
+        var response = await MergeAsync(new { problemIds = new[] { kept, withIssue, alsoWithIssue }, keepId = kept });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(first, (await Client.GetFromJsonAsync<GitHubDrawerJson>($"/api/admin/problems/{kept}"))!.GitHubIssue!.Number);
+        var merge = (await response.Content.ReadFromJsonAsync<MergedDrawerJson>())!.Decisions.Single(d => d.Kind == "merge");
+        Assert.Equal([first, second],
+            merge.Details.GetProperty("gitHubIssues").EnumerateArray().Select(i => i.GetProperty("number").GetInt32()).Order());
+    }
+
+    private async Task<int> CreateIssueAsync(long problemId)
+    {
+        var response = await Client.PostAsync($"/api/admin/problems/{problemId}/github-issue", null);
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<GitHubDrawerJson>())!.GitHubIssue!.Number;
+    }
+
+    [Fact]
     public async Task A_merge_needs_two_open_problems_and_a_kept_one_among_them()
     {
         var (a, aRequest) = await NewProblemAsync("Filter by opening hours");

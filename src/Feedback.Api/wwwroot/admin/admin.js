@@ -1,4 +1,4 @@
-// Studease /admin. Hash routes: #problems[/<id>], #outbox, #metrics, #settings/ai-calls[?status=Failed&problem=<id>], #settings/criteria, #settings/archive.
+// Studease /admin. Hash routes: #problems[/<id>], #outbox[/sent], #metrics, #settings/ai-calls[?status=Failed&problem=<id>], #settings/criteria, #settings/archive, #settings/github.
 // All user and AI text goes into the DOM through textContent (via el), never innerHTML.
 import { el, CATEGORIES, toast, formatDate } from "/js/portal.js";
 
@@ -9,7 +9,7 @@ const app = document.getElementById("app");
 const top = document.getElementById("top");
 
 // sel: ticked Problems (merge); frSel: ticked Feature Requests in the open drawer (move).
-const ui = { tab: "All", sort: null, dir: 1, sel: new Set(), frSel: new Set(), frSelFor: null };
+const ui = { tab: "All", sort: null, dir: 1, lastView: null, sel: new Set(), frSel: new Set(), frSelFor: null };
 
 class SignedOut extends Error {}
 
@@ -63,12 +63,14 @@ async function render() {
     else a.removeAttribute("aria-current");
   }
   if (r.view !== "problems") { document.querySelector(".drawer")?.remove(); ui.sel.clear(); }
+  if (r.view !== "problems") ui.lastView = r.view;
   closeModal();
   try {
     if (r.view === "problems") await problemsView(r.sub ? Number(r.sub) : null);
-    else if (r.view === "outbox") placeholder("Outbox", "AI-drafted updates for Requesters appear here when a Problem ships. Coming in a later slice.");
+    else if (r.view === "outbox") await outboxView(r.sub === "sent" ? "sent" : "drafts");
     else if (r.view === "metrics") placeholder("Metrics", "Duplicate catch rate, grouping accuracy and priority consistency appear here. Coming in a later slice.");
-    else if (r.view === "settings") await (r.sub === "criteria" ? criteriaView() : r.sub === "archive" ? archiveView() : settingsView(r.params));
+    else if (r.view === "settings") await (r.sub === "criteria" ? criteriaView() : r.sub === "archive" ? archiveView()
+      : r.sub === "github" ? githubView() : settingsView(r.params));
     else location.hash = "#problems";
     top.hidden = false;
   } catch (e) {
@@ -121,6 +123,12 @@ document.getElementById("logout").addEventListener("click", async () => {
 
 // ---------- Problems ----------
 async function problemsView(openId) {
+  // Opening the Problems page re-reads linked GitHub issues first, so the drawer can say "Issue closed. Mark Shipped?".
+  // Redraws within the page (after a save, opening a drawer) don't refresh again.
+  if (ui.lastView !== "problems") {
+    await api("/github/refresh", { method: "POST" }).catch((e) => { if (e instanceof SignedOut) throw e; });
+    ui.lastView = "problems";
+  }
   const query = ui.tab === "All" ? "" : `?category=${encodeURIComponent(ui.tab)}`;
   const page = await api(`/problems${query}`);
   const rows = sorted(page.problems);
@@ -236,6 +244,7 @@ async function drawer(id) {
     titleBlock(p),
     headerControls(p),
     priorityBlock(p),
+    githubBlock(p),
     el("details", { open: true },
       el("summary", {}, `Feature Requests (${p.featureRequests.length})`),
       el("div", { class: "frs" }, p.featureRequests.map((r) => requestRow(r, onTick))),
@@ -262,7 +271,9 @@ async function save(p, body, { onErrors, done } = {}) {
     }
     const fresh = result.drawer;
     if (CLOSED.includes(fresh.status) && !CLOSED.includes(p.status)) {
-      toast(`Closed as ${fresh.status}: moved to the Archive.`);
+      toast(fresh.status === "Shipped"
+        ? "Shipped: moved to the Archive. ✦ Requester updates are drafted in the Outbox."
+        : `Closed as ${fresh.status}: moved to the Archive.`);
       location.hash = "#problems";
       return true;
     }
@@ -341,6 +352,52 @@ function headerControls(p) {
       el("label", { class: "row", style: "gap:6px" }, el("span", { class: "label" }, "Status"), status),
       el("label", { class: "row", style: "gap:6px" }, el("span", { class: "label" }, "Category"), category)),
     wontDo, closed);
+}
+
+// GitHub: Create GitHub issue (by hand), then the linked issue's state as of the last refresh.
+function githubBlock(p) {
+  const issue = p.gitHubIssue;
+  const error = el("p", { class: "notice err", role: "alert", hidden: true });
+  if (!issue) {
+    const create = el("button", { class: "btn sm", type: "button" }, "Create GitHub issue");
+    create.addEventListener("click", async () => {
+      create.disabled = true;
+      error.hidden = true;
+      try {
+        const res = await fetch(`/api/admin/problems/${p.id}/github-issue`, { method: "POST", credentials: "same-origin" });
+        if (res.status === 401) return signIn();
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          error.textContent = body.detail ?? `Couldn't create the issue (HTTP ${res.status}).`;
+          error.hidden = false;
+          create.disabled = false;
+          return;
+        }
+        const fresh = await res.json();
+        toast(`Created GitHub issue #${fresh.gitHubIssue.number}.`);
+        await render();
+      } catch {
+        error.textContent = "Couldn't reach the server. Try again.";
+        error.hidden = false;
+        create.disabled = false;
+      }
+    });
+    return el("div", { class: "stack", style: "gap:6px" }, el("span", { class: "label" }, "GitHub"),
+      el("div", { class: "row" }, create, el("span", { class: "caption" }, "Sends this Problem to engineering as an issue.")), error);
+  }
+  const prompt = issue.markShipped
+    ? el("p", { class: "notice" }, "Issue closed. Mark Shipped? ",
+        el("button", { class: "btn sm", type: "button", onclick: (e) => {
+          e.target.disabled = true;
+          save(p, { status: "Shipped", reason: `GitHub issue #${issue.number} closed.` });
+        } }, "Mark Shipped"))
+    : null;
+  return el("div", { class: "stack", style: "gap:6px" }, el("span", { class: "label" }, "GitHub"),
+    el("div", { class: "row" },
+      el("a", { class: "link", href: issue.url, target: "_blank", rel: "noopener" }, `Issue #${issue.number}`),
+      el("span", { class: `pill ${issue.state === "closed" ? "Low" : ""}` }, issue.state),
+      issue.checkedAt ? el("span", { class: "caption" }, `checked ${formatDate(issue.checkedAt)}`) : null),
+    prompt);
 }
 
 const DECISION_LABEL = { status: "Status", priority: "Priority", merge: "Merge", move: "Move", rename: "Rename", category: "Category" };
@@ -600,7 +657,7 @@ async function mergeModal(ids) {
       el("li", {}, `The other Problem${others > 1 ? "s are" : " is"} removed (logged in the decision log, not the Archive).`),
       el("li", {}, "Reach is recounted and the AI re-scores Strategic fit, Pain and Retention risk."),
       el("li", {}, "Any Decision Brief becomes out of date."),
-      el("li", {}, "If more than one has a GitHub issue, the kept one stays linked; close the other by hand."))),
+      el("li", {}, "The kept Problem keeps its GitHub issue (or takes over another's). Any other linked issues are listed in the decision log; close them by hand."))),
     error,
     el("div", { class: "row" }, go, cancelButton()));
 }
@@ -709,7 +766,38 @@ async function settingsView(params) {
       : el("div", { class: "empty" }, el("span", { class: "sketch sk-cup", "aria-hidden": "true" }), "No AI calls match.")));
 }
 
-const SETTINGS_TABS = [["ai-calls", "AI call log"], ["criteria", "Priority criteria"], ["archive", "Archive"]];
+const SETTINGS_TABS = [["ai-calls", "AI call log"], ["criteria", "Priority criteria"], ["github", "GitHub"], ["archive", "Archive"]];
+
+// ---------- Settings → GitHub ----------
+async function githubView() {
+  const box = el("div", { class: "box stack", style: "gap:8px" });
+  const show = (g) => {
+    const check = el("button", { class: "btn sm", type: "button" }, "Check again");
+    check.addEventListener("click", async () => {
+      check.disabled = true;
+      try { show(await api("/github/check", { method: "POST" })); }
+      catch (e) { if (e instanceof SignedOut) return signIn(); toast("Couldn't check. Try again."); check.disabled = false; }
+    });
+    const when = new Date(g.checkedAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+    box.replaceChildren(
+      el("div", {}, el("span", { class: "label" }, "Repo"), " ",
+        g.repo ? el("a", { class: "link", href: `https://github.com/${g.repo}`, target: "_blank", rel: "noopener" }, g.repo)
+          : el("span", { class: "mono" }, g.configuredRepo || "Not set"),
+        g.repo && g.repo !== g.configuredRepo ? el("div", { class: "caption" }, `Configured as ${g.configuredRepo}; GitHub now calls it ${g.repo}.`) : null,
+        g.defaultBranch ? el("div", { class: "caption" }, `Default branch: ${g.defaultBranch}`) : null),
+      el("div", {}, el("span", { class: "label" }, "Token"), " ",
+        g.ok ? el("span", { class: "pill Low" }, "OK") : el("span", { class: "pill warn" }, "Failing"),
+        g.error ? el("div", { class: "err-msg" }, g.error) : null,
+        el("div", { class: "caption" }, `Checked ${when}`)),
+      el("div", {}, check));
+  };
+  show(await api("/github"));
+  app.replaceChildren(el("div", { class: "stack reveal" },
+    settingsTabs("github"),
+    el("div", {}, el("h2", {}, "GitHub"),
+      el("p", { class: "muted" }, "The repo engineering works in, set in the config file. The token is a server secret.")),
+    box));
+}
 
 // ---------- Settings → Archive ----------
 async function archiveView() {
@@ -797,6 +885,110 @@ function callsTable(list, { showFor }) {
       el("td", { class: "mono" }, tokens(c)),
       el("td", { class: "mono" }, cost(c)),
       el("td", { class: "mono" }, `${(c.latencyMs / 1000).toFixed(1)} s`)))));
+}
+
+// ---------- Outbox: Drafts / Sent on the left, the chosen message on the right ----------
+const OUTBOX_STATE = { Drafting: ["", "✦ Drafting…"], "Draft failed": ["warn", "Draft failed"], Ready: ["Medium", "✦ AI draft"], Sent: ["Low", "Sent"] };
+
+async function outboxView(tab) {
+  const [drafts, sent] = await Promise.all([api("/outbox?tab=drafts"), api("/outbox?tab=sent")]);
+  const list = tab === "sent" ? sent : drafts;
+  if (!list.some((m) => m.id === ui.outboxId)) ui.outboxId = list[0]?.id ?? null;
+  const chosen = list.find((m) => m.id === ui.outboxId);
+
+  const tabLink = (key, label, count) => el("a", {
+    class: "tab", href: key === "sent" ? "#outbox/sent" : "#outbox", role: "tab", "aria-selected": String(tab === key),
+  }, `${label} · ${count}`);
+  const item = (m) => el("button", {
+    type: "button", class: "ob-item", "aria-current": m.id === ui.outboxId ? "true" : null,
+    onclick: () => { ui.outboxId = m.id; render(); },
+  },
+    el("span", { class: "spread" }, el("b", {}, m.toEmail), statePill(m.status)),
+    el("span", { class: "caption" }, m.subject || (m.status === "Draft failed" ? "No draft yet" : "…")),
+    el("span", { class: "caption" }, `${m.problemTitle ?? "Problem removed"} · ${formatDate(m.sentAt ?? m.createdAt)}`));
+
+  app.replaceChildren(el("div", { class: "stack reveal" },
+    el("div", {}, el("h2", {}, "Outbox"),
+      el("p", { class: "muted" }, "When a Problem ships, the AI drafts one update per Requester. Nothing goes out until you approve it. (Demo: approved updates move to Sent; no email is really delivered.)")),
+    el("div", { class: "outbox" },
+      el("aside", { class: "ob-list" },
+        el("div", { class: "tabs", role: "tablist", "aria-label": "Outbox" }, tabLink("drafts", "Drafts", drafts.length), tabLink("sent", "Sent", sent.length)),
+        list.length ? list.map(item)
+          : el("div", { class: "empty" }, el("span", { class: "sketch sk-cup", "aria-hidden": "true" }),
+            tab === "sent" ? "Nothing sent yet." : "Nothing waiting to go out.")),
+      chosen ? messagePane(chosen) : null)));
+}
+
+function statePill(status) {
+  const [cls, label] = OUTBOX_STATE[status] ?? ["", status];
+  return el("span", { class: `pill ${cls}` }, label);
+}
+
+function messagePane(m, editing = false) {
+  const pane = el("section", { class: "ob-pane box", "aria-label": `Update to ${m.toEmail}` });
+  const act = async (path, method, done) => {
+    try {
+      await api(`/outbox/${m.id}${path}`, { method });
+      if (done) toast(done);
+    } catch (e) {
+      if (e instanceof SignedOut) return signIn();
+      toast("That didn't work. Try again.");
+    }
+    render();
+  };
+  const head = el("div", { class: "stack", style: "gap:4px" },
+    el("div", { class: "spread" }, el("span", {}, "To ", el("b", {}, m.toEmail)), statePill(m.status)),
+    el("span", { class: "caption" }, "About ",
+      m.problemId ? el("a", { class: "link", href: `#problems/${m.problemId}` }, m.problemTitle ?? `Problem ${m.problemId}`) : "a removed Problem",
+      " · their requests: ", m.featureRequests.map((r, i) => [i ? ", " : "",
+        el("a", { class: "link", href: `/requests/${r.id}`, target: "_blank", rel: "noopener" }, `“${r.title}”`)])));
+
+  if (editing) {
+    const subject = el("input", { type: "text", value: m.subject, "aria-label": "Subject", maxlength: "200", required: true });
+    const body = el("textarea", { rows: "10", "aria-label": "Message", maxlength: "5000", required: true });
+    body.value = m.body;
+    const error = el("p", { class: "notice err", role: "alert", hidden: true });
+    const form = el("form", { class: "stack", style: "gap:10px" },
+      subject, body, error,
+      el("div", { class: "row" }, el("button", { class: "btn sm" }, "Save"),
+        el("button", { class: "btn sm quiet", type: "button", onclick: () => pane.replaceWith(messagePane(m)) }, "Cancel")));
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const res = await fetch(`/api/admin/outbox/${m.id}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "same-origin",
+        body: JSON.stringify({ subject: subject.value, body: body.value }),
+      });
+      if (res.status === 401) return signIn();
+      if (res.status === 400) {
+        error.textContent = Object.values((await res.json()).errors ?? {}).flat()[0] ?? "That wasn't saved.";
+        error.hidden = false;
+        return;
+      }
+      if (!res.ok) { toast("Couldn't save. Try again."); return render(); }
+      toast("Saved.");
+      render();
+    });
+    pane.append(head, form);
+    setTimeout(() => subject.focus());
+    return pane;
+  }
+
+  const sent = m.status === "Sent";
+  const failed = m.status === "Draft failed" || m.status === "Drafting";
+  pane.append(head,
+    failed
+      ? el("p", { class: "failed" }, m.status === "Drafting" ? "✦ Still drafting. If it's stuck, retry. " : "Draft failed · ",
+        el("button", { class: "link", type: "button", onclick: () => act("/retry", "POST", null) }, "Retry"),
+        el("span", { class: "caption" }, " or write it yourself with Edit."))
+      : null,
+    m.subject ? el("div", { class: "ob-mail" }, el("b", {}, m.subject), el("p", {}, m.body)) : null,
+    sent
+      ? el("p", { class: "caption" }, `Approved and marked Sent ${formatDate(m.sentAt)}.`)
+      : el("div", { class: "row" },
+        el("button", { class: "btn sm", type: "button", disabled: m.status !== "Ready", onclick: () => act("/send", "POST", "Approved: moved to Sent.") }, "Approve"),
+        el("button", { class: "btn sm quiet", type: "button", onclick: () => pane.replaceWith(messagePane(m, true)) }, "Edit"),
+        el("button", { class: "btn sm quiet", type: "button", onclick: () => act("", "DELETE", "Draft discarded.") }, "Discard")));
+  return pane;
 }
 
 function placeholder(title, text) {

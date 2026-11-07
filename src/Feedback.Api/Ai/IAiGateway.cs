@@ -12,7 +12,7 @@ namespace Feedback.Api.Ai;
 /// Requester text goes in as data, never as instructions.
 /// </para>
 /// Callers wrap each call in AiCallLog.RunAsync, which logs the ai_calls row.
-/// Later tickets add: write a brief, pick files, write solutions, draft an update.
+/// Later tickets add: write a brief, pick files, write solutions.
 /// </summary>
 public interface IAiGateway
 {
@@ -24,7 +24,19 @@ public interface IAiGateway
 
     /// <summary>Rates a Problem's Strategic fit, Pain and Retention risk (1–5, with reasons) against the Priority Criteria.</summary>
     Task<AiReply<ScoreRatings>> ScoreAsync(ScoreInput input, CancellationToken ct);
+
+    /// <summary>Drafts the update telling one Requester that the Problem behind their Feature Requests has shipped.</summary>
+    Task<AiReply<UpdateDraft>> DraftUpdateAsync(DraftUpdateInput input, CancellationToken ct);
 }
+
+/// <summary>
+/// What a Requester update is drafted from: the shipped Problem and this one Requester's
+/// Feature Requests (their own words). Never the email address.
+/// </summary>
+public sealed record DraftUpdateInput(ScoreProblem Problem, IReadOnlyList<ScoreRequest> FeatureRequests);
+
+/// <summary>The strict draft form: a subject line and a plain-text body.</summary>
+public sealed record UpdateDraft(string Subject, string Body);
 
 /// <summary>A successful AI answer and what it cost.</summary>
 public sealed record AiReply<T>(T Value, string Model, int InputTokens, int OutputTokens);

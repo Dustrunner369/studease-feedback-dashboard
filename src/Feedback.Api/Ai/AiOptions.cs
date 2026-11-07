@@ -6,7 +6,8 @@ public static class AiSteps
     public const string Embed = "Embed";
     public const string Match = "Match";
     public const string Score = "Score";
-    // Later tickets: Brief, PickFiles, WriteSolutions, DraftUpdate.
+    public const string DraftUpdate = "DraftUpdate";
+    // Later tickets: Brief, PickFiles, WriteSolutions.
 }
 
 /// <summary>Binds the <c>Ai</c> section: model and effort per step, prices per model, timeout.</summary>

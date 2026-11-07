@@ -1,7 +1,9 @@
 using Feedback.Api.Admin;
 using Feedback.Api.Ai;
 using Feedback.Api.Data;
+using Feedback.Api.GitHub;
 using Feedback.Api.Intake;
+using Feedback.Api.Outbox;
 using Feedback.Api.Portal;
 using Feedback.Api.Scoring;
 using Feedback.Api.Triage;
@@ -26,6 +28,8 @@ builder.Services.AddScoped<MatchingStep>();
 builder.Services.AddScoped<PriorityScorer>();
 builder.Services.AddScoped<ProblemDecisions>();
 builder.Services.AddScoped<Regrouping>();
+builder.Services.AddScoped<OutboxDrafter>();
+builder.Services.AddScoped<IShippedHook>(services => services.GetRequiredService<OutboxDrafter>());
 builder.Services.AddHostedService<IntakeWorker>();
 
 builder.Services.Configure<AiOptions>(builder.Configuration.GetSection(AiOptions.Section));
@@ -36,6 +40,11 @@ builder.Services.Configure<SuggestOptions>(builder.Configuration.GetSection(Sugg
 builder.Services.Configure<AdminOptions>(builder.Configuration.GetSection(AdminOptions.Section));
 builder.Services.AddSingleton<AdminAuth>();
 builder.Services.Configure<PriorityCriteria>(builder.Configuration.GetSection(PriorityCriteria.Section));
+builder.Services.Configure<GitHubOptions>(builder.Configuration.GetSection(GitHubOptions.Section));
+GitHubApiGateway.AddHttpClient(builder.Services);
+builder.Services.AddSingleton<IGitHubGateway, GitHubApiGateway>();
+builder.Services.AddSingleton<GitHubConnection>();
+builder.Services.AddHostedService<GitHubStartupCheck>();
 
 var app = builder.Build();
 

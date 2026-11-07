@@ -52,7 +52,14 @@ public sealed class Regrouping(FeedbackDbContext db, PriorityScorer scorer)
             removed = removed.Select(p => new { id = p.Id, title = p.Title }),
             kept = new { picked.title, picked.category, picked.status, picked.priority },
             featureRequestIds = moved.Select(r => r.Id),
+            // Every linked issue, so the ones no longer linked can be closed by hand.
+            gitHubIssues = problems.Values.Where(p => p.GitHubIssueNumber is not null)
+                .Select(p => new { problemId = p.Id, number = p.GitHubIssueNumber, url = p.GitHubIssueUrl }),
         });
+        // The kept Problem stays linked to its own issue, or takes over the first removed Problem's.
+        if (kept.GitHubIssueNumber is null && removed.FirstOrDefault(p => p.GitHubIssueNumber is not null) is { } linked)
+            (kept.GitHubIssueNumber, kept.GitHubIssueUrl, kept.GitHubIssueState, kept.GitHubCheckedAt) =
+                (linked.GitHubIssueNumber, linked.GitHubIssueUrl, linked.GitHubIssueState, linked.GitHubCheckedAt);
         (kept.Title, kept.Description, kept.Category, kept.Status) = (picked.title, picked.description, picked.category, picked.status);
         (kept.Priority, kept.PriorityOverrideReason) = (picked.priority, picked.priorityOverrideReason);
         foreach (var request in moved) request.ProblemId = kept.Id;
