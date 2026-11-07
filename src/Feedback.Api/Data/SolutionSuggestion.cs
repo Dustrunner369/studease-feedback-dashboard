@@ -10,7 +10,8 @@ namespace Feedback.Api.Data;
 public sealed class SolutionSuggestion
 {
     public long ProblemId { get; set; }
-    public required string Body { get; set; }
+    /// <summary>The Solution Ideas as JSON (a list of <c>SolutionIdea</c>), already checked and capped.</summary>
+    public required string Ideas { get; set; }
     /// <summary>The repo files the picker chose and the writer read, in pick order.</summary>
     public string[] Files { get; set; } = [];
     public DateTimeOffset GeneratedAt { get; set; }
@@ -22,6 +23,7 @@ public sealed class SolutionSuggestion
         e.ToTable("solution_suggestions");
         e.HasKey(s => s.ProblemId);
         e.Property(s => s.ProblemId).ValueGeneratedNever();
+        e.Property(s => s.Ideas).HasColumnType("jsonb");
         e.Property(s => s.GeneratedAt).HasDefaultValueSql("now()");
         e.HasOne<Problem>().WithOne().HasForeignKey<SolutionSuggestion>(s => s.ProblemId).OnDelete(DeleteBehavior.Cascade);
     }

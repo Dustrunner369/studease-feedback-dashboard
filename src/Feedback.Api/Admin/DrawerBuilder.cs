@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Feedback.Api.Briefs;
 using Feedback.Api.Data;
+using Feedback.Api.GitHub;
 using Feedback.Api.Scoring;
 using Feedback.Api.Solutions;
 using Microsoft.EntityFrameworkCore;
@@ -9,7 +10,7 @@ using Microsoft.Extensions.Options;
 namespace Feedback.Api.Admin;
 
 /// <summary>Builds the Problem drawer (scoped): every endpoint that answers with a drawer uses this.</summary>
-public sealed class DrawerBuilder(FeedbackDbContext db, IOptions<PriorityCriteria> options)
+public sealed class DrawerBuilder(FeedbackDbContext db, IOptions<PriorityCriteria> options, GitHubConnection github)
 {
     /// <summary>The Problem drawer, or null if there is no such Problem.</summary>
     public async Task<ProblemDrawer?> BuildAsync(long id, CancellationToken ct)
@@ -32,7 +33,7 @@ public sealed class DrawerBuilder(FeedbackDbContext db, IOptions<PriorityCriteri
             problem.Id, problem.Title, problem.Description, problem.Category, problem.Status, problem.Priority,
             problem.PriorityOverrideReason, Recommended(problem, options.Value), problem.ScoringFailed, requests, decisions,
             problem.ClosedAt, GitHubIssueView.Of(problem),
-            SolutionsView.Of(await db.SolutionSuggestions.AsNoTracking().SingleOrDefaultAsync(s => s.ProblemId == id, ct)),
+            SolutionsView.Of(await db.SolutionSuggestions.AsNoTracking().SingleOrDefaultAsync(s => s.ProblemId == id, ct), github.ConfiguredRepo),
             await DecisionBriefs.ViewAsync(db, id, requests.Select(r => r.Id).ToList(), ct));
     }
 

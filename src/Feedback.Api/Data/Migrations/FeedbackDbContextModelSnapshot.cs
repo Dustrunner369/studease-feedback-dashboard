@@ -616,11 +616,6 @@ namespace Feedback.Api.Data.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("problem_id");
 
-                    b.Property<string>("Body")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("body");
-
                     b.PrimitiveCollection<string[]>("Files")
                         .IsRequired()
                         .HasColumnType("text[]")
@@ -631,6 +626,11 @@ namespace Feedback.Api.Data.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("generated_at")
                         .HasDefaultValueSql("now()");
+
+                    b.Property<string>("Ideas")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("ideas");
 
                     b.Property<long>("PickerAiCallId")
                         .HasColumnType("bigint")

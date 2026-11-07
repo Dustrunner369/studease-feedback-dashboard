@@ -18,13 +18,22 @@ public sealed class SuggestSolutionsTests(FeedbackDatabase database) : AdminTest
         var issue = GitHub.Add("Opening hours are wrong for libraries", "They close at 6.");
         var pr = GitHub.Add("Add hours field to spot form", pullRequest: true);
         Ai.PickFiles = _ => new FilePicks(["lib/spots/spot.dart", "lib/spots/spot_list.dart"], "Spots and the list.");
-        Ai.WriteSolutions = input => $"Option A: add an open-now filter to {input.Problem.Title}.";
+        Ai.WriteSolutions = input => FakeAiGateway.Ideas(
+            new SolutionIdea("Open-now filter", $"Add an open-now filter to {input.Problem.Title}.", "Small", ["lib/spots/spot_list.dart"], [issue]),
+            new SolutionIdea("Hours on the spot form", "Let students add opening hours when they add a spot.", "Medium", ["lib/spots/spot.dart"], [pr]),
+            new SolutionIdea("Import library hours", "Fill in hours for libraries from their websites.", "Large", [], []));
 
         var response = await Client.PostAsync($"/api/admin/problems/{problemId}/solutions", null);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var solutions = (await response.Content.ReadFromJsonAsync<SolutionsDrawerJson>())!.Solutions!;
-        Assert.Equal("Option A: add an open-now filter to Filter by opening hours.", solutions.Body);
+        Assert.Equal(
+            [
+                new IdeaJson("Open-now filter", "Add an open-now filter to Filter by opening hours.", "Small", ["lib/spots/spot_list.dart"], [issue]),
+                new IdeaJson("Hours on the spot form", "Let students add opening hours when they add a spot.", "Medium", ["lib/spots/spot.dart"], [pr]),
+                new IdeaJson("Import library hours", "Fill in hours for libraries from their websites.", "Large", [], []),
+            ],
+            solutions.Ideas);
         Assert.Equal(["lib/spots/spot.dart", "lib/spots/spot_list.dart"], solutions.Files);
         Assert.True(solutions.GeneratedAt > DateTimeOffset.UtcNow.AddMinutes(-5));
 
@@ -46,6 +55,54 @@ public sealed class SuggestSolutionsTests(FeedbackDatabase database) : AdminTest
         Assert.Equal(("OK", "OK"), (picker.Status, writer.Status));
         Assert.Equal((picker.Id, writer.Id), (solutions.PickerAiCallId, solutions.WriteAiCallId));
         Assert.Equal(problemId, writer.ProblemId);
+    }
+
+    [Fact]
+    public async Task Ideas_that_run_long_are_cut_short_and_noted_instead_of_failing()
+    {
+        var (problemId, _) = await NewProblemAsync("Filter by opening hours");
+        GitHub.Files["lib/spot.dart"] = "class Spot {}";
+        var issue = GitHub.Add("Opening hours are wrong", "");
+        var longTitle = string.Concat(Enumerable.Repeat("Opening hours ", 10)); // 140 characters
+        var longSentence = string.Concat(Enumerable.Repeat("Students see which spots are open. ", 10)); // 350 characters
+        Ai.WriteSolutions = _ => FakeAiGateway.Ideas(
+            new SolutionIdea(longTitle, longSentence, "Small", [], []),
+            new SolutionIdea("Short and fine", "One sentence.", "Medium", [], []),
+            new SolutionIdea("Also fine", "Another sentence.", "Large", [], []));
+
+        var solutions = await SuggestAsync(problemId);
+
+        var cut = solutions.Ideas[0];
+        Assert.InRange(cut.Title.Length, 70, 80);
+        Assert.EndsWith("…", cut.Title);
+        Assert.StartsWith("Opening hours Opening hours", cut.Title);
+        Assert.InRange(cut.Description.Length, 220, 240);
+        Assert.EndsWith("…", cut.Description);
+        Assert.Equal("Short and fine", solutions.Ideas[1].Title);
+        var write = (await CallsAsync(problemId)).Single(c => c.Step == "WriteSolutions");
+        Assert.Equal("OK", write.Status);
+        Assert.Contains("1 idea shortened", write.Note);
+    }
+
+    [Fact]
+    public async Task Ideas_keep_only_three_known_files_and_open_issue_numbers_and_at_most_three_ideas()
+    {
+        var (problemId, _) = await NewProblemAsync("Filter by opening hours");
+        foreach (var f in new[] { "lib/a.dart", "lib/b.dart", "lib/c.dart", "lib/d.dart", "ios/Runner/AppDelegate.swift" })
+            GitHub.Files[f] = "x";
+        var issue = GitHub.Add("Opening hours are wrong", "");
+        Ai.WriteSolutions = _ => FakeAiGateway.Ideas(
+            new SolutionIdea("Lots of files", "One sentence.", "Small",
+                ["lib/made_up.dart", "ios/Runner/AppDelegate.swift", "lib/a.dart", "lib/b.dart", "lib/c.dart", "lib/d.dart"], [issue, 9999]),
+            new SolutionIdea("Two", "One sentence.", "Medium", [], []),
+            new SolutionIdea("Three", "One sentence.", "Large", [], []),
+            new SolutionIdea("Four", "One sentence.", "Large", [], []));
+
+        var solutions = await SuggestAsync(problemId);
+
+        Assert.Equal(["Lots of files", "Two", "Three"], solutions.Ideas.Select(i => i.Title));
+        Assert.Equal(["lib/a.dart", "lib/b.dart", "lib/c.dart"], solutions.Ideas[0].Files);
+        Assert.Equal([issue], solutions.Ideas[0].Issues);
     }
 
     [Fact]
@@ -106,17 +163,17 @@ public sealed class SuggestSolutionsTests(FeedbackDatabase database) : AdminTest
         var (problemId, _) = await NewProblemAsync("Filter by opening hours");
         var (otherId, _) = await NewProblemAsync("Share spots with friends", "Social");
         GitHub.Files["lib/spot.dart"] = "class Spot {}";
-        Ai.WriteSolutions = input => $"First take on {input.Problem.Title}.";
+        Ai.WriteSolutions = input => FakeAiGateway.Ideas($"First take on {input.Problem.Title}");
         await SuggestAsync(problemId);
         await SuggestAsync(otherId);
 
-        Ai.WriteSolutions = input => $"Second take on {input.Problem.Title}.";
+        Ai.WriteSolutions = input => FakeAiGateway.Ideas($"Second take on {input.Problem.Title}");
         var latest = await SuggestAsync(problemId);
 
-        Assert.Equal("Second take on Filter by opening hours.", latest.Body);
-        Assert.Equal("Second take on Filter by opening hours.", (await SolutionsDrawerAsync(problemId)).Solutions!.Body);
+        Assert.Equal("Second take on Filter by opening hours", latest.Ideas[0].Title);
+        Assert.Equal("Second take on Filter by opening hours", (await SolutionsDrawerAsync(problemId)).Solutions!.Ideas[0].Title);
         Assert.Equal(latest.WriteAiCallId, (await CallsAsync(problemId)).First(c => c.Step == "WriteSolutions").Id);
-        Assert.Equal("First take on Share spots with friends.", (await SolutionsDrawerAsync(otherId)).Solutions!.Body);
+        Assert.Equal("First take on Share spots with friends", (await SolutionsDrawerAsync(otherId)).Solutions!.Ideas[0].Title);
     }
 
     [Fact]
@@ -145,8 +202,8 @@ public sealed class SuggestSolutionsTests(FeedbackDatabase database) : AdminTest
         Assert.Equal(("Failed", "Timeout"), (write.Status, write.FailureKind));
         Assert.Equivalent(previous, (await SolutionsDrawerAsync(problemId)).Solutions);
 
-        Ai.WriteSolutions = _ => "Try again worked.";
-        Assert.Equal("Try again worked.", (await SuggestAsync(problemId)).Body);
+        Ai.WriteSolutions = _ => FakeAiGateway.Ideas("Try again worked");
+        Assert.Equal("Try again worked", (await SuggestAsync(problemId)).Ideas[0].Title);
     }
 
     [Fact]
@@ -185,14 +242,14 @@ public sealed class SuggestSolutionsTests(FeedbackDatabase database) : AdminTest
         var (keptId, _) = await NewProblemAsync("Filter by opening hours");
         var (otherId, _) = await NewProblemAsync("Show only open spots");
         GitHub.Files["lib/spot.dart"] = "class Spot {}";
-        Ai.WriteSolutions = input => $"Options for {input.Problem.Title}.";
+        Ai.WriteSolutions = input => FakeAiGateway.Ideas($"Options for {input.Problem.Title}");
         await SuggestAsync(keptId);
         await SuggestAsync(otherId);
 
         var merge = await Client.PostAsJsonAsync("/api/admin/problems/merge", new { problemIds = new[] { keptId, otherId }, keepId = keptId });
 
         Assert.Equal(HttpStatusCode.OK, merge.StatusCode);
-        Assert.Equal("Options for Filter by opening hours.", (await merge.Content.ReadFromJsonAsync<SolutionsDrawerJson>())!.Solutions!.Body);
+        Assert.Equal("Options for Filter by opening hours", (await merge.Content.ReadFromJsonAsync<SolutionsDrawerJson>())!.Solutions!.Ideas[0].Title);
         Assert.Equal(HttpStatusCode.NotFound, (await Client.GetAsync($"/api/admin/problems/{otherId}")).StatusCode);
     }
 
@@ -245,4 +302,11 @@ public sealed class SuggestSolutionsSizeCapTests(FeedbackDatabase database) : Ad
 public sealed record SolutionsDrawerJson(long Id, SolutionsJson? Solutions);
 
 public sealed record SolutionsJson(
-    string Body, string[] Files, DateTimeOffset GeneratedAt, long PickerAiCallId, long WriteAiCallId);
+    IdeaJson[] Ideas, string[] Files, DateTimeOffset GeneratedAt, long PickerAiCallId, long WriteAiCallId);
+
+public sealed record IdeaJson(string Title, string Description, string Effort, string[] Files, int[] Issues)
+{
+    public bool Equals(IdeaJson? o) => o is not null && (Title, Description, Effort) == (o.Title, o.Description, o.Effort)
+        && Files.SequenceEqual(o.Files) && Issues.SequenceEqual(o.Issues);
+    public override int GetHashCode() => HashCode.Combine(Title, Description, Effort);
+}

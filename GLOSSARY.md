@@ -47,3 +47,7 @@ _Avoid_: Brief summary, report, AI summary, recommendation
 **Citation**:
 A link from a claim in a Decision Brief to the Feature Requests that support it, optionally with words quoted exactly from one of them.
 _Avoid_: Source, reference, footnote, evidence link
+
+**Solution Idea**:
+One of three short, AI-suggested ways the product team could address a Problem, grounded in the connected repo. It recommends no choice; picking one stays with the product team.
+_Avoid_: Solution, option, suggestion

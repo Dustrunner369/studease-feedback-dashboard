@@ -1,4 +1,5 @@
 using Feedback.Api.Admin;
+using Feedback.Api.Ai;
 using Feedback.Api.Data;
 
 namespace Feedback.Api.Solutions;
@@ -23,9 +24,14 @@ public static class SolutionEndpoints
     }
 }
 
-/// <summary>The drawer's Suggest Solutions section: the latest result, the files it read, and its two ai_calls ids.</summary>
-public sealed record SolutionsView(string Body, IReadOnlyList<string> Files, DateTimeOffset GeneratedAt, long PickerAiCallId, long WriteAiCallId)
+/// <summary>
+/// The drawer's Suggest Solutions section: the latest Solution Ideas, the files read, the two ai_calls ids, and the
+/// configured repo (<c>owner/name</c>) so the page can link each idea's issue numbers.
+/// </summary>
+public sealed record SolutionsView(
+    IReadOnlyList<SolutionIdea> Ideas, IReadOnlyList<string> Files, DateTimeOffset GeneratedAt, long PickerAiCallId, long WriteAiCallId,
+    string Repo)
 {
-    public static SolutionsView? Of(SolutionSuggestion? s) =>
-        s is null ? null : new(s.Body, s.Files, s.GeneratedAt, s.PickerAiCallId, s.WriteAiCallId);
+    public static SolutionsView? Of(SolutionSuggestion? s, string repo) =>
+        s is null ? null : new(SolutionIdeaRules.Read(s.Ideas), s.Files, s.GeneratedAt, s.PickerAiCallId, s.WriteAiCallId, repo);
 }

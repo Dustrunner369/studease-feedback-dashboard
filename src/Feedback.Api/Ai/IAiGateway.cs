@@ -33,8 +33,8 @@ public interface IAiGateway
     /// <summary>Suggest Solutions, call 1: picks the repo files (about <see cref="PickFilesInput.MaxFiles"/>) most relevant to a Problem.</summary>
     Task<AiReply<FilePicks>> PickFilesAsync(PickFilesInput input, CancellationToken ct);
 
-    /// <summary>Suggest Solutions, call 2: writes solution options for a Problem, grounded in the chosen files and open issues/PRs. Plain text.</summary>
-    Task<AiReply<string>> WriteSolutionsAsync(WriteSolutionsInput input, CancellationToken ct);
+    /// <summary>Suggest Solutions, call 2: three short Solution Ideas for a Problem, grounded in the chosen files and open issues/PRs. Strict form.</summary>
+    Task<AiReply<SolutionIdeas>> WriteSolutionsAsync(WriteSolutionsInput input, CancellationToken ct);
 }
 
 /// <summary>What the picker chooses from: the Problem (never Requester emails) and the repo's filtered file paths.</summary>
@@ -51,6 +51,15 @@ public sealed record WriteSolutionsInput(
     ScoreProblem Problem, IReadOnlyList<string> Paths, IReadOnlyList<SourceFile> Files, IReadOnlyList<RepoItem> OpenItems);
 
 public sealed record SourceFile(string Path, string Text, bool Truncated);
+
+/// <summary>The strict Suggest Solutions form: three Solution Ideas, and no recommendation of one.</summary>
+public sealed record SolutionIdeas(IReadOnlyList<SolutionIdea> Ideas);
+
+/// <summary>
+/// One short way the product team could address a Problem: a title (~8 words), one sentence in product terms,
+/// effort (Small / Medium / Large), up to 3 repo paths it would touch, and related open issue/PR numbers.
+/// </summary>
+public sealed record SolutionIdea(string Title, string Description, string Effort, IReadOnlyList<string> Files, IReadOnlyList<int> Issues);
 
 /// <summary>An open issue or pull request in the connected repo.</summary>
 public sealed record RepoItem(int Number, string Title, string Body, bool IsPullRequest);

@@ -388,13 +388,23 @@ function solutionsBlock(p) {
   const result = s
     ? [
         el("p", { class: "caption" }, `Generated ${formatDate(s.generatedAt)} · read ${s.files.length} file${s.files.length === 1 ? "" : "s"}`),
-        s.files.length ? el("ul", { class: "sol-files" }, s.files.map((f) => el("li", {}, el("code", {}, f)))) : null,
-        el("div", { class: "sol-body" }, s.body),
+        el("ol", { class: "ideas" }, s.ideas.map((idea) => solutionIdea(idea, s.repo))),
       ]
     : [el("p", { class: "caption" }, "Reads the connected GitHub repo (file tree, about 8 chosen files, open issues and PRs) and writes options.")];
   return el("details", { class: "solutions", open: ui.solutionsOpen === p.id || !s },
     el("summary", {}, s ? "✦ Suggested solutions" : "✦ Suggest Solutions"),
     el("div", { class: "stack", style: "gap:6px" }, ...result, el("div", { class: "row" }, run), status, error));
+}
+
+// One Solution Idea: bold title with an effort chip, its one sentence, then files and #issue links in small grey.
+function solutionIdea(idea, repo) {
+  const issues = idea.issues.map((n, i) => [i ? ", " : "",
+    repo ? el("a", { class: "link", href: `https://github.com/${repo}/issues/${n}`, target: "_blank", rel: "noopener" }, `#${n}`) : `#${n}`]);
+  const meta = [...idea.files.map((f) => el("code", {}, f)), ...(issues.length ? [el("span", {}, ...issues.flat())] : [])];
+  return el("li", { class: "idea" },
+    el("div", { class: "idea-head" }, el("strong", {}, idea.title), el("span", { class: `effort effort-${idea.effort.toLowerCase()}` }, idea.effort)),
+    el("p", {}, idea.description),
+    meta.length ? el("div", { class: "idea-meta" }, ...meta) : null);
 }
 
 // GitHub: Create GitHub issue (by hand), then the linked issue's state as of the last refresh.

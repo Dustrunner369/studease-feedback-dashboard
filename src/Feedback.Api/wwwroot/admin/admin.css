@@ -88,8 +88,13 @@ table.pt,table.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
 .drawer{position:fixed;top:0;right:0;height:100vh;width:min(560px,100%);background:var(--bg);border-left:1.5px solid var(--ink);z-index:30;overflow:auto;padding:var(--lg);display:grid;gap:var(--md);align-content:start;box-shadow:-12px 0 32px rgba(43,35,24,.12);animation:slide var(--short) var(--ease-out)}
 .drawer h2{font-size:22px}
 .drawer details summary{cursor:pointer;font-weight:700;padding:6px 0}
-.sol-files{display:flex;flex-wrap:wrap;gap:4px 10px;list-style:none;font-size:12px;color:var(--muted)}
-.sol-body{white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.5;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:var(--md)}
+.ideas{display:grid;gap:0;list-style:none;padding:0;margin:0}
+.idea{display:grid;gap:3px;padding:10px 0;border-top:1px solid var(--line);overflow-wrap:anywhere}
+.idea:first-child{border-top:0;padding-top:0}
+.idea-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.idea p{font-size:14px;line-height:1.45}
+.idea-meta{display:flex;flex-wrap:wrap;gap:2px 10px;font-size:12px;color:var(--muted)}
+.effort{flex:none;font-size:11px;font-weight:700;padding:1px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
 .meta{display:flex;gap:var(--md);flex-wrap:wrap}
 .meta div{display:grid;gap:2px}
 .frs{display:grid}

@@ -96,17 +96,24 @@ public sealed class FakeAiGateway : IAiGateway
         return Task.FromResult(new AiReply<FilePicks>(PickFiles(input), ChatModel, 3000, 120));
     }
 
-    /// <summary>Default: "Options for &lt;Problem title&gt;" plus the files it read.</summary>
-    public Func<WriteSolutionsInput, string> WriteSolutions { get; set; } = input =>
-        $"Options for {input.Problem.Title}, from {string.Join(", ", input.Files.Select(f => f.Path))}.";
+    /// <summary>Default: three Solution Ideas, the first titled "Options for &lt;Problem title&gt;".</summary>
+    public Func<WriteSolutionsInput, SolutionIdeas> WriteSolutions { get; set; } = input => Ideas($"Options for {input.Problem.Title}");
+
+    /// <summary>Three Solution Ideas, the first with this title.</summary>
+    public static SolutionIdeas Ideas(string firstTitle) => Ideas(
+        new SolutionIdea(firstTitle, "A first short idea.", "Small", [], []),
+        new SolutionIdea("Second idea", "A second short idea.", "Medium", [], []),
+        new SolutionIdea("Third idea", "A third short idea.", "Large", [], []));
+
+    public static SolutionIdeas Ideas(params SolutionIdea[] ideas) => new(ideas);
 
     /// <summary>Every WriteSolutionsAsync input, in call order.</summary>
     public ConcurrentQueue<WriteSolutionsInput> WriteSolutionsCalls { get; } = new();
 
-    public Task<AiReply<string>> WriteSolutionsAsync(WriteSolutionsInput input, CancellationToken ct)
+    public Task<AiReply<SolutionIdeas>> WriteSolutionsAsync(WriteSolutionsInput input, CancellationToken ct)
     {
         WriteSolutionsCalls.Enqueue(input);
-        return Task.FromResult(new AiReply<string>(WriteSolutions(input), WriterModel, 20000, 1500));
+        return Task.FromResult(new AiReply<SolutionIdeas>(WriteSolutions(input), WriterModel, 20000, 300));
     }
 
     public static UpdateDraft DefaultDraft(DraftUpdateInput input) => new(
