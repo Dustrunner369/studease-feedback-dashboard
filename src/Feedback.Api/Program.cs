@@ -28,6 +28,7 @@ builder.Services.AddSingleton<IntakeQueue>();
 builder.Services.AddScoped<MatchingStep>();
 builder.Services.AddScoped<PriorityScorer>();
 builder.Services.AddScoped<ProblemDecisions>();
+builder.Services.AddScoped<Regrouping>();
 builder.Services.AddScoped<OutboxDrafter>();
 builder.Services.AddScoped<IShippedHook>(services => services.GetRequiredService<OutboxDrafter>());
 builder.Services.AddHostedService<IntakeWorker>();

@@ -48,6 +48,15 @@ public static class ProblemEndpoints
         admin.MapGet("/problems/{id:long}", async (long id, FeedbackDbContext db, IOptions<PriorityCriteria> criteria, CancellationToken ct) =>
             await DrawerAsync(id, db, criteria.Value, ct) is { } drawer ? Results.Ok(drawer) : Results.NotFound());
 
+        // Merge two or more open Problems into one; returns the kept Problem's drawer.
+        admin.MapPost("/problems/merge", async (
+            MergeRequest body, Regrouping regrouping, FeedbackDbContext db, IOptions<PriorityCriteria> criteria, CancellationToken ct) =>
+        {
+            var result = await regrouping.MergeAsync(body, ct);
+            if (result.Errors is { } errors) return Results.ValidationProblem(errors);
+            return Results.Ok(await DrawerAsync(result.Value, db, criteria.Value, ct));
+        });
+
         // Rename, description, Category, status and Priority; returns the refreshed drawer.
         admin.MapPatch("/problems/{id:long}", async (
             long id, JsonObject? body, ProblemDecisions decisions, FeedbackDbContext db, IOptions<PriorityCriteria> criteria, CancellationToken ct) =>

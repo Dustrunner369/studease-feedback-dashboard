@@ -130,6 +130,24 @@ table.pt,table.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
 .drawer form input[type=text]{width:100%;box-sizing:border-box}
 .decisions{list-style:none;margin:0;padding:0;display:grid;gap:8px;font-size:13.5px}
 
+/* Merge, move and needs review (#25) */
+.pt th.tick,.pt td.tick{width:28px;padding-right:0}
+.pt tr.sel td{background:var(--card)}
+input[type=checkbox],input[type=radio]{accent-color:var(--terracotta);width:16px;height:16px;margin:2px 0 0}
+.mergebar{position:sticky;bottom:var(--lg);display:flex;gap:10px;align-items:center;background:var(--ink);color:var(--bg);border-radius:999px;padding:6px 8px 6px 16px;width:max-content;max-width:100%;margin:var(--md) auto 0;flex-wrap:wrap}
+.merge-hint{text-align:center;margin-top:var(--md)}
+.fr.tickable{grid-template-columns:auto 1fr auto}
+.splitbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--ink);color:var(--bg);border-radius:12px;padding:8px 12px;margin-top:8px}
+.splitbar select,.splitbar input[type=text]{background:#463b2c;color:var(--bg)}
+.splitbar .caption{color:#f0b9a0}
+.scrim{position:fixed;inset:0;background:color-mix(in srgb,var(--ink) 40%,transparent);z-index:40;display:grid;place-items:center;padding:var(--md)}
+.modal{background:var(--bg);border-radius:20px;padding:var(--lg);width:min(560px,100%);max-height:88vh;overflow:auto;display:grid;gap:var(--md);animation:rise var(--short) var(--ease-out)}
+.modal ul{margin:6px 0 0;padding-left:18px;display:grid;gap:4px}
+.opt{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border-radius:10px;background:var(--card);cursor:pointer}
+.review-list .fr.review{grid-template-columns:1fr}
+.review-list input[type=text]{min-width:0;flex:1 1 160px}
+@media (max-width:600px){.modal{padding:var(--md)}}
+
 /* Outbox (#27): Drafts / Sent list on the left, the chosen update on the right */
 .outbox{display:grid;grid-template-columns:minmax(240px,320px) 1fr;gap:var(--md);align-items:start}
 .ob-list{display:grid;gap:6px;align-content:start}

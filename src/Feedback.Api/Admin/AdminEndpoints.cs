@@ -32,6 +32,7 @@ public static class AdminEndpoints
                 : Results.Unauthorized());
 
         signedIn.MapProblems();
+        signedIn.MapFeatureRequests();
         signedIn.MapAiCalls();
         signedIn.MapPriority();
         signedIn.MapArchive();
