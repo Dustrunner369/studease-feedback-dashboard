@@ -262,3 +262,31 @@ Response: Stopped the server and switched back to main. Posted the resolution on
 [2026-11-06T23:49:54Z]
 Prompt: Asked to commit and push the uncommitted files.
 Response: Committed GLOSSARY.md, assumptions.txt, ai-costs.txt and prompts.txt to main and pushed.
+
+[2026-11-06T23:50:40Z]
+Prompt: /wayfinder "work through the map".
+Response: Claimed "Decide what happens when an AI step fails" and grilled it over two rounds: SDK default 2 retries for temporary errors only; Requesters never see failures; PM gets a Retry per step ("N Feature Requests need review" above the Problems table); call log OK/Failed with kind; unverified citations are a note on an OK call; seed load carries on and counts failures as misses; failed consistency re-scores are excluded. Posted the resolution, closed the ticket, updated the map, GLOSSARY.md (Feature Request) and assumptions.txt (20).
+
+[2026-11-06T23:57:55Z]
+Prompt: /wayfinder "work through the map" again, in the same session.
+Response: Did not start a second ticket, because wayfinder allows one ticket per session. Asked the user to run /clear and invoke it again so "Define the feedback schema and API" starts in a fresh session.
+
+[2026-11-07T00:05:00Z]
+Prompt: /wayfinder "work through the map".
+Response: Claimed "Define the feedback schema and API" (the only frontier ticket), read the earlier decisions it depends on, and started grilling: round 1 covers the tables.
+
+[2026-11-07T00:12:00Z]
+Prompt: Round 1 answers on the schema (integer IDs, shortlist from Feature Request embeddings, reason only on Won't do, outbox Sent tab, "answer_key" name; asked to discuss detail level, removed Problems, first_problem_id, upvotes, AI call log, GitHub config).
+Response: Asked round 2: table-and-column detail level, grouping metrics saved at seed load (no first_problem_id, hard delete, no answer-key table), upvotes table with browser token for un-upvote, Outbox Drafts/Sent tabs, minimal AI call log columns, GitHub repo from config.
+
+[2026-11-07T00:20:00Z]
+Prompt: Round 2 answers: (b) tables and columns; yes to metrics at seed load; upvotes (b) with browser token; Outbox tabs; AI log (a); GitHub from config.
+Response: Tables settled. Asked round 3 on the API.
+
+[2026-11-07T00:30:00Z]
+Prompt: "yes to all" (round 3: API endpoint list, background in-memory queue after submit, latest Suggest Solutions kept per Problem, one Shipped update per Requester email, GitHub refresh when the Problems page opens, one project src/Feedback.Api, seed_metrics row).
+Response: Posted the resolution on "Define the feedback schema and API" (12 tables, REST API, project layout) and closed it; left amendment notes on the charting, metrics, seed, /admin prototype and sign-in tickets; added it to the map's Decisions so far and noted that no tickets remain; updated GLOSSARY.md (Upvote), assumptions.txt (7, 13, 18, new 21) and ai-costs.txt (/suggest estimate). Nothing committed yet.
+
+[2026-11-07T00:35:00Z]
+Prompt: "yes commit and push, close the map".
+Response: Committed GLOSSARY.md, assumptions.txt, ai-costs.txt and prompts.txt to main, pushed, and closed the map "Map: Studease Feature Intelligence System".

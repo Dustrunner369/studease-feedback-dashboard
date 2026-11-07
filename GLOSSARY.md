@@ -9,11 +9,11 @@ A person who submits a Feature Request, identified only by the email address the
 _Avoid_: Customer, user, submitter, stakeholder
 
 **Feature Request**:
-What one Requester submitted, in their own words. It is never edited after submission, links to exactly one Problem, and is what Requesters browse and upvote. Its page lists the other Feature Requests of the same Problem as Related requests. It leaves the portal when its Problem is Shipped.
+What one Requester submitted, in their own words. It is never edited after submission, links to exactly one Problem (or, until it has been matched, to none: it then needs review by the product team), and is what Requesters browse and upvote. Its page lists the other Feature Requests of the same Problem as Related requests. It leaves the portal when its Problem is Shipped.
 _Avoid_: Ticket, suggestion, feedback item
 
 **Upvote**:
-One person's support for an existing Feature Request. Upvoters give no email, so they are not Requesters.
+One browser's support for an existing Feature Request, at most one per Feature Request, and it can be taken back. Upvoters give no email, so they are not Requesters.
 _Avoid_: Vote, +1, like
 
 **Problem**:
