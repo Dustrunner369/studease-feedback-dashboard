@@ -1,5 +1,15 @@
 # studease-feedback-dashboard
 
+## Results on the seed backlog
+
+- **150 Feature Requests become 30 Problems to triage: 5× less for the product team to read.**
+- **92% duplicate catch rate (target ≥90%): repeat requests join the existing Problem instead of piling up.**
+- **99% grouping accuracy (target ≥85%): requests land on the right Problem.**
+- **92% priority consistency (target ≥90%): re-scoring a Problem gives the same level, with scores 2.8 points apart on average (of 100).**
+- **$0.042 in AI costs to process all 150 requests (under 3¢ per 100 requests), measured from the AI call log.**
+
+From one seed run and one consistency check on 6 Nov 2026. Full numbers are in [`metrics.txt`](metrics.txt).
+
 The Studease Feature Intelligence System: a public portal where students submit and upvote Feature Requests, and an `/admin` workspace where the product team triages the Problems the AI groups them into. See the spec, [Spec: Studease Feature Intelligence System (v1)](https://github.com/Dustrunner369/studease-feedback-dashboard/issues/17), and the terms in [`GLOSSARY.md`](GLOSSARY.md).
 
 ## What you need
@@ -7,6 +17,15 @@ The Studease Feature Intelligence System: a public portal where students submit 
 - .NET 9 SDK (`global.json` pins 9.0.301)
 - Docker Desktop, running (for the local database and the tests)
 - An OpenAI API key, and a GitHub fine-grained token for Suggest Solutions and GitHub issues
+
+Then get the code:
+
+```bash
+git clone https://github.com/Dustrunner369/studease-feedback-dashboard.git
+cd studease-feedback-dashboard
+```
+
+To get from a fresh clone to a seeded app, follow [Locally: .NET user secrets](#locally-net-user-secrets) and then the steps in [Run it locally](#run-it-locally).
 
 ## Secrets
 
@@ -23,7 +42,7 @@ The app reads three secrets. None of them go in a file in the repo.
 User secrets are stored in your user profile, outside the repo. Run these in your own terminal:
 
 ```bash
-dotnet user-secrets init --project src/Feedback.Api      # once; adds a UserSecretsId line to the .csproj (safe to commit)
+dotnet user-secrets init --project src/Feedback.Api      # harmless if the .csproj already has a UserSecretsId
 
 dotnet user-secrets set "OpenAI:ApiKey" "sk-..."                 --project src/Feedback.Api
 dotnet user-secrets set "Admin:Key"     "<a long random string>" --project src/Feedback.Api
@@ -75,14 +94,16 @@ The production connection string must include `Search Path=feedback`. The app ke
 
    The portal is at http://localhost:5242 and the product team's workspace is at http://localhost:5242/admin (sign in with your `Admin:Key`).
 
-4. **Load the demo data (optional).** This sends ~150 synthetic Feature Requests through the real AI pipeline, which costs about $0.08. It also saves the duplicate catch rate and grouping accuracy shown in Metrics:
+4. **Load the demo data (optional).** This sends 150 synthetic Feature Requests from `seed/feature-requests.json` through the real AI pipeline, so it needs `OpenAI:ApiKey` set. It takes about 10 minutes and cost $0.042 on the last run. Run it in a second terminal (the app from step 3 can keep running):
 
    ```bash
    dotnet run --project src/Feedback.Api -- seed load      # refuses if the schema already has data
    dotnet run --project src/Feedback.Api -- seed remove    # empties every feedback table; keeps the schema
    ```
 
-   Both commands use whichever `ConnectionStrings:Feedback` is configured, so check which database you're pointed at first.
+   `seed load` ends by printing the duplicate catch rate and grouping accuracy, and saves them to `/admin` → Metrics. To start over, run `seed remove` and then `seed load` again. Both commands use whichever `ConnectionStrings:Feedback` is configured, so check which database you're pointed at first.
+
+5. **Check priority consistency (optional).** In `/admin` → Metrics, run the Priority consistency check. It re-scores every open Problem 3 times (about 78 AI calls on the seed data, roughly 1.5¢) and shows how many kept the same level.
 
 ## Tests
 

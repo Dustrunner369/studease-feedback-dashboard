@@ -306,3 +306,105 @@ Response: Merged the AI call log view into the /admin sign-in slice and publishe
 [2026-11-07T01:05:00Z]
 Prompt: /implement-spec (the v1 spec and its 14 tickets).
 Response: Started the build on an integration branch, with implementer subagents per ticket in their own worktrees.
+
+[2026-11-07T03:00:00Z]
+Prompt: "show me where to enter my API keys".
+Response: Looked up how build/v1 reads its secrets (OpenAI:ApiKey, Admin:Key, GitHub:Token; no user-secrets ID set up yet) and explained the commands for entering them with dotnet user-secrets locally and Fly secrets in production. No changes made.
+
+[2026-11-07T03:05:00Z]
+Prompt: "Add this setup to the README".
+Response: Wrote README.md on build/v1: what you need, the three secrets (user secrets locally, Fly secrets in production), running locally (pgvector container, migrations, run, seed), tests and other config. Committed and pushed to build/v1.
+
+[2026-11-07T03:10:00Z]
+Prompt: "Is the admin key a random string? Can I come up with something?"
+Response: Checked AdminAuth: any non-empty string works; it's a password you choose. Advised a long passphrase, since /admin is public on the internet once deployed. No changes made.
+
+[2026-11-07T03:15:00Z]
+Prompt: "Walk me through getting my key from GitHub".
+Response: Gave step-by-step instructions for creating a fine-grained personal access token limited to Dustrunner369/studease (Contents read, Issues read/write, Metadata read), storing it with dotnet user-secrets, and checking it in /admin Settings → GitHub. No changes made.
+
+[2026-11-07T03:25:00Z]
+Prompt: "okay all API keys are in".
+Response: Confirmed the three user secrets are set (names only). Created the local pgvector database on port 5433, applied all migrations (13 tables in feedback), and started the app on http://localhost:5242. The startup GitHub call answered. Nothing seeded yet.
+
+[2026-11-07T03:35:00Z]
+Prompt: Admin login says the key isn't right, after setting the key in env variables.
+Response: Diagnosed without reading the key: the running app (started from this session's shell) only sees the user secret Admin:Key (10 characters, clean, saved before the app started); no Admin env var reaches it and there is no .env file, and the login code works (a wrong key gets 401). Explained that an env var must be named Admin__Key and only reaches an app started from that same terminal; suggested re-setting the user secret and restarting the app.
+
+[2026-11-07T03:45:00Z]
+Prompt: "okay it's set" (re-set the Admin:Key user secret).
+Response: Stopped the app, confirmed the secret was updated (still clean, no padding), and restarted the app on http://localhost:5242 so it reads the new key.
+
+[2026-11-07T03:55:00Z]
+Prompt: "It's still not getting it right, figure out what's going on".
+Response: Tested sign-in with the stored Admin:Key read straight from user secrets (never printed): login returns 204 and the admin API returns 200 with the cookie, so the server and the stored key work. The typed key differs from the stored one; the likely cause is zsh expanding $ or ! inside the double quotes when the secret was set (it stored 10 characters). Explained how to check and how to re-set it with single quotes.
+
+[2026-11-07T04:05:00Z]
+Prompt: Got admin sign-in working (the shell had dropped a character). Asked to test the OpenAI key: a test Feature Request wasn't registering the purchased credits.
+Response: The AI call log showed the credits were fine after the first call; the real failure was a config bug: gpt-6-luna rejects reasoning effort "minimal". Set Match, DraftUpdate and PickFiles to "none" (as the spec said), restarted the app, and retried the request: match and scoring both succeeded with real OpenAI calls. Committed and pushed the fix to build/v1.
+
+[2026-11-07T04:15:00Z]
+Prompt: /ask-matt "I want to go over the Suggested solutions feature".
+Response: Recommended /grill-with-docs for reworking how Suggest Solutions should behave (it records changes in GLOSSARY.md and the tickets), a live run in /admin first to have something concrete to react to, and /diagnosing-bugs if it's broken rather than wrong. No changes made.
+
+[2026-11-07T04:30:00Z]
+Prompt: /grill-with-docs on Suggest Solutions length (it wrote long paragraphs). Answers: strict form, exactly 3 ideas, each a title (~8 words), one sentence, effort, up to 3 files, related issues; no closing recommendation; keep gpt-6.1-sol medium; three guardrail layers (schema maxItems + one-line length patterns, prompt, code trims with a log note); drawer rows; clear old results; add Solution Idea to the glossary; record as one issue and build here.
+Response: Grilled over three rounds (checked OpenAI docs: strict forms support maxItems and pattern but not maxLength). Recording the decision, then building it test-first on build/v1.
+
+[2026-11-07T05:00:00Z]
+Prompt: (continuation) build the Solution Ideas change.
+Response: Built it test-first on build/v1 (ee1f531, 191 tests passing): strict 3-idea form with length patterns, short-ideas prompt, code check that cuts with "…" and notes it, migration clearing old results, idea rows in the drawer, Solution Idea in GLOSSARY.md. A real run returned 3 short ideas (493 output tokens, 10 s, patterns accepted). Closed "Suggest Solutions: three short Solution Ideas".
+
+[2026-11-07T05:10:00Z]
+Prompt: Remove the relevant files from the Suggested solutions; only show the ideas. (Chose: drop files from the AI form entirely; keep the caption, issue links and effort chip.)
+Response: Removed the files field from Solution Ideas end to end (form, prompt, code check, storage view, drawer, tests).
+Committed and pushed to build/v1 as 0875f13 (191 tests passing); app restarted.
+
+[2026-11-07T05:20:00Z]
+Prompt: Remove the AI calls section from the Problem detail screen but keep the "Open in the AI call log" link.
+Response: Replaced the collapsible AI calls section in the drawer with the single "Open in the AI call log" link (opens Settings → AI call log filtered to that Problem) and removed the now-unused loader. Committed and pushed to build/v1.
+
+[2026-11-07T05:30:00Z]
+Prompt: The Decision Brief shows "null" at the bottom; find where it comes from.
+Response: Cause: briefBlock used the DOM's native append(), which turns null into the text "null"; the unverified-citation notice is null when every citation checks out. Found the same bug in the Outbox message pane (the failed-draft line). Filtered out empty pieces in both; committed and pushed to build/v1.
+
+[2026-11-07T03:26:17Z] Remove " · their requests: …" links from the Outbox message header; keep only "About {Problem}". Edited src/Feedback.Api/wwwroot/admin/admin.js.
+[2026-11-07T03:28:09Z] Remove the "Code checks that cited requests and quotes exist; open a chip…" caption from the Decision Brief. Edited src/Feedback.Api/wwwroot/admin/admin.js.
+
+2026-11-07T03:32:04Z — In the AI call log, moved the long error message off the table into a hover tooltip on the Failed result pill (admin.js callsTable).
+2026-11-07T03:33:33Z — Replaced the slow native title tooltip on the AI call log Failed pill with an instant custom [data-tip] tooltip (admin.js + admin.css).
+2026-11-07T03:34:02Z — Reverted the custom tooltip; the AI call log Failed pill uses the native browser title tooltip again.
+
+[2026-11-07T03:37:38Z] Remove the "Score = Σ weight × (rating − 1) / 4 ... Levels: High/Medium/Low" caption from the Priority criteria screen.
+Response: Deleted that caption paragraph under the criteria table in src/Feedback.Api/wwwroot/admin/admin.js (renderCriteria). Syntax checked with node --check.
+
+[2026-11-07T03:39:08Z] Replace the Reach "Rated by" text ("Code: Feature Requests × 3 + Upvotes, in fixed bands" + reach bands caption) with "Determined by frequency of requests and number of upvotes".
+Response: Changed the Reach ratedBy string in Admin/PriorityEndpoints.cs and removed the "Reach points in bands" caption (and its unused bands helper) from criteriaView in wwwroot/admin/admin.js.
+
+[2026-11-07T03:41:11Z] User reported the Reach label still showed the old "Code: Feature Requests × 3 + Upvotes, in fixed bands" text.
+Response: The running server (plain dotnet run, started before the edit) was serving the old compiled string. Restarted it on http://localhost:5242; the new build contains the new label.
+
+[2026-11-07T03:43:05Z] Replace "AI, 1–5 + reason" Rated-by text for Strategic fit, Pain, Retention risk with "Scored 1-5 by AI using the table below".
+Response: Updated the three strings in Admin/PriorityEndpoints.cs (Strategic fit also dropped "naming the goal it serves best") and restarted the app.
+
+[2026-11-07T03:57:34Z] Prompt: "Let's seed this" then "Go ahead" (approved wiping the dev DB).
+Response: Ran seed remove on localhost:5433/feedback (deleted 1 request, 1 problem, brief, 13 log rows, 2 outbox, 18 AI calls), then seed load (~150 requests through the real AI pipeline).
+Result: 150/150 requests matched; AI made 30 Problems (answer key has 15); duplicate catch rate 92%, grouping accuracy 99%; 8 product-team actions applied; one Score step failed ("Strategic fit names no goal").
+
+[2026-11-07T04:02:15Z] Prompt: Create metrics.txt with the first run of metrics; user will run consistency checks and send scores to average.
+Response: Created metrics.txt with run 1 (92% duplicate catch, 99% grouping accuracy, 30 Problems) and a running average section.
+
+[2026-11-07T04:04:21Z] Prompt: Shared Priority consistency check result #1 (92%, 26 open Problems, 2.8-point spread, 1 failed re-score, 2 changed level).
+Response: Added a Priority consistency section to metrics.txt with run 1 and its average.
+
+[2026-11-07T04:47:19Z] Prompt: Put updated stats in the README, bold and at the top, to show business impact.
+Response: Added a bold "Results on the seed backlog" section under the README title (150 requests -> 30 Problems, 92% duplicate catch, 99% grouping, 92% priority consistency, ~$0.08 AI cost), pointing to metrics.txt.
+
+[2026-11-07T04:48:16Z] Prompt: Use the real cost from the AI call log in the README.
+Response: Summed feedback.ai_calls up to the end of the seed run: 458 calls, $0.0419 (Match $0.018, Score $0.023, Embed/DraftUpdate the rest). README stat now says $0.042; added the cost breakdown to metrics.txt.
+
+[2026-11-07T04:49:52Z] Prompt: Does the README cover starting the project from start to finish, including seeding?
+Response: Mostly; filled the gaps: clone step + start-to-finish pointer, softened user-secrets init comment, seed step now says it needs the OpenAI key, takes ~10 min, runs in a second terminal, where results show and how to start over; added step 5 for the Priority consistency check.
+
+[2026-11-07T04:51:39Z] Prompt: Commit and push, merge everything into main, clean up all worktrees.
+Response: 191 tests passed. Committed the README results/setup changes, metrics.txt, criteria label edits and UserSecretsId on build/v1, pushed, merged build/v1 into main (contains every ticket branch), pushed main. Only the main worktree exists, so no worktrees to remove. Left the throwaway prototype/* and research/* branches unmerged.

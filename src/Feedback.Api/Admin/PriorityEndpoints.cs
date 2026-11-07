@@ -41,10 +41,10 @@ public sealed record CriteriaView(
         c.Goals,
         c.CoreTasks,
         [
-            new(Criterion.StrategicFit, c.Weights.StrategicFit, "AI, 1–5 + reason, naming the goal it serves best", c.Levels.StrategicFit),
-            new(Criterion.Reach, c.Weights.Reach, "Code: Feature Requests × 3 + Upvotes, in fixed bands", null),
-            new(Criterion.Pain, c.Weights.Pain, "AI, 1–5 + reason", c.Levels.Pain),
-            new(Criterion.RetentionRisk, c.Weights.RetentionRisk, "AI, 1–5 + reason", c.Levels.RetentionRisk),
+            new(Criterion.StrategicFit, c.Weights.StrategicFit, "Scored 1-5 by AI using the table below", c.Levels.StrategicFit),
+            new(Criterion.Reach, c.Weights.Reach, "Determined by frequency of requests and number of upvotes", null),
+            new(Criterion.Pain, c.Weights.Pain, "Scored 1-5 by AI using the table below", c.Levels.Pain),
+            new(Criterion.RetentionRisk, c.Weights.RetentionRisk, "Scored 1-5 by AI using the table below", c.Levels.RetentionRisk),
         ],
         c.ReachBands.OrderBy(b => b.MinPoints).Select(b => new ReachBandView(b.MinPoints, b.Rating)).ToList(),
         new CutOffsView(c.CutOffs.High, c.CutOffs.Medium));

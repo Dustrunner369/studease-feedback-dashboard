@@ -499,7 +499,6 @@ function briefBlock(p) {
         : el("p", { class: "caption" }, "Nothing here."))),
     unverified ? el("p", { class: "notice err" },
       `${unverified} claim${unverified === 1 ? "" : "s"} failed the citation check. Shown, but marked.`) : null,
-    el("p", { class: "caption" }, "Code checks that cited requests and quotes exist; open a chip to judge whether it supports the claim."),
   ].filter((x) => x != null));
   return body;
 }
@@ -982,11 +981,6 @@ function settingsTabs(current) {
 async function criteriaView() {
   const c = await api("/criteria");
   const rated = c.criteria.filter((x) => x.levels);
-  const bands = c.reachBands.map((b, i) => {
-    const next = c.reachBands[i + 1];
-    const range = next ? (b.minPoints === 0 ? `under ${next.minPoints}` : `${b.minPoints}–${next.minPoints - 1}`) : `${b.minPoints}+`;
-    return `${range} → ${b.rating}`;
-  }).join(", ");
 
   app.replaceChildren(el("div", { class: "stack criteria reveal" },
     settingsTabs("criteria"),
@@ -1000,9 +994,7 @@ async function criteriaView() {
         el("thead", {}, el("tr", {}, ["Criterion", "Weight", "Rated by"].map((h) => el("th", {}, h)))),
         el("tbody", {}, c.criteria.map((x) => el("tr", {},
           el("td", {}, x.name), el("td", { class: "mono" }, String(x.weight)),
-          el("td", {}, x.ratedBy, x.levels ? null : el("div", { class: "caption" }, `Reach points in bands: ${bands}`)))))),
-      el("p", { class: "caption", style: "margin-top:8px" },
-        `Score = Σ weight × (rating − 1) / 4, so 0–100. Levels: High ≥ ${c.cutOffs.high}, Medium ${c.cutOffs.medium}–${c.cutOffs.high - 1}, Low < ${c.cutOffs.medium}.`)),
+          el("td", {}, x.ratedBy)))))),
     el("div", { class: "box table-wrap" },
       el("table", { class: "tbl" },
         el("thead", {}, el("tr", {}, el("th", {}, "Rating"), rated.map((x) => el("th", {}, x.name)))),
@@ -1025,8 +1017,8 @@ function callsTable(list, { showFor }) {
       el("td", { class: "mono" }, when(c.createdAt)),
       el("td", {}, c.step),
       el("td", {},
-        c.status === "OK" ? el("span", { class: "pill Low" }, "OK") : el("span", { class: "pill warn" }, `Failed · ${c.failureKind ?? "?"}`),
-        c.errorMessage ? el("div", { class: "err-msg" }, c.errorMessage) : null,
+        c.status === "OK" ? el("span", { class: "pill Low" }, "OK")
+          : el("span", { class: "pill warn", ...(c.errorMessage ? { title: c.errorMessage, style: "cursor:help" } : {}) }, `Failed · ${c.failureKind ?? "?"}`),
         c.note ? el("div", { class: "caption" }, c.note) : null),
       showFor ? forCell(c) : null,
       el("td", { class: "caption" }, c.model ?? "–"),
@@ -1087,9 +1079,7 @@ function messagePane(m, editing = false) {
   const head = el("div", { class: "stack", style: "gap:4px" },
     el("div", { class: "spread" }, el("span", {}, "To ", el("b", {}, m.toEmail)), statePill(m.status)),
     el("span", { class: "caption" }, "About ",
-      m.problemId ? el("a", { class: "link", href: `#problems/${m.problemId}` }, m.problemTitle ?? `Problem ${m.problemId}`) : "a removed Problem",
-      " · their requests: ", m.featureRequests.map((r, i) => [i ? ", " : "",
-        el("a", { class: "link", href: `/requests/${r.id}`, target: "_blank", rel: "noopener" }, `“${r.title}”`)])));
+      m.problemId ? el("a", { class: "link", href: `#problems/${m.problemId}` }, m.problemTitle ?? `Problem ${m.problemId}`) : "a removed Problem"));
 
   if (editing) {
     const subject = el("input", { type: "text", value: m.subject, "aria-label": "Subject", maxlength: "200", required: true });

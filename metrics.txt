@@ -1,0 +1,26 @@
+Seed metrics log: Studease Feature Intelligence System
+Seed runs are `seed load` on the 150-request seed backlog (seed/feature-requests.json) through the real AI pipeline.
+Consistency checks are the Metrics screen's Priority consistency run on the seeded data (3 re-scores per open Problem).
+
+SEED RUNS (matching and grouping)
+Targets: duplicate catch rate >= 90%, grouping accuracy >= 85%. Answer key: 15 Problems.
+#   Date        Duplicate catch   Grouping accuracy   Problems made   Failures
+1   2026-11-06  92%               99%                 30              150 matched, 0 failed; 1 Score step failed ("Strategic fit names no goal")
+
+Average (1 run): duplicate catch 92%, grouping accuracy 99%
+
+Run 1 AI cost, from the ai_calls table (calls up to the end of the seed, 2026-11-07 03:57 UTC):
+Step          Calls   Failed   Tokens in / out     Cost
+Embed         150     0        3,295 / 0           $0.00007
+Match         150     0        127,305 / 10,622    $0.01804
+Score         150     1        134,487 / 19,616    $0.02326
+DraftUpdate   8       0        2,510 / 569         $0.00054
+Total         458     1        267,597 / 30,807    $0.04190
+
+PRIORITY CONSISTENCY CHECKS
+Target: >= 90% of open Problems keep the same level on all 3 re-scores.
+#   Date        Consistency   Problems checked   Avg score spread   Couldn't check   Changed level
+1   2026-11-06  92%           26 open            2.8 / 100          1 (re-score failed)   Find spots using more filters: Medium -> Low -> Medium (43, 36, 43)
+                                                                                         See what study spots look like: Medium -> High -> Medium (65, 79, 65)
+
+Average (1 run): consistency 92%, score spread 2.8 points
