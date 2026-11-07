@@ -30,13 +30,24 @@ button,input,select,textarea{font:inherit;color:inherit}
 .tabs{display:flex;gap:6px;flex-wrap:wrap}
 .tab{border:0;background:transparent;padding:6px 12px;border-radius:999px;cursor:pointer;color:var(--muted);font-weight:600}
 .tab:hover{color:var(--ink)}
-.tab[aria-selected=true]{background:var(--ink);color:var(--bg)}
+.tab[aria-selected=true],.tab[aria-pressed=true]{background:var(--ink);color:var(--bg)}
 .field{display:flex;flex-direction:column;gap:6px}
 .field input,.field select,.field textarea{background:var(--bg);border:1.5px solid transparent;border-radius:12px;padding:10px 12px;outline:none;transition:border-color var(--micro)}
 .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--ink)}
 .field textarea{min-height:96px;resize:vertical}
 .field .err{font-size:13px;color:var(--error)}
 .field.invalid input,.field.invalid select,.field.invalid textarea{border-color:var(--error)}
+/* upvote pill (variant D); pressed = this browser upvoted, click again to take it back */
+.up{display:flex;flex-direction:row;align-items:center;justify-content:center;gap:6px;padding:6px 12px;border-radius:14px;border:1.5px solid var(--line);background:var(--bg);cursor:pointer;transition:transform var(--micro) var(--ease-out),background var(--micro),border-color var(--micro)}
+.up:hover{border-color:var(--terracotta)}
+.up:active{transform:scale(.96)}
+.up:disabled{opacity:.7;cursor:progress}
+.up .arrow{font-size:13px;line-height:1;color:var(--terracotta)}
+.up .n{font-weight:800;font-size:14.5px;line-height:1.1}
+.up[aria-pressed=true]{background:var(--terracotta);border-color:var(--terracotta);color:#FBF5E8}
+.up[aria-pressed=true] .arrow{color:#FBF5E8}
+.toast{position:fixed;left:50%;top:var(--lg);transform:translate(-50%,-20px);opacity:0;background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-weight:600;transition:all var(--short) var(--ease-out);z-index:40;pointer-events:none}
+.toast.show{opacity:1;transform:translate(-50%,0)}
 .empty{text-align:center;padding:var(--xl) var(--md);color:var(--muted)}
 .empty .sketch{width:120px;height:120px;margin:0 auto var(--sm);background:var(--muted)}
 .reveal{animation:rise var(--long) var(--ease-out) both}
@@ -56,6 +67,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .sort{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
 .board{width:100%;border-collapse:collapse}
 .board td{padding:14px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+.board td.u{width:84px}
 .board td.t{font-weight:700;font-size:16px}
 .board td.t .caption{display:block;font-weight:400;font-size:13.5px;margin-top:2px}
 .board td.c{text-align:right;white-space:nowrap}
@@ -70,7 +82,9 @@ button,input,select,textarea{font:inherit;color:inherit}
 /* feature request page */
 .back{display:inline-block;color:var(--muted);text-decoration:none;margin-bottom:var(--lg)}
 .back:hover{color:var(--ink)}
-.fr-detail{padding-bottom:var(--xl);border-bottom:1px solid var(--line)}
+.fr-detail{display:grid;grid-template-columns:auto 1fr;gap:var(--lg);align-items:start;padding-bottom:var(--xl);border-bottom:1px solid var(--line)}
+.fr-detail .up{flex-direction:column;gap:0;min-width:64px;padding:10px 8px}
+.fr-detail .up .n{font-size:20px}
 .fr-detail h1{font-size:30px;line-height:1.15;margin:6px 0 var(--sm)}
 .related{margin-top:var(--xl)}
 .related h2{font-size:20px;margin-bottom:var(--sm)}

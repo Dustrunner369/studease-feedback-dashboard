@@ -17,6 +17,70 @@ export function el(tag, attrs = {}, ...children) {
   return node;
 }
 
+const TOKEN_KEY = "studease.browserToken";
+let memoryToken = null;
+
+/** The random token this browser made once (kept in localStorage); it tells upvoters apart, nothing more. */
+export function browserToken() {
+  try {
+    let t = localStorage.getItem(TOKEN_KEY);
+    if (!t) { t = makeToken(); localStorage.setItem(TOKEN_KEY, t); }
+    return t;
+  } catch {
+    return (memoryToken ??= makeToken());
+  }
+}
+
+function makeToken() {
+  if (crypto.randomUUID) return crypto.randomUUID();
+  return Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/** fetch() that always sends this browser's token, so the API can say which requests it upvoted. */
+export function apiFetch(url, options = {}) {
+  return fetch(url, { ...options, headers: { ...options.headers, "X-Browser-Token": browserToken() } });
+}
+
+/** The ▲ count pill. Click toggles this browser's Upvote; the pill shows the server's answer. */
+export function upvoteButton(r) {
+  const n = el("span", { class: "n" }, r.upvotes);
+  const button = el("button", { type: "button", class: "up", "aria-pressed": String(r.upvoted) },
+    el("span", { class: "arrow", "aria-hidden": "true" }, "▲"), n);
+  const label = () => button.setAttribute("aria-label",
+    `${r.upvoted ? "Take back your upvote for" : "Upvote"} ${r.title} (${r.upvotes})`);
+  label();
+  button.addEventListener("click", async (e) => {
+    e.stopPropagation();
+    button.disabled = true;
+    try {
+      const res = await apiFetch(`/api/requests/${r.id}/upvote`, { method: r.upvoted ? "DELETE" : "POST" });
+      if (res.ok) {
+        const state = await res.json();
+        r.upvotes = state.upvotes;
+        r.upvoted = state.upvoted;
+        n.textContent = r.upvotes;
+        button.setAttribute("aria-pressed", String(r.upvoted));
+        label();
+        toast(r.upvoted ? "Upvoted, thanks!" : "Upvote taken back");
+      } else if (res.status === 429) toast("That's a lot of upvotes just now. Please try again in a minute.");
+      else toast("We couldn't save your upvote. Please try again.");
+    } catch {
+      toast("We couldn't reach Studease. Check your connection and try again.");
+    }
+    button.disabled = false;
+  });
+  return button;
+}
+
+let toastNode = null;
+export function toast(message) {
+  toastNode ??= document.body.appendChild(el("div", { class: "toast", role: "status" }));
+  toastNode.textContent = message;
+  toastNode.classList.add("show");
+  clearTimeout(toastNode.hideTimer);
+  toastNode.hideTimer = setTimeout(() => toastNode.classList.remove("show"), 2200);
+}
+
 export function formatDate(iso) {
   return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }

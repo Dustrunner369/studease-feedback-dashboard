@@ -223,6 +223,29 @@ namespace Feedback.Api.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Feedback.Api.Data.Upvote", b =>
+                {
+                    b.Property<long>("FeatureRequestId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("feature_request_id");
+
+                    b.Property<string>("BrowserToken")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("browser_token");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.HasKey("FeatureRequestId", "BrowserToken")
+                        .HasName("pk_upvotes");
+
+                    b.ToTable("upvotes", "feedback");
+                });
+
             modelBuilder.Entity("Feedback.Api.Data.FeatureRequest", b =>
                 {
                     b.HasOne("Feedback.Api.Data.Problem", "Problem")
@@ -232,6 +255,16 @@ namespace Feedback.Api.Data.Migrations
                         .HasConstraintName("fk_feature_requests_problems_problem_id");
 
                     b.Navigation("Problem");
+                });
+
+            modelBuilder.Entity("Feedback.Api.Data.Upvote", b =>
+                {
+                    b.HasOne("Feedback.Api.Data.FeatureRequest", null)
+                        .WithMany()
+                        .HasForeignKey("FeatureRequestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_upvotes_feature_requests_feature_request_id");
                 });
 
             modelBuilder.Entity("Feedback.Api.Data.Problem", b =>

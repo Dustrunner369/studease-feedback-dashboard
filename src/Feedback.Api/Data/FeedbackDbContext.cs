@@ -10,6 +10,7 @@ public sealed class FeedbackDbContext(DbContextOptions<FeedbackDbContext> option
 
     public DbSet<Problem> Problems => Set<Problem>();
     public DbSet<FeatureRequest> FeatureRequests => Set<FeatureRequest>();
+    public DbSet<Upvote> Upvotes => Set<Upvote>();
     public DbSet<AiCall> AiCalls => Set<AiCall>();
 
     protected override void OnModelCreating(ModelBuilder model)
@@ -37,6 +38,16 @@ public sealed class FeedbackDbContext(DbContextOptions<FeedbackDbContext> option
             e.HasOne(r => r.Problem).WithMany(p => p.FeatureRequests)
                 .HasForeignKey(r => r.ProblemId).OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(r => r.CreatedAt);
+        });
+
+        model.Entity<Upvote>(e =>
+        {
+            e.ToTable("upvotes");
+            e.HasKey(u => new { u.FeatureRequestId, u.BrowserToken });
+            e.Property(u => u.BrowserToken).HasMaxLength(64);
+            e.Property(u => u.CreatedAt).HasDefaultValueSql("now()");
+            e.HasOne<FeatureRequest>().WithMany()
+                .HasForeignKey(u => u.FeatureRequestId).OnDelete(DeleteBehavior.Cascade);
         });
 
         model.Entity<AiCall>(AiCall.Configure);

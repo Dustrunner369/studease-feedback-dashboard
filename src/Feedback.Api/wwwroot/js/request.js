@@ -1,4 +1,4 @@
-import { el, formatDate, setUpRequestForm } from "./portal.js";
+import { apiFetch, el, formatDate, setUpRequestForm, upvoteButton } from "./portal.js";
 
 const main = document.getElementById("request");
 const id = location.pathname.split("/").pop();
@@ -6,7 +6,7 @@ const id = location.pathname.split("/").pop();
 async function load() {
   let r;
   try {
-    const res = await fetch(`/api/requests/${encodeURIComponent(id)}`);
+    const res = await apiFetch(`/api/requests/${encodeURIComponent(id)}`);
     if (res.status === 404) return missing("We couldn't find that request.");
     if (!res.ok) throw new Error(res.status);
     r = await res.json();
@@ -16,10 +16,12 @@ async function load() {
 
   document.title = `${r.title} · Studease`;
   main.replaceChildren(el("article", { class: "fr-detail" },
-    el("span", { class: "cat" }, r.category), " ",
-    el("span", { class: "caption" }, `· ${formatDate(r.createdAt)}`),
-    el("h1", {}, r.title),
-    el("p", {}, r.description)),
+    upvoteButton(r),
+    el("div", {},
+      el("span", { class: "cat" }, r.category), " ",
+      el("span", { class: "caption" }, `· ${formatDate(r.createdAt)}`),
+      el("h1", {}, r.title),
+      el("p", {}, r.description))),
     related(r.related ?? []));
 }
 
@@ -34,6 +36,7 @@ function related(rows) {
 function relatedRow(r) {
   const href = `/requests/${r.id}`;
   return el("tr", { onclick: (e) => { if (!e.target.closest("a, button")) location.href = href; } },
+    el("td", { class: "u" }, upvoteButton(r)),
     el("td", { class: "t" },
       el("a", { class: "rowlink", href }, r.title),
       el("span", { class: "caption" }, r.description)),
