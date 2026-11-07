@@ -290,3 +290,15 @@ Response: Posted the resolution on "Define the feedback schema and API" (12 tabl
 [2026-11-07T00:35:00Z]
 Prompt: "yes commit and push, close the map".
 Response: Committed GLOSSARY.md, assumptions.txt, ai-costs.txt and prompts.txt to main, pushed, and closed the map "Map: Studease Feature Intelligence System".
+
+[2026-11-07T00:40:00Z]
+Prompt: /ask-matt "ready for implementation".
+Response: Explained the next steps: with the map closed, run /to-spec (in this session, since its context already holds the map's decisions), then /to-tickets, then /implement per ticket with /clear between them, or /implement-spec for the whole build. No changes made.
+
+[2026-11-07T00:50:00Z]
+Prompt: /to-spec (and confirmed the test seams: the HTTP API against real Postgres with pgvector, with the AI and GitHub faked, plus the seed commands; pages checked by hand).
+Response: Wrote the v1 spec from the map's decisions (problem, solution, 78 user stories, implementation decisions, schema, API, testing decisions, out of scope) and published it as a GitHub issue labelled ready-for-agent.
+
+[2026-11-07T01:00:00Z]
+Prompt: /to-tickets, then "merge 9 into 4" on the proposed 15-slice breakdown.
+Response: Merged the AI call log view into the /admin sign-in slice and published 14 tracer-bullet tickets as sub-issues of the spec, labelled ready-for-agent, with native blocking links. The first, "Walking skeleton: submit a Feature Request and see it on the board", has no blockers.
