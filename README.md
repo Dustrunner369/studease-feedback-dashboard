@@ -1,6 +1,6 @@
 # Studease Feature Request Intelligence System
 
-## Built off my iOS app [Studease](https://apps.apple.com/us/app/studease-study-spot-journal/id6807210226)
+An AI agent that turns raw feature requests into deduplicated, prioritized customer problems, built for my iOS app [Studease](https://apps.apple.com/us/app/studease-study-spot-journal/id6807210226).
 
 ## Results on the seed backlog
 
