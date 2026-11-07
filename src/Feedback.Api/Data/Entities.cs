@@ -32,3 +32,11 @@ public sealed class FeatureRequest
     public bool IsBundled { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
 }
+
+/// <summary>One browser's support for a Feature Request. The browser token is random and carries no identity.</summary>
+public sealed class Upvote
+{
+    public long FeatureRequestId { get; set; }
+    public required string BrowserToken { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+}
