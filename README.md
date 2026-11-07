@@ -10,6 +10,18 @@
 
 From one seed run and one consistency check on 6 Nov 2026. Full numbers are in [`metrics.txt`](metrics.txt).
 
+## AI models
+
+All from OpenAI, Standard tier. Each step's model and reasoning effort is set in `Ai:Steps` in `src/Feedback.Api/appsettings.json`.
+
+| Model | Price (per 1M tokens, in / out) | Used for | Reasoning effort |
+|---|---|---|---|
+| `text-embedding-3-small` (1536 dims) | $0.02 / – | Embedding each Feature Request for suggest-as-you-type and the Problem shortlist | – |
+| `gpt-6-luna` | $0.10 / $0.50 | Matching a request to a Problem, priority scoring (temperature 0), Requester update drafts, picking repo files for Suggest Solutions | none |
+| `gpt-6.1-sol` | $2.00 / $10.00 | Decision Briefs and writing Solution Ideas | medium |
+
+The cheap model handles the per-request work; the larger one only runs when the product team asks for a Decision Brief or Suggest Solutions. Alternatives considered and cost estimates are in [`ai-costs.txt`](ai-costs.txt).
+
 The Studease Feature Intelligence System: a public portal where students submit and upvote Feature Requests, and an `/admin` workspace where the product team triages the Problems the AI groups them into. See the spec, [Spec: Studease Feature Intelligence System (v1)](https://github.com/Dustrunner369/studease-feedback-dashboard/issues/17), and the terms in [`GLOSSARY.md`](GLOSSARY.md).
 
 ## What you need
