@@ -80,6 +80,26 @@ public sealed class MergeTests(FeedbackDatabase database) : AdminTest(database)
         var merge = (await response.Content.ReadFromJsonAsync<MergedDrawerJson>())!.Decisions.Single(d => d.Kind == "merge");
         Assert.Equal([first, second],
             merge.Details.GetProperty("gitHubIssues").EnumerateArray().Select(i => i.GetProperty("number").GetInt32()).Order());
+        var toClose = Assert.Single(merge.Details.GetProperty("issuesToClose").EnumerateArray());
+        Assert.Equal((second, alsoWithIssue), (toClose.GetProperty("number").GetInt32(), toClose.GetProperty("problemId").GetInt64()));
+        Assert.EndsWith($"/issues/{second}", toClose.GetProperty("url").GetString());
+    }
+
+    [Fact]
+    public async Task A_kept_problem_with_its_own_issue_leaves_every_other_linked_issue_to_close_by_hand()
+    {
+        var (kept, _) = await NewProblemAsync("Filter by opening hours");
+        var (other, _) = await NewProblemAsync("Open now filter");
+        var (plain, _) = await NewProblemAsync("Hide closed spots");
+        var own = await CreateIssueAsync(kept);
+        var theirs = await CreateIssueAsync(other);
+
+        var response = await MergeAsync(new { problemIds = new[] { other, plain, kept }, keepId = kept });
+
+        var drawer = (await response.Content.ReadFromJsonAsync<GitHubDrawerJson>())!;
+        Assert.Equal(own, drawer.GitHubIssue!.Number);
+        var merge = (await Client.GetFromJsonAsync<MergedDrawerJson>($"/api/admin/problems/{kept}"))!.Decisions.Single(d => d.Kind == "merge");
+        Assert.Equal([theirs], merge.Details.GetProperty("issuesToClose").EnumerateArray().Select(i => i.GetProperty("number").GetInt32()));
     }
 
     private async Task<int> CreateIssueAsync(long problemId)

@@ -25,28 +25,27 @@ async function api(path, options = {}) {
   return res.status === 204 ? null : res.json();
 }
 
-/** PATCH /problems/{id}: { drawer } on success, { errors } (keyed by field) on a 400. */
-async function patchProblem(id, body) {
-  const res = await fetch(`/api/admin/problems/${id}`, {
-    method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "same-origin", body: JSON.stringify(body),
-  });
-  if (res.status === 401) throw new SignedOut();
-  if (res.status === 400) return { errors: (await res.json()).errors ?? {} };
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return { drawer: await res.json() };
+/** Any other non-OK answer from /api/admin; detail is the server's problem detail, when it sent one. */
+class RequestFailed extends Error {
+  constructor(status, detail) { super(detail ?? `HTTP ${status}`); this.status = status; this.detail = detail; }
 }
 
-/** POST to /api/admin: { data } on success, { errors } (keyed by field) on a 400. */
-async function post(path, body) {
+/**
+ * A change to /api/admin (POST, PATCH, ...): { data } on success, { errors } (keyed by field) on a 400.
+ * A 401 throws SignedOut; anything else not OK throws RequestFailed (with the server's detail).
+ */
+async function request(method, path, body) {
   const res = await fetch(`/api/admin${path}`, {
-    method: "POST", headers: { "Content-Type": "application/json" }, credentials: "same-origin",
+    method, headers: { "Content-Type": "application/json" }, credentials: "same-origin",
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   if (res.status === 401) throw new SignedOut();
   if (res.status === 400) return { errors: (await res.json()).errors ?? {} };
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return { data: await res.json() };
+  if (!res.ok) throw new RequestFailed(res.status, (await res.json().catch(() => ({}))).detail);
+  return { data: res.status === 204 ? null : await res.json() };
 }
+
+const post = (path, body) => request("POST", path, body);
 
 const firstError = (errors) => Object.values(errors).flat()[0] ?? "That change wasn't saved.";
 
@@ -267,13 +266,13 @@ async function drawer(id) {
 /** Saves a drawer change, then redraws the page. Closing a Problem sends it to the Archive and shuts the drawer. */
 async function save(p, body, { onErrors, done } = {}) {
   try {
-    const result = await patchProblem(p.id, body);
+    const result = await request("PATCH", `/problems/${p.id}`, body);
     if (result.errors) {
-      const message = Object.values(result.errors).flat()[0] ?? "That change wasn't saved.";
+      const message = firstError(result.errors);
       if (onErrors) onErrors(message); else toast(message);
       return false;
     }
-    const fresh = result.drawer;
+    const fresh = result.data;
     if (CLOSED.includes(fresh.status) && !CLOSED.includes(p.status)) {
       toast(fresh.status === "Shipped"
         ? "Shipped: moved to the Archive. ✦ Requester updates are drafted in the Outbox."
@@ -376,17 +375,14 @@ function solutionsBlock(p) {
       run.disabled = false;
     };
     try {
-      const res = await fetch(`/api/admin/problems/${p.id}/solutions`, { method: "POST", credentials: "same-origin" });
-      if (res.status === 401) return signIn();
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        return fail(body.detail ?? `Suggest Solutions failed (HTTP ${res.status}).`);
-      }
+      const result = await post(`/problems/${p.id}/solutions`);
+      if (result.errors) return fail(firstError(result.errors));
       ui.solutionsOpen = p.id;
       toast("✦ Solutions written.");
       await render();
-    } catch {
-      fail("Couldn't reach the server.");
+    } catch (e) {
+      if (e instanceof SignedOut) return signIn();
+      fail(e instanceof RequestFailed ? e.detail ?? `Suggest Solutions failed (HTTP ${e.status}).` : "Couldn't reach the server.");
     }
   });
   const result = s
@@ -410,23 +406,15 @@ function githubBlock(p) {
     create.addEventListener("click", async () => {
       create.disabled = true;
       error.hidden = true;
+      const failed = (message) => { error.textContent = message; error.hidden = false; create.disabled = false; };
       try {
-        const res = await fetch(`/api/admin/problems/${p.id}/github-issue`, { method: "POST", credentials: "same-origin" });
-        if (res.status === 401) return signIn();
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          error.textContent = body.detail ?? `Couldn't create the issue (HTTP ${res.status}).`;
-          error.hidden = false;
-          create.disabled = false;
-          return;
-        }
-        const fresh = await res.json();
-        toast(`Created GitHub issue #${fresh.gitHubIssue.number}.`);
+        const result = await post(`/problems/${p.id}/github-issue`);
+        if (result.errors) return failed(firstError(result.errors));
+        toast(`Created GitHub issue #${result.data.gitHubIssue.number}.`);
         await render();
-      } catch {
-        error.textContent = "Couldn't reach the server. Try again.";
-        error.hidden = false;
-        create.disabled = false;
+      } catch (e) {
+        if (e instanceof SignedOut) return signIn();
+        failed(e instanceof RequestFailed ? e.detail ?? `Couldn't create the issue (HTTP ${e.status}).` : "Couldn't reach the server. Try again.");
       }
     });
     return el("div", { class: "stack", style: "gap:6px" }, el("span", { class: "label" }, "GitHub"),
@@ -459,19 +447,20 @@ function briefBlock(p) {
       body.querySelectorAll("button[data-gen]").forEach((x) => { x.disabled = true; });
       status.replaceChildren(el("p", { class: "caption" }, `✦ Writing the brief from ${n} Feature Request${n === 1 ? "" : "s"}…`));
       try {
-        const res = await fetch(`/api/admin/problems/${p.id}/brief`, { method: "POST", credentials: "same-origin" });
-        if (res.status === 401) return signIn();
-        if (!res.ok) {
-          status.replaceChildren(el("p", { class: "notice err", role: "alert" },
-            b ? "The brief couldn't be written. The previous brief is kept. " : "The brief couldn't be written. ",
-            generate("Try again", "btn sm")));
-          body.querySelectorAll("button[data-gen]").forEach((x) => { x.disabled = false; });
-          return;
-        }
+        const result = await post(`/problems/${p.id}/brief`);
+        if (result.errors) throw new RequestFailed(400, firstError(result.errors));
         toast("Decision Brief written.");
         await render();
-      } catch {
-        status.replaceChildren(el("p", { class: "notice err", role: "alert" }, "Couldn't reach the server. ", generate("Try again")));
+      } catch (e) {
+        if (e instanceof SignedOut) return signIn();
+        if (!(e instanceof RequestFailed)) {
+          status.replaceChildren(el("p", { class: "notice err", role: "alert" }, "Couldn't reach the server. ", generate("Try again")));
+          return;
+        }
+        status.replaceChildren(el("p", { class: "notice err", role: "alert" },
+          b ? "The brief couldn't be written. The previous brief is kept. " : "The brief couldn't be written. ",
+          generate("Try again", "btn sm")));
+        body.querySelectorAll("button[data-gen]").forEach((x) => { x.disabled = false; });
       }
     });
     button.dataset.gen = "1";
@@ -548,9 +537,12 @@ function decisionRow(d) {
     : d.kind === "rename"
     ? (x.field === "description" ? "Description changed" : `“${x.from}” → “${x.to}”`)
     : ("from" in x || "to" in x) ? `${x.from ?? "Not set"} → ${x.to ?? "Not set"}` : "";
+  const toClose = d.kind === "merge" ? x.issuesToClose ?? [] : [];
   return el("li", {},
     el("b", {}, DECISION_LABEL[d.kind] ?? d.kind), " ", what,
     d.reason ? el("div", { class: "caption" }, `Reason: ${d.reason}`) : null,
+    toClose.length ? el("div", { class: "caption" }, "No longer linked, close by hand: ",
+      toClose.map((i, n) => [n ? ", " : "", el("a", { class: "link", href: i.url, target: "_blank", rel: "noopener" }, `#${i.number}`)])) : null,
     el("div", { class: "caption" }, formatDate(d.createdAt)));
 }
 
@@ -600,7 +592,7 @@ function priorityBlock(p) {
   const reason = el("input", { type: "text", maxlength: "300", "aria-label": "Reason for the Priority" });
   const reasonError = el("span", { class: "caption", style: "color:var(--error)", hidden: true });
   const reasonForm = el("form", { class: "stack", style: "gap:4px", hidden: true },
-    el("span", { class: "caption" }, "Your Priority differs from the recommendation. One-line reason (goes in the decision log):"),
+    el("span", { class: "caption" }, "Your Priority differs from the Recommended Priority. One-line reason (goes in the decision log):"),
     reason, reasonError,
     el("div", { class: "row" }, el("button", { class: "btn sm" }, "Save Priority"),
       el("button", { class: "btn sm quiet", type: "button", onclick: () => { reasonForm.hidden = true; } }, "Cancel")));
@@ -608,7 +600,7 @@ function priorityBlock(p) {
   reasonForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     reasonError.hidden = true;
-    await save(p, { priority: pending, reason: reason.value }, {
+    await save(p, { priority: pending, priorityReason: reason.value }, {
       done: `Priority: ${pending}.`, onErrors: (message) => { reasonError.textContent = message; reasonError.hidden = false; },
     });
   });
@@ -763,6 +755,22 @@ async function mergeModal(ids) {
   const others = problems.length - 1;
   const error = el("p", { class: "notice err", role: "alert", hidden: true });
   const go = el("button", { class: "btn", type: "button" }, "Merge");
+  // One GitHub issue per Problem (as the server does it): the kept Problem's own, else the first other one's.
+  const issues = el("li", {});
+  const showIssues = () => {
+    const keepId = Number(document.querySelector("input[name=keep]:checked")?.value ?? problems[0].id);
+    const kept = problems.find((p) => p.id === keepId);
+    const linked = problems.filter((p) => p.gitHubIssue);
+    const stays = kept.gitHubIssue ? kept : linked.find((p) => p.id !== keepId);
+    const toClose = linked.filter((p) => p !== stays);
+    issues.replaceChildren(!linked.length ? "None of these Problems has a GitHub issue."
+      : [`The kept Problem ${kept.gitHubIssue ? "keeps its" : "takes over"} GitHub issue #${stays.gitHubIssue.number}.`,
+         toClose.length
+           ? [" Close by hand: ", toClose.map((p, n) => [n ? ", " : "",
+               el("a", { class: "link", href: p.gitHubIssue.url, target: "_blank", rel: "noopener" }, `#${p.gitHubIssue.number}`),
+               ` (“${p.title}”)`]), ". They're also listed in the decision log."]
+           : ""]);
+  };
   go.addEventListener("click", async () => {
     const keepId = Number(document.querySelector("input[name=keep]:checked").value);
     go.disabled = true;
@@ -785,7 +793,7 @@ async function mergeModal(ids) {
     el("div", { class: "stack", style: "gap:6px" },
       el("span", { class: "label" }, "Keep which title, Category, status and Priority?"),
       problems.map((p, i) => el("label", { class: "opt" },
-        el("input", { type: "radio", name: "keep", value: String(p.id), checked: i === 0 }),
+        el("input", { type: "radio", name: "keep", value: String(p.id), checked: i === 0, onchange: showIssues }),
         el("span", {}, el("b", {}, p.title), el("br"), el("span", { class: "caption" },
           `${p.category} · ${p.status} · Priority ${p.priority ?? "not set"} · ${p.featureRequests.length} Feature Requests`))))),
     el("div", {}, el("span", { class: "label" }, "What happens"), el("ul", {},
@@ -793,9 +801,10 @@ async function mergeModal(ids) {
       el("li", {}, `The other Problem${others > 1 ? "s are" : " is"} removed (logged in the decision log, not the Archive).`),
       el("li", {}, "Reach is recounted and the AI re-scores Strategic fit, Pain and Retention risk."),
       el("li", {}, "Any Decision Brief becomes out of date."),
-      el("li", {}, "The kept Problem keeps its GitHub issue (or takes over another's). Any other linked issues are listed in the decision log; close them by hand."))),
+      issues)),
     error,
     el("div", { class: "row" }, go, cancelButton()));
+  showIssues();
 }
 
 // "N Feature Requests need review": each with Retry AI or Match by hand (to an existing Problem or a new one).

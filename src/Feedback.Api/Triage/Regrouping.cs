@@ -47,17 +47,21 @@ public sealed class Regrouping(FeedbackDbContext db, PriorityScorer scorer)
         };
         var moved = await db.FeatureRequests.Where(r => r.ProblemId != null && removedIds.Contains(r.ProblemId.Value)).ToListAsync(ct);
 
+        // One GitHub issue per Problem: the kept Problem stays linked to its own issue, or takes over the first
+        // removed Problem's. Every other linked issue is no longer linked and must be closed by hand.
+        var issueFrom = kept.GitHubIssueNumber is not null ? kept : removed.FirstOrDefault(p => p.GitHubIssueNumber is not null);
+        var linkedIssues = ids.Select(id => problems[id]).Where(p => p.GitHubIssueNumber is not null)
+            .Select(p => new { problemId = p.Id, number = p.GitHubIssueNumber, url = p.GitHubIssueUrl }).ToList();
+
         DecisionLog.Add(db, kept.Id, DecisionKinds.Merge, null, new
         {
             removed = removed.Select(p => new { id = p.Id, title = p.Title }),
             kept = new { picked.title, picked.category, picked.status, picked.priority },
             featureRequestIds = moved.Select(r => r.Id),
-            // Every linked issue, so the ones no longer linked can be closed by hand.
-            gitHubIssues = problems.Values.Where(p => p.GitHubIssueNumber is not null)
-                .Select(p => new { problemId = p.Id, number = p.GitHubIssueNumber, url = p.GitHubIssueUrl }),
+            gitHubIssues = linkedIssues,
+            issuesToClose = linkedIssues.Where(i => i.problemId != issueFrom?.Id),
         });
-        // The kept Problem stays linked to its own issue, or takes over the first removed Problem's.
-        if (kept.GitHubIssueNumber is null && removed.FirstOrDefault(p => p.GitHubIssueNumber is not null) is { } linked)
+        if (issueFrom is { } linked && linked != kept)
             (kept.GitHubIssueNumber, kept.GitHubIssueUrl, kept.GitHubIssueState, kept.GitHubCheckedAt) =
                 (linked.GitHubIssueNumber, linked.GitHubIssueUrl, linked.GitHubIssueState, linked.GitHubCheckedAt);
         (kept.Title, kept.Description, kept.Category, kept.Status) = (picked.title, picked.description, picked.category, picked.status);
