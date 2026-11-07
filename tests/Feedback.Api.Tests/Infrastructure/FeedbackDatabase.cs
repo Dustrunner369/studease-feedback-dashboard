@@ -46,6 +46,24 @@ public sealed class FeedbackDatabase : IAsyncLifetime
         END $$;
         """);
 
+    /// <summary>
+    /// Arrange-only: sets the status of a Feature Request's Problem, until a test can do it through /admin.
+    /// Never use it to assert.
+    /// </summary>
+    public async Task SetProblemStatusAsync(long featureRequestId, string status)
+    {
+        await using var connection = new NpgsqlConnection(ConnectionString);
+        await connection.OpenAsync();
+        await using var command = new NpgsqlCommand("""
+            UPDATE problems SET status = @status
+            WHERE id = (SELECT problem_id FROM feature_requests WHERE id = @id)
+            """, connection);
+        command.Parameters.AddWithValue("status", status);
+        command.Parameters.AddWithValue("id", featureRequestId);
+        if (await command.ExecuteNonQueryAsync() != 1)
+            throw new InvalidOperationException($"Feature Request {featureRequestId} has no Problem.");
+    }
+
     private async Task ExecuteAsync(string sql)
     {
         await using var connection = new NpgsqlConnection(ConnectionString);

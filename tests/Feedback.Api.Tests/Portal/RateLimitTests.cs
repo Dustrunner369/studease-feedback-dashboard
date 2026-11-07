@@ -34,6 +34,18 @@ public sealed class RateLimitTests(FeedbackDatabase database) : ApiTest(database
     }
 
     [Fact]
+    public async Task Suggesting_too_often_from_one_IP_is_refused()
+    {
+        var statuses = new List<HttpStatusCode>();
+        for (var i = 0; i < 4; i++)
+            statuses.Add((await Client.PostAsJsonAsync("/api/suggest", new { title = $"Dark mode {i}", description = "" })).StatusCode);
+
+        Assert.Equal(
+            [HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.TooManyRequests],
+            statuses);
+    }
+
+    [Fact]
     public async Task Upvoting_too_often_from_one_IP_is_refused()
     {
         var created = await Client.PostAsJsonAsync("/api/requests", new

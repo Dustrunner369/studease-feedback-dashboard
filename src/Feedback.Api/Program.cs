@@ -26,6 +26,7 @@ builder.Services.Configure<AiOptions>(builder.Configuration.GetSection(AiOptions
 builder.Services.AddSingleton<IAiGateway, OpenAiGateway>();
 builder.Services.AddScoped<AiCallLog>();
 builder.Services.AddPortalRateLimit(builder.Configuration);
+builder.Services.Configure<SuggestOptions>(builder.Configuration.GetSection(SuggestOptions.Section));
 
 var app = builder.Build();
 
