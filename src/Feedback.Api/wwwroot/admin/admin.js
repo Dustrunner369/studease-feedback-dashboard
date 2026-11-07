@@ -234,7 +234,6 @@ async function drawer(id) {
   for (const fid of ui.frSel) if (!p.featureRequests.some((r) => r.id === fid)) ui.frSel.delete(fid);
   const open = !CLOSED.includes(p.status);
 
-  const calls = el("div", {}, el("p", { class: "caption" }, "Loading…"));
   let moveBar = open ? moveBarFor(p) : el("span", { hidden: true });
   const onTick = open ? () => { const next = moveBarFor(p); moveBar.replaceWith(next); moveBar = next; } : null;
   const aside = el("aside", { class: "drawer", "aria-label": `Problem: ${p.title}` },
@@ -256,8 +255,8 @@ async function drawer(id) {
       el("summary", {}, `Decision log (${p.decisions.length})`),
       p.decisions.length ? el("ul", { class: "decisions" }, p.decisions.map(decisionRow))
         : el("p", { class: "caption" }, "No decisions yet.")),
-    el("details", { ontoggle: (e) => { if (e.target.open && !calls.dataset.loaded) loadCalls(calls, p.id); } },
-      el("summary", {}, "AI calls"), calls));
+    el("p", { class: "caption" },
+      el("a", { class: "link", href: `#settings/ai-calls?problem=${p.id}` }, "Open in the AI call log")));
   document.querySelector(".drawer")?.remove();
   document.body.append(aside);
   aside.querySelector("button").focus();
@@ -878,13 +877,6 @@ function reviewRow(r, settled) {
   return row;
 }
 
-async function loadCalls(node, problemId) {
-  const list = await api(`/ai-calls?problemId=${problemId}`);
-  node.dataset.loaded = "1";
-  node.replaceChildren(
-    list.length ? callsTable(list, { showFor: false }) : el("p", { class: "caption" }, "No AI calls for this Problem yet."),
-    el("p", { style: "margin-top:8px" }, el("a", { class: "link", href: `#settings/ai-calls?problem=${problemId}` }, "Open in the AI call log")));
-}
 
 // ---------- Settings → AI call log ----------
 async function settingsView(params) {
