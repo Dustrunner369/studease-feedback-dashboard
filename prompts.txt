@@ -302,3 +302,7 @@ Response: Wrote the v1 spec from the map's decisions (problem, solution, 78 user
 [2026-11-07T01:00:00Z]
 Prompt: /to-tickets, then "merge 9 into 4" on the proposed 15-slice breakdown.
 Response: Merged the AI call log view into the /admin sign-in slice and published 14 tracer-bullet tickets as sub-issues of the spec, labelled ready-for-agent, with native blocking links. The first, "Walking skeleton: submit a Feature Request and see it on the board", has no blockers.
+
+[2026-11-07T01:05:00Z]
+Prompt: /implement-spec (the v1 spec and its 14 tickets).
+Response: Started the build on an integration branch, with implementer subagents per ticket in their own worktrees.
