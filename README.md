@@ -1,4 +1,4 @@
-# studease-feedback-dashboard
+# Studease Feature Request Intelligence System
 
 ## Results on the seed backlog
 
