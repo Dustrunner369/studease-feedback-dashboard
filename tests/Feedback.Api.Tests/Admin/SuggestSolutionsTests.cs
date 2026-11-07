@@ -179,6 +179,23 @@ public sealed class SuggestSolutionsTests(FeedbackDatabase database) : AdminTest
         Assert.DoesNotContain("secret@example.com", sent);
     }
 
+    [Fact]
+    public async Task Merging_away_a_problem_with_solutions_works_and_the_kept_problem_keeps_its_own()
+    {
+        var (keptId, _) = await NewProblemAsync("Filter by opening hours");
+        var (otherId, _) = await NewProblemAsync("Show only open spots");
+        GitHub.Files["lib/spot.dart"] = "class Spot {}";
+        Ai.WriteSolutions = input => $"Options for {input.Problem.Title}.";
+        await SuggestAsync(keptId);
+        await SuggestAsync(otherId);
+
+        var merge = await Client.PostAsJsonAsync("/api/admin/problems/merge", new { problemIds = new[] { keptId, otherId }, keepId = keptId });
+
+        Assert.Equal(HttpStatusCode.OK, merge.StatusCode);
+        Assert.Equal("Options for Filter by opening hours.", (await merge.Content.ReadFromJsonAsync<SolutionsDrawerJson>())!.Solutions!.Body);
+        Assert.Equal(HttpStatusCode.NotFound, (await Client.GetAsync($"/api/admin/problems/{otherId}")).StatusCode);
+    }
+
     private async Task<SolutionsJson> SuggestAsync(long problemId)
     {
         var response = await Client.PostAsync($"/api/admin/problems/{problemId}/solutions", null);
