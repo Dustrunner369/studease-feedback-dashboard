@@ -25,7 +25,7 @@ public static class SuggestEndpoints
 {
     /// <summary>
     /// POST /api/suggest: similar existing Feature Requests for what the Requester is typing, one per Problem.
-    /// Calls are not logged in ai_calls. Any embedding failure just means no suggestions.
+    /// Calls are not logged in ai_calls. Any embedding failure just means no similar requests.
     /// </summary>
     public static void MapSuggest(this RouteGroupBuilder api)
     {
@@ -36,7 +36,7 @@ public static class SuggestEndpoints
             var title = Clip(body.Title, SubmissionValidator.TitleMax);
             var description = Clip(body.Description, SubmissionValidator.DescriptionMax);
             if ((title + description).Count(c => !char.IsWhiteSpace(c)) < o.MinChars)
-                return Results.Ok(Array.Empty<SuggestionView>());
+                return Results.Ok(Array.Empty<SimilarRequestView>());
 
             float[] embedding;
             try
@@ -46,9 +46,9 @@ public static class SuggestEndpoints
             catch (Exception e) when (e is not OperationCanceledException || !ct.IsCancellationRequested)
             {
                 logger.LogWarning("Suggest embedding failed: {Message}", e.Message);
-                return Results.Ok(Array.Empty<SuggestionView>());
+                return Results.Ok(Array.Empty<SimilarRequestView>());
             }
-            if (embedding.Length != 1536) return Results.Ok(Array.Empty<SuggestionView>());
+            if (embedding.Length != 1536) return Results.Ok(Array.Empty<SimilarRequestView>());
 
             var closest = (await ClosestProblems.FindAsync(db, new Vector(embedding), o.MaxResults, ct))
                 .Where(r => 1 - r.Distance >= o.ShowThreshold)
@@ -61,7 +61,7 @@ public static class SuggestEndpoints
             return Results.Ok(closest.Select((r, i) =>
             {
                 var similarity = 1 - r.Distance;
-                return SuggestionView.From(views[r.FeatureRequestId], similarity, strong: i == 0 && similarity >= o.StrongThreshold);
+                return SimilarRequestView.From(views[r.FeatureRequestId], similarity, strong: i == 0 && similarity >= o.StrongThreshold);
             }).ToList());
         });
     }
@@ -76,10 +76,10 @@ public static class SuggestEndpoints
 public sealed record SuggestBody(string? Title, string? Description);
 
 /// <summary>A suggested Feature Request, how similar it is (0–1), and whether it is the strong match. Never includes the email.</summary>
-public sealed record SuggestionView(
+public sealed record SimilarRequestView(
     long Id, string Title, string Description, string Category, DateTimeOffset CreatedAt, int Upvotes, bool Upvoted,
     double Similarity, bool Strong)
 {
-    public static SuggestionView From(FeatureRequestView r, double similarity, bool strong) =>
+    public static SimilarRequestView From(FeatureRequestView r, double similarity, bool strong) =>
         new(r.Id, r.Title, r.Description, r.Category, r.CreatedAt, r.Upvotes, r.Upvoted, Math.Round(similarity, 4), strong);
 }

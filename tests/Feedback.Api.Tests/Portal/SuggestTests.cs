@@ -125,7 +125,7 @@ public sealed class SuggestTests(FeedbackDatabase database) : ApiTest(database)
         };
         message.Headers.Add("X-Browser-Token", "browser-token-alice-0001");
         var response = await Client.SendAsync(message);
-        var match = Assert.Single((await response.Content.ReadFromJsonAsync<SuggestionJson[]>())!);
+        var match = Assert.Single((await response.Content.ReadFromJsonAsync<SimilarRequestJson[]>())!);
 
         Assert.Equal(2, match.Upvotes);
         Assert.True(match.Upvoted);
@@ -184,14 +184,14 @@ public sealed class SuggestTests(FeedbackDatabase database) : ApiTest(database)
         return (await response.Content.ReadFromJsonAsync<FeatureRequestJson>())!;
     }
 
-    private async Task<SuggestionJson[]> SuggestAsync(string title = "Query", string description = "what I am typing")
+    private async Task<SimilarRequestJson[]> SuggestAsync(string title = "Query", string description = "what I am typing")
     {
         var response = await Client.PostAsJsonAsync("/api/suggest", new { title, description });
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        return (await response.Content.ReadFromJsonAsync<SuggestionJson[]>())!;
+        return (await response.Content.ReadFromJsonAsync<SimilarRequestJson[]>())!;
     }
 }
 
 /// <summary>One suggest-as-you-type match: a Feature Request plus how close it is.</summary>
-public sealed record SuggestionJson(
+public sealed record SimilarRequestJson(
     long Id, string Title, string Description, string Category, int Upvotes, bool Upvoted, double Similarity, bool Strong);

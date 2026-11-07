@@ -87,7 +87,7 @@ export function formatDate(iso) {
 
 /**
  * Wires the header's "+ Request a feature" button to the pop-up form.
- * onChanged runs after a successful submit (with the new request) or after upvoting a suggestion instead.
+ * onChanged runs after a successful submit (with the new request) or after upvoting a similar request instead.
  */
 export function setUpRequestForm(onChanged) {
   const open = document.querySelector("[data-open-form]");
@@ -96,7 +96,7 @@ export function setUpRequestForm(onChanged) {
 
 function showForm(opener, onSubmitted) {
   const close = () => {
-    suggestions.stop();
+    similar.stop();
     scrim.remove(); modal.remove(); document.removeEventListener("keydown", onKey); opener.focus();
   };
   const onKey = (e) => { if (e.key === "Escape") close(); };
@@ -113,7 +113,7 @@ function showForm(opener, onSubmitted) {
   const send = el("button", { class: "btn" }, "Send request");
   const formError = el("p", { class: "form-error", role: "alert", hidden: true });
   const slot = el("div", { class: "slot", "aria-live": "polite" });
-  const suggestions = suggestAsYouType({
+  const similar = similarAsYouType({
     title, description, slot, send,
     onUpvoted: (r) => {
       close();
@@ -142,14 +142,14 @@ function showForm(opener, onSubmitted) {
     formError.hidden = true;
     send.disabled = true;
     try {
-      const res = await fetch("/api/requests", {
+      const res = await apiFetch("/api/requests", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: title.value, description: description.value, category: category.value, email: email.value }),
       });
       if (res.status === 201) {
         const created = await res.json();
-        suggestions.stop();
+        similar.stop();
         showThanks(modal, close);
         onSubmitted?.(created);
         return;
@@ -168,13 +168,13 @@ function showForm(opener, onSubmitted) {
   title.focus();
 }
 
-// Suggest-as-you-type (prototype variant B): once title + description reach MIN_CHARS, search
+// Similar requests as you type (prototype variant B): once title + description reach MIN_CHARS, search
 // DEBOUNCE_MS after typing stops. Ordinary matches are a quiet list; a strong top match becomes a
 // dark banner whose "Upvote this instead" takes over from Send. Any failure just shows nothing.
 const SUGGEST_MIN_CHARS = 4;
 const SUGGEST_DEBOUNCE_MS = 500;
 
-function suggestAsYouType({ title, description, slot, send, onUpvoted }) {
+function similarAsYouType({ title, description, slot, send, onUpvoted }) {
   let timer = null;
   let seq = 0; // bumps on every keystroke, so a late answer for older text is dropped
   let pending = false;
@@ -204,7 +204,7 @@ function suggestAsYouType({ title, description, slot, send, onUpvoted }) {
         body: JSON.stringify({ title: title.value, description: description.value }),
       });
       if (res.ok) found = await res.json();
-    } catch { /* no suggestions; the form still works */ }
+    } catch { /* no similar requests; the form still works */ }
     if (mine !== seq || stopped) return;
     matches = found;
     pending = false;
