@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Studease Feature Requests</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Pacifico&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/portal.css">
+</head>
+<body data-page="board">
+<div class="page reveal">
+  <header>
+    <div class="left"><a class="wordmark" href="/">Studease</a><span class="label">Feature requests</span></div>
+    <button class="btn" type="button" data-open-form>+ Request a feature</button>
+  </header>
+
+  <section class="intro">
+    <div>
+      <h1>What people are asking for</h1>
+      <p class="muted" style="margin:6px 0 0">See what others have asked for, or add your own.</p>
+    </div>
+    <span class="sketch sk-books" aria-hidden="true"></span>
+  </section>
+
+  <div class="tabs cats" role="tablist" aria-label="Category" id="cats"></div>
+  <div class="sort">
+    <span class="caption" id="count" aria-live="polite"></span>
+    <div class="tabs" aria-label="Sort">
+      <button class="tab" type="button" aria-selected="true">Newest</button>
+    </div>
+  </div>
+  <div id="list"></div>
+
+  <section class="howto">
+    <h3>How we prioritize</h3>
+    <p class="muted" style="margin:6px 0 0;font-size:14.5px">Similar requests are grouped into one problem. We weigh each problem on four things:</p>
+    <ol>
+      <li><b>Reach</b>: how many people are asking for it.</li>
+      <li><b>Pain</b>: how much the problem gets in the way today.</li>
+      <li><b>Strategic fit</b>: how well it serves Studease's goals: finding new spots, coming back, the social side.</li>
+      <li><b>Retention risk</b>: whether it might make people stop using Studease.</li>
+    </ol>
+  </section>
+</div>
+<script type="module" src="/js/board.js"></script>
+</body>
+</html>
