@@ -103,7 +103,7 @@ The production connection string must include `Search Path=feedback`. The app ke
 
    `seed load` ends by printing the duplicate catch rate and grouping accuracy, and saves them to `/admin` → Metrics. To start over, run `seed remove` and then `seed load` again. Both commands use whichever `ConnectionStrings:Feedback` is configured, so check which database you're pointed at first.
 
-5. **Check priority consistency (optional).** In `/admin` → Metrics, run the Priority consistency check. It re-scores every open Problem 3 times (about 78 AI calls on the seed data, roughly 1.5¢) and shows how many kept the same level.
+5. **Check priority consistency (optional).** In `/admin` → Metrics, run the Priority consistency check. It re-scores every open Problem 3 times and shows how many kept the same level.
 
 ## Tests
 
