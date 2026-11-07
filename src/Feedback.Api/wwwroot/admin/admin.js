@@ -244,6 +244,7 @@ async function drawer(id) {
     titleBlock(p),
     headerControls(p),
     priorityBlock(p),
+    solutionsBlock(p),
     githubBlock(p),
     el("details", { open: !!p.brief },
       el("summary", {}, p.brief?.outOfDate ? "Decision Brief · out of date" : "Decision Brief"),
@@ -355,6 +356,49 @@ function headerControls(p) {
       el("label", { class: "row", style: "gap:6px" }, el("span", { class: "label" }, "Status"), status),
       el("label", { class: "row", style: "gap:6px" }, el("span", { class: "label" }, "Category"), category)),
     wontDo, closed);
+}
+
+// ✦ Suggest Solutions: reads the connected repo and writes options. The latest result is kept; a failure shows Try again.
+function solutionsBlock(p) {
+  const s = p.solutions;
+  const error = el("p", { class: "notice err", role: "alert", hidden: true });
+  const status = el("p", { class: "caption", hidden: true }, "Reading the repo and writing options… this can take a minute.");
+  const run = el("button", { class: "btn sm", type: "button" }, s ? "Run again" : "✦ Suggest Solutions");
+  run.addEventListener("click", async () => {
+    run.disabled = true;
+    error.hidden = true;
+    status.hidden = false;
+    const fail = (message) => {
+      status.hidden = true;
+      error.replaceChildren(message, " ",
+        el("button", { class: "btn sm", type: "button", onclick: () => run.click() }, "Try again"));
+      error.hidden = false;
+      run.disabled = false;
+    };
+    try {
+      const res = await fetch(`/api/admin/problems/${p.id}/solutions`, { method: "POST", credentials: "same-origin" });
+      if (res.status === 401) return signIn();
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        return fail(body.detail ?? `Suggest Solutions failed (HTTP ${res.status}).`);
+      }
+      ui.solutionsOpen = p.id;
+      toast("✦ Solutions written.");
+      await render();
+    } catch {
+      fail("Couldn't reach the server.");
+    }
+  });
+  const result = s
+    ? [
+        el("p", { class: "caption" }, `Generated ${formatDate(s.generatedAt)} · read ${s.files.length} file${s.files.length === 1 ? "" : "s"}`),
+        s.files.length ? el("ul", { class: "sol-files" }, s.files.map((f) => el("li", {}, el("code", {}, f)))) : null,
+        el("div", { class: "sol-body" }, s.body),
+      ]
+    : [el("p", { class: "caption" }, "Reads the connected GitHub repo (file tree, about 8 chosen files, open issues and PRs) and writes options.")];
+  return el("details", { class: "solutions", open: ui.solutionsOpen === p.id || !s },
+    el("summary", {}, s ? "✦ Suggested solutions" : "✦ Suggest Solutions"),
+    el("div", { class: "stack", style: "gap:6px" }, ...result, el("div", { class: "row" }, run), status, error));
 }
 
 // GitHub: Create GitHub issue (by hand), then the linked issue's state as of the last refresh.

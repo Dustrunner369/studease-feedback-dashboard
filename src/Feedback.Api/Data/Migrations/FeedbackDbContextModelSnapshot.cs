@@ -515,6 +515,42 @@ namespace Feedback.Api.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Feedback.Api.Data.SolutionSuggestion", b =>
+                {
+                    b.Property<long>("ProblemId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("problem_id");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("body");
+
+                    b.PrimitiveCollection<string[]>("Files")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("files");
+
+                    b.Property<DateTimeOffset>("GeneratedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("generated_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<long>("PickerAiCallId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("picker_ai_call_id");
+
+                    b.Property<long>("WriteAiCallId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("write_ai_call_id");
+
+                    b.HasKey("ProblemId")
+                        .HasName("pk_solution_suggestions");
+
+                    b.ToTable("solution_suggestions", "feedback");
+                });
+
             modelBuilder.Entity("Feedback.Api.Data.Upvote", b =>
                 {
                     b.Property<long>("FeatureRequestId")
@@ -602,6 +638,16 @@ namespace Feedback.Api.Data.Migrations
                         .HasConstraintName("fk_problems_priority_scorings_first_scoring_id");
 
                     b.Navigation("CurrentScoring");
+                });
+
+            modelBuilder.Entity("Feedback.Api.Data.SolutionSuggestion", b =>
+                {
+                    b.HasOne("Feedback.Api.Data.Problem", null)
+                        .WithOne()
+                        .HasForeignKey("Feedback.Api.Data.SolutionSuggestion", "ProblemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_solution_suggestions_problems_problem_id");
                 });
 
             modelBuilder.Entity("Feedback.Api.Data.Upvote", b =>

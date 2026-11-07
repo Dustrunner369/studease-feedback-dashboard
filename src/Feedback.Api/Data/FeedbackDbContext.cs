@@ -16,6 +16,7 @@ public sealed class FeedbackDbContext(DbContextOptions<FeedbackDbContext> option
     public DbSet<DecisionLogEntry> DecisionLog => Set<DecisionLogEntry>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
     public DbSet<DecisionBrief> DecisionBriefs => Set<DecisionBrief>();
+    public DbSet<SolutionSuggestion> SolutionSuggestions => Set<SolutionSuggestion>();
 
     protected override void OnModelCreating(ModelBuilder model)
     {
@@ -93,5 +94,6 @@ public sealed class FeedbackDbContext(DbContextOptions<FeedbackDbContext> option
         model.Entity<AiCall>(AiCall.Configure);
         model.Entity<OutboxMessage>(OutboxMessage.Configure);
         model.Entity<DecisionBrief>(DecisionBrief.Configure);
+        model.Entity<SolutionSuggestion>(SolutionSuggestion.Configure);
     }
 }

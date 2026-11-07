@@ -8,7 +8,8 @@ public static class AiSteps
     public const string Score = "Score";
     public const string DraftUpdate = "DraftUpdate";
     public const string Brief = "Brief";
-    // Later tickets: PickFiles, WriteSolutions.
+    public const string PickFiles = "PickFiles";
+    public const string WriteSolutions = "WriteSolutions";
 }
 
 /// <summary>Binds the <c>Ai</c> section: model and effort per step, prices per model, timeout.</summary>

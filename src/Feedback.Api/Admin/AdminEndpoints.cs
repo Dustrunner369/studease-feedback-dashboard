@@ -2,6 +2,7 @@ using Feedback.Api.Briefs;
 using Feedback.Api.GitHub;
 using Feedback.Api.Outbox;
 using Feedback.Api.Portal;
+using Feedback.Api.Solutions;
 
 namespace Feedback.Api.Admin;
 
@@ -39,6 +40,7 @@ public static class AdminEndpoints
         signedIn.MapGitHub();
         signedIn.MapOutbox();
         signedIn.MapBriefs();
+        signedIn.MapSolutions();
     }
 }
 

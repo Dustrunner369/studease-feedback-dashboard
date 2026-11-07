@@ -163,8 +163,8 @@ public sealed class Regrouping(FeedbackDbContext db, PriorityScorer scorer)
         if (problems.Count == 0) return;
         foreach (var p in problems) (p.CurrentScoringId, p.FirstScoringId, p.CurrentScoring) = (null, null, null);
         await db.SaveChangesAsync(ct);
-        // Decision Briefs and Suggest Solutions (later tickets): delete the removed Problems' decision_briefs and
-        // solution_suggestions rows here (or give their problem_id FK ON DELETE CASCADE).
+        // solution_suggestions cascade (FK ON DELETE CASCADE). Decision Briefs (later ticket): delete the removed Problems' decision_briefs
+        // rows here (or give their problem_id FK ON DELETE CASCADE).
         db.Problems.RemoveRange(problems);
         await db.SaveChangesAsync(ct);
     }

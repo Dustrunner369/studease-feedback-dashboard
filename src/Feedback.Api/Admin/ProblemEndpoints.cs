@@ -2,6 +2,7 @@ using Feedback.Api.Briefs;
 using Feedback.Api.Data;
 using Feedback.Api.Domain;
 using Feedback.Api.Scoring;
+using Feedback.Api.Solutions;
 using Feedback.Api.Triage;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -91,6 +92,7 @@ public static class ProblemEndpoints
             problem.Id, problem.Title, problem.Description, problem.Category, problem.Status, problem.Priority,
             problem.PriorityOverrideReason, Recommended(problem, criteria), problem.ScoringFailed, requests, decisions,
             problem.ClosedAt, GitHubIssueView.Of(problem),
+            SolutionsView.Of(await db.SolutionSuggestions.AsNoTracking().SingleOrDefaultAsync(s => s.ProblemId == id, ct)),
             await DecisionBriefs.ViewAsync(db, id, requests.Select(r => r.Id).ToList(), ct));
     }
 
@@ -134,7 +136,7 @@ public sealed record ProblemDrawer(
     long Id, string Title, string Description, string Category, string Status, string? Priority,
     string? PriorityOverrideReason, RecommendedView? Recommended, bool ScoringFailed,
     IReadOnlyList<DrawerRequest> FeatureRequests, IReadOnlyList<DecisionView> Decisions, DateTimeOffset? ClosedAt,
-    GitHubIssueView? GitHubIssue, DecisionBriefView? Brief);
+    GitHubIssueView? GitHubIssue, SolutionsView? Solutions, DecisionBriefView? Brief);
 
 /// <summary>
 /// The Problem's GitHub issue (null until Create GitHub issue). State is as of CheckedAt (the last refresh);
